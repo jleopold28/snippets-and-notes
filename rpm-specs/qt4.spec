@@ -1,0 +1,2297 @@
+# Fedora Review: http://bugzilla.redhat.com/188180
+
+%define debug_package %{nil}
+# configure options
+# -no-pch disables precompiled headers, make ccache-friendly
+%define no_pch -no-pch
+
+# See http://bugzilla.redhat.com/223663
+%define multilib_archs x86_64 %{ix86} ppc64 ppc s390x s390 sparc64 sparcv9 ppc64le
+%define multilib_basearchs x86_64 ppc64 s390x sparc64 ppc64le
+
+%if 0%{?fedora} > 16 || 0%{?rhel} > 6
+# use external qt_settings pkg
+%define qt_settings 1
+%endif
+
+%global rpm_macros_dir %(d=%{_rpmconfigdir}/macros.d; [ -d $d ] || d=%{_sysconfdir}/rpm; echo $d)
+
+# trim changelog included in binary rpms
+%global _changelog_trimtime %(date +%s -d "1 year ago")
+
+# support qtchooser
+#%define qtchooser 1
+%define qtchooser 0
+
+Summary: Qt toolkit
+Name:    qt
+Epoch:   1
+Version: 4.8.6
+Release: 9.el6
+
+# See LGPL_EXCEPTIONS.txt, LICENSE.GPL3, respectively, for exception details
+License: (LGPLv2 with exceptions or GPLv3 with exceptions) and ASL 2.0 and BSD and FTL and MIT
+Group: System Environment/Libraries
+Url: http://qt-project.org/
+Source0: qt-everywhere-opensource-src-%{version}.tar.gz
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+Obsoletes: qt4 < %{version}-%{release}
+Provides: qt4 = %{version}-%{release}
+%{?_isa:Provides: qt4%{?_isa} = %{version}-%{release}}
+
+# default Qt config file
+Source4: Trolltech.conf
+
+# header file to workaround multilib issue
+Source5: qconfig-multilib.h
+
+# set default QMAKE_CFLAGS_RELEASE
+Patch2: qt-everywhere-opensource-src-4.8.0-tp-multilib-optflags.patch
+
+# get rid of timestamp which causes multilib problem
+Patch4: qt-everywhere-opensource-src-4.8.5-uic_multilib.patch
+
+# reduce debuginfo in qtwebkit (webcore)
+Patch5: qt-everywhere-opensource-src-4.8.5-webcore_debuginfo.patch
+
+# cups16 printer discovery
+Patch6: qt-cupsEnumDests.patch
+
+# enable ft lcdfilter
+Patch15: qt-x11-opensource-src-4.5.1-enable_ft_lcdfilter.patch
+
+# may be upstreamable, not sure yet
+# workaround for gdal/grass crashers wrt glib_eventloop null deref's
+Patch23: qt-everywhere-opensource-src-4.6.3-glib_eventloop_nullcheck.patch
+
+# hack out largely useless (to users) warnings about qdbusconnection
+# (often in kde apps), keep an eye on https://git.reviewboard.kde.org/r/103699/
+Patch25: qt-everywhere-opensource-src-4.8.3-qdbusconnection_no_debug.patch
+
+# lrelease-qt4 tries to run qmake not qmake-qt4 (http://bugzilla.redhat.com/820767)
+Patch26: qt-everywhere-opensource-src-4.8.1-linguist_qmake-qt4.patch
+
+# enable debuginfo in libQt3Support
+Patch27: qt-everywhere-opensource-src-4.8.1-qt3support_debuginfo.patch
+
+# kde4/multilib QT_PLUGIN_PATH
+Patch28: qt-everywhere-opensource-src-4.8.5-qt_plugin_path.patch
+
+## upstreamable bits
+# add support for pkgconfig's Requires.private to qmake
+Patch50: qt-everywhere-opensource-src-4.8.4-qmake_pkgconfig_requires_private.patch
+
+# fix invalid inline assembly in qatomic_{i386,x86_64}.h (de)ref implementations
+Patch53: qt-x11-opensource-src-4.5.0-fix-qatomic-inline-asm.patch
+
+# fix invalid assumptions about mysql_config --libs
+# http://bugzilla.redhat.com/440673
+Patch54: qt-everywhere-opensource-src-4.8.5-mysql_config.patch
+
+# http://bugs.kde.org/show_bug.cgi?id=180051#c22
+Patch55: qt-everywhere-opensource-src-4.6.2-cups.patch
+
+# Fails to create debug build of Qt projects on mingw (rhbz#653674)
+Patch64: qt-everywhere-opensource-src-4.8.5-QTBUG-14467.patch
+
+# fix QTreeView crash triggered by KPackageKit (patch by David Faure)
+Patch65: qt-everywhere-opensource-src-4.8.0-tp-qtreeview-kpackagekit-crash.patch
+
+# fix the outdated standalone copy of JavaScriptCore
+Patch67: qt-everywhere-opensource-src-4.8.6-s390.patch
+
+# https://bugs.webkit.org/show_bug.cgi?id=63941
+# -Wall + -Werror = fail
+Patch68: qt-everywhere-opensource-src-4.8.3-no_Werror.patch
+
+# revert qlist.h commit that seems to induce crashes in qDeleteAll<QList (QTBUG-22037)
+Patch69: qt-everywhere-opensource-src-4.8.0-QTBUG-22037.patch
+
+# Buttons in Qt applications not clickable when run under gnome-shell (#742658, QTBUG-21900)
+Patch71:  qt-everywhere-opensource-src-4.8.5-QTBUG-21900.patch
+
+# workaround
+# sql/drivers/tds/qsql_tds.cpp:341:49: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+Patch74: qt-everywhere-opensource-src-4.8.5-tds_no_strict_aliasing.patch
+
+# add missing method for QBasicAtomicPointer on s390(x)
+Patch76: qt-everywhere-opensource-src-4.8.0-s390-atomic.patch
+
+# don't spam in release/no_debug mode if libicu is not present at runtime
+Patch77: qt-everywhere-opensource-src-4.8.3-icu_no_debug.patch
+
+# https://bugzilla.redhat.com/show_bug.cgi?id=810500
+Patch81: qt-everywhere-opensource-src-4.8.2--assistant-crash.patch
+
+# https://bugzilla.redhat.com/show_bug.cgi?id=694385
+# https://bugs.kde.org/show_bug.cgi?id=249217
+# https://bugreports.qt-project.org/browse/QTBUG-4862
+# QDir::homePath() should account for an empty HOME environment variable on X11
+Patch82: qt-everywhere-opensource-src-4.8.5-QTBUG-4862.patch
+
+# poll support
+Patch83: qt-4.8-poll.patch
+
+# fix QTBUG-35459 (too low entityCharacterLimit=1024 for CVE-2013-4549)
+Patch84: qt-everywhere-opensource-src-4.8.5-QTBUG-35459.patch
+
+# systemtrayicon plugin support (for appindicators)
+Patch86: qt-everywhere-opensource-src-4.8.6-systemtrayicon.patch
+
+# fixes for LibreOffice from the upstream Qt bug tracker (#1105422):
+Patch87: qt-everywhere-opensource-src-4.8.6-QTBUG-37380.patch
+Patch88: qt-everywhere-opensource-src-4.8.6-QTBUG-34614.patch
+Patch89: qt-everywhere-opensource-src-4.8.6-QTBUG-38585.patch
+
+# upstream patches
+# backported from Qt5 (essentially)
+# http://bugzilla.redhat.com/702493
+# https://bugreports.qt-project.org/browse/QTBUG-5545
+Patch102: qt-everywhere-opensource-src-4.8.5-qgtkstyle_disable_gtk_theme_check.patch
+# workaround for MOC issues with Boost headers (#756395)
+# https://bugreports.qt-project.org/browse/QTBUG-22829
+Patch113: qt-everywhere-opensource-src-4.8.5-QTBUG-22829.patch
+
+# aarch64 support, https://bugreports.qt-project.org/browse/QTBUG-35442
+Patch180: qt-aarch64.patch
+# ppc64le support
+Patch185: qt-everywhere-opensource-src-4.8-ppc64le_support.patch
+
+## upstream git
+Patch210: 0010-QDbus-Fix-a-b-comparison.patch
+Patch225: 0025-Fix-visual-index-lookup-in-QTreeViewPrivate-adjustVi.patch
+Patch234: 0034-Fix-raster-graphics-on-X11-RGB30.patch
+
+## security patches
+# https://bugreports.qt-project.org/browse/QTBUG-38367
+Patch300: qt-everywhere-opensource-src-4.8.6-QTBUG-38367.patch
+
+# desktop files
+Source20: assistant.desktop
+Source21: designer.desktop
+Source22: linguist.desktop
+Source23: qdbusviewer.desktop
+Source24: qtdemo.desktop
+Source25: qtconfig.desktop
+
+# upstream qt4-logo, http://trolltech.com/images/products/qt/qt4-logo
+Source30: hi128-app-qt4-logo.png
+Source31: hi48-app-qt4-logo.png
+
+## BOOTSTRAPPING, undef docs, demos, examples, phonon, webkit
+
+## optional plugin bits
+# set to -no-sql-<driver> to disable
+# set to -qt-sql-<driver> to enable *in* qt library
+%define mysql -plugin-sql-mysql
+%define odbc -plugin-sql-odbc
+%define psql -plugin-sql-psql
+%define sqlite -plugin-sql-sqlite
+%define phonon -phonon
+%define phonon_backend -phonon-backend
+%define dbus -dbus-linked
+%define graphicssystem -graphicssystem raster
+%define gtkstyle -gtkstyle
+%if 0%{?fedora}
+# FIXME/TODO: use system webkit for assistant, examples/webkit, demos/browser
+%define webkit -webkit
+%define ibase -plugin-sql-ibase
+%define tds -plugin-sql-tds
+%endif
+%if 0%{?rhel}
+%define no_javascript_jit -no-javascript-jit
+%define ibase -no-sql-ibase
+%define tds -no-sql-tds
+%endif
+
+# See http://bugzilla.redhat.com/196901
+%define _qt4 %{name}
+%define _qt4_prefix %{_libdir}/qt4
+%define _qt4_bindir %{_qt4_prefix}/bin
+# _qt4_datadir is not multilib clean, and hacks to workaround that breaks stuff.
+#define _qt4_datadir %{_datadir}/qt4
+%define _qt4_datadir %{_qt4_prefix}
+%define _qt4_demosdir %{_qt4_prefix}/demos
+%define _qt4_docdir %{_docdir}/qt4
+%define _qt4_examplesdir %{_qt4_prefix}/examples
+%define _qt4_headerdir %{_includedir}
+%define _qt4_importdir %{_qt4_prefix}/imports 
+%define _qt4_libdir %{_libdir}
+%define _qt4_plugindir %{_qt4_prefix}/plugins
+%define _qt4_sysconfdir %{_sysconfdir}
+%define _qt4_translationdir %{_datadir}/qt4/translations
+
+BuildRequires: cups-devel
+BuildRequires: desktop-file-utils
+BuildRequires: findutils
+BuildRequires: libjpeg-devel
+BuildRequires: libmng-devel
+BuildRequires: libtiff-devel
+BuildRequires: pkgconfig
+BuildRequires: pkgconfig(alsa) 
+BuildRequires: pkgconfig(dbus-1)
+BuildRequires: pkgconfig(fontconfig)
+BuildRequires: pkgconfig(glib-2.0)
+%if 0%{?fedora} || 0%{?rhel} > 6
+BuildRequires: pkgconfig(icu-i18n)
+%else
+BuildRequires: libicu-devel
+%endif
+BuildRequires: pkgconfig(NetworkManager)
+BuildRequires: pkgconfig(openssl)
+BuildRequires: pkgconfig(libpng)
+BuildRequires: pkgconfig(libpulse)
+BuildRequires: pkgconfig(xtst) 
+BuildRequires: pkgconfig(zlib)
+BuildRequires: rsync
+
+%define gl_deps pkgconfig(gl) pkgconfig(glu)
+%define x_deps pkgconfig(ice) pkgconfig(sm) pkgconfig(xcursor) pkgconfig(xext) pkgconfig(xfixes) pkgconfig(xft) pkgconfig(xi) pkgconfig(xinerama) pkgconfig(xrandr) pkgconfig(xrender) pkgconfig(xt) pkgconfig(xv) pkgconfig(x11) pkgconfig(xproto)
+BuildRequires: %{gl_deps}
+BuildRequires: %{x_deps}
+
+%if "%{?ibase}" != "-no-sql-ibase"
+BuildRequires: firebird-devel
+%endif
+
+%if "%{?mysql}" != "-no-sql-mysql"
+BuildRequires: mysql-devel >= 4.0
+%endif
+
+%if "%{?phonon_backend}" == "-phonon-backend"
+BuildRequires: pkgconfig(gstreamer-0.10) 
+BuildRequires: pkgconfig(gstreamer-plugins-base-0.10) 
+%endif
+
+%if "%{?gtkstyle}" == "-gtkstyle"
+BuildRequires: pkgconfig(gtk+-2.0) 
+%endif
+
+%if "%{?psql}" != "-no-sql-psql"
+BuildRequires: postgresql-devel
+%endif
+
+%if "%{?odbc}" != "-no-sql-odbc"
+BuildRequires: unixODBC-devel
+%endif
+
+%if "%{?sqlite}" != "-no-sql-sqlite"
+%define _system_sqlite -system-sqlite
+BuildRequires: pkgconfig(sqlite3) 
+%endif
+
+Provides:  qt4-sqlite = %{version}-%{release}
+%{?_isa:Provides: qt4-sqlite%{?_isa} = %{version}-%{release}}
+Obsoletes: qt-sqlite < 1:4.7.1-16
+Provides:  qt-sqlite = %{?epoch:%{epoch}:}%{version}-%{release} 
+%{?_isa:Provides: qt-sqlite%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}}
+
+%if "%{?tds}" != "-no-sql-tds"
+BuildRequires: freetds-devel
+%endif
+
+Obsoletes: qgtkstyle < 0.1
+Provides:  qgtkstyle = 0.1-1
+Requires: ca-certificates
+%if 0%{?qt_settings}
+Requires: qt-settings
+%endif
+
+%description 
+Qt is a software toolkit for developing applications.
+
+This package contains base tools, like string, xml, and network
+handling.
+
+%package assistant
+Summary: Documentation browser for Qt 4
+Group: Documentation
+Requires: %{name}-sqlite%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+Provides: qt4-assistant = %{version}-%{release}
+Requires: %{name}-x11%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+%description assistant
+%{summary}.
+
+%package config
+Summary: Graphical configuration tool for programs using Qt 4 
+Group: User Interface/Desktops
+# -config introduced in 4.7.1-10 , for upgrade path
+# seems to tickle a pk bug, https://bugzilla.redhat.com/674326
+#Obsoletes: %{name}-x11 < 1:4.7.1-10
+Obsoletes: qt4-config < 4.5.0
+Provides:  qt4-config = %{version}-%{release}
+Requires: %{name}-x11%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+%description config 
+%{summary}.
+
+%define demos 1
+%package demos
+Summary: Demonstration applications for %{name}
+Group:   Documentation
+Requires: %{name} = %{?epoch:%{epoch}:}%{version}-%{release}
+Requires: %{name}-doc
+%description demos
+%{summary}.
+
+%define docs 1
+%package doc
+Summary: API documentation for %{name}
+Group: Documentation
+Requires: %{name} = %{?epoch:%{epoch}:}%{version}-%{release}
+Requires: %{name}-assistant
+Obsoletes: qt4-doc < %{version}-%{release}
+Provides:  qt4-doc = %{version}-%{release}
+# help workaround yum bug http://bugzilla.redhat.com/502401
+Obsoletes: qt-doc < 1:4.5.1-4
+BuildArch: noarch
+%description doc
+%{summary}.  Includes:
+Qt Assistant
+
+%package designer-plugin-webkit
+Summary: Qt designer plugin for WebKit
+Group: Development/Libraries
+Requires: %{name}-x11%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+%description designer-plugin-webkit
+%{summary}.
+
+%package devel
+Summary: Development files for the Qt toolkit
+Group: Development/Libraries
+Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+Requires: %{name}-x11%{?_isa}
+Requires: %{name}-sqlite%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+Requires: %{gl_deps}
+Requires: %{x_deps}
+Requires: pkgconfig
+%if 0%{?phonon:1}
+Provides: qt4-phonon-devel = %{version}-%{release}
+%endif
+Obsoletes: qt4-designer < %{version}-%{release}
+Provides:  qt4-designer = %{version}-%{release}
+# as long as libQtUiTools.a is included
+Provides:  %{name}-static = %{version}-%{release}
+Obsoletes: qt4-devel < %{version}-%{release}
+Provides:  qt4-devel = %{version}-%{release}
+%{?_isa:Provides: qt4-devel%{?_isa} = %{version}-%{release}}
+Provides:  qt4-static = %{version}-%{release}
+
+%description devel
+This package contains the files necessary to develop
+applications using the Qt toolkit.  Includes:
+Qt Linguist
+
+# make a devel private subpkg or not?
+%define private 1
+%package devel-private
+Summary: Private headers for Qt toolkit 
+Group: Development/Libraries
+Provides: qt4-devel-private = %{version}-%{release}
+Requires: %{name}-devel = %{?epoch:%{epoch}:}%{version}-%{release}
+BuildArch: noarch
+%description devel-private
+%{summary}.
+
+%define examples 1
+%package examples
+Summary: Programming examples for %{name}
+Group: Documentation
+Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+%description examples
+%{summary}.
+
+%define qvfb 1
+%package qvfb
+Summary: Virtual frame buffer for Qt for Embedded Linux
+Group: Applications/Emulators
+Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+%description qvfb
+%{summary}.
+
+%package ibase
+Summary: IBase driver for Qt's SQL classes
+Group:  System Environment/Libraries
+Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+Provides:  qt4-ibase = %{version}-%{release}
+%{?_isa:Provides: qt4-ibase%{?_isa} = %{version}-%{release}}
+%description ibase
+%{summary}.
+
+%package mysql
+Summary: MySQL driver for Qt's SQL classes
+Group: System Environment/Libraries
+Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+Obsoletes: qt4-MySQL < %{version}-%{release}
+Provides:  qt4-MySQL = %{version}-%{release}
+Obsoletes: qt4-mysql < %{version}-%{release}
+Provides:  qt4-mysql = %{version}-%{release}
+%{?_isa:Provides: qt4-mysql%{?_isa} = %{version}-%{release}}
+%description mysql 
+%{summary}.
+
+%package odbc 
+Summary: ODBC driver for Qt's SQL classes
+Group: System Environment/Libraries
+Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+Obsoletes: qt4-ODBC < %{version}-%{release}
+Provides:  qt4-ODBC = %{version}-%{release}
+Obsoletes: qt4-odbc < %{version}-%{release}
+Provides:  qt4-odbc = %{version}-%{release}
+%{?_isa:Provides: qt4-odbc%{?_isa} = %{version}-%{release}}
+%description odbc 
+%{summary}.
+
+%package postgresql 
+Summary: PostgreSQL driver for Qt's SQL classes
+Group: System Environment/Libraries
+Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+Obsoletes: qt4-PostgreSQL < %{version}-%{release}
+Provides:  qt4-PostgreSQL = %{version}-%{release}
+Obsoletes: qt4-postgresql < %{version}-%{release}
+Provides:  qt4-postgresql = %{version}-%{release}
+%{?_isa:Provides: qt4-postgresql%{?_isa} = %{version}-%{release}}
+%description postgresql 
+%{summary}.
+
+%package tds
+Summary: TDS driver for Qt's SQL classes
+Group: System Environment/Libraries
+Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+Provides: qt4-tds = %{version}-%{release}
+%{?_isa:Provides: qt4-tds%{?_isa} = %{version}-%{release}}
+%description tds
+%{summary}.
+
+%package x11
+Summary: Qt GUI-related libraries
+Group: System Environment/Libraries
+# include Obsoletes here to be safe(r) bootstrap-wise with phonon-4.5.0
+# that will Provides: it -- Rex
+Obsoletes: qt-designer-plugin-phonon < 1:4.7.2-6
+Requires: %{name}%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+Obsoletes: qt4-x11 < %{version}-%{release}
+Provides:  qt4-x11 = %{version}-%{release}
+%{?_isa:Provides: qt4-x11%{?_isa} = %{version}-%{release}}
+%description x11
+Qt libraries used for drawing widgets and OpenGL items.
+
+%package qdbusviewer
+Summary: D-Bus debugger and viewer
+# When split out from qt-x11
+Obsoletes: qt-x11 < 1:4.8.5-2
+Requires: %{name}-x11%{?_isa} = %{?epoch:%{epoch}:}%{version}-%{release}
+%description qdbusviewer
+QDbusviewer can be used to inspect D-Bus objects of running programs
+and invoke methods on those objects.
+
+%prep
+%setup -q -n qt-everywhere-opensource-src-%{version} 
+
+%patch2 -p1 -b .multilib-optflags
+# drop backup file(s), else they get installed too, http://bugzilla.redhat.com/639463
+rm -fv mkspecs/linux-g++*/qmake.conf.multilib-optflags
+%patch4 -p1 -b .uic_multilib
+%patch5 -p1 -b .webcore_debuginfo
+# ie, where cups-1.6+ is present
+%if 0%{?fedora} > 18 || 0%{?rhel} > 6
+#patch6 -p1 -b .cupsEnumDests
+%endif
+%patch15 -p1 -b .enable_ft_lcdfilter
+%patch23 -p1 -b .glib_eventloop_nullcheck
+%patch25 -p1 -b .qdbusconnection_no_debug
+%patch26 -p1 -b .linguist_qtmake-qt4
+%patch27 -p1 -b .qt3support_debuginfo
+%patch28 -p1 -b .qt_plugin_path
+%patch50 -p1 -b .qmake_pkgconfig_requires_private
+## TODO: still worth carrying?  if so, upstream it.
+%patch53 -p1 -b .qatomic-inline-asm
+## TODO: upstream me
+%patch54 -p1 -b .mysql_config
+%patch55 -p1 -b .cups-1
+%patch64 -p1 -b .QTBUG-14467
+%patch65 -p1 -b .qtreeview-kpackagekit-crash
+%patch67 -p1 -b .s390
+%patch68 -p1 -b .no_Werror
+%patch69 -p1 -b .QTBUG-22037
+%patch71 -p1 -b .QTBUG-21900
+%patch74 -p1 -b .tds_no_strict_aliasing
+%patch76 -p1 -b .s390-atomic
+%patch77 -p1 -b .icu_no_debug
+%patch81 -p1 -b .assistant-crash
+%patch82 -p1 -b .QTBUG-4862
+%patch83 -p1 -b .poll
+%patch87 -p1 -b .QTBUG-37380
+%patch88 -p0 -b .QTBUG-34614
+%patch89 -p0 -b .QTBUG-38585
+
+# upstream patches
+%patch102 -p1 -b .qgtkstyle_disable_gtk_theme_check
+%patch113 -p1 -b .QTBUG-22829
+
+%patch180 -p1 -b .aarch64
+%patch185 -p1 -b .ppc64le
+
+# upstream git
+%patch210 -p1 -b .0010
+%patch225 -p1 -b .0025
+%patch234 -p1 -b .0034
+
+# security fixes
+# regression fixes for the security fixes
+%patch84 -p1 -b .QTBUG-35459
+%patch86 -p1 -b .systemtrayicon
+%patch300 -p1 -b .QTBUG-38367
+
+# drop -fexceptions from $RPM_OPT_FLAGS
+RPM_OPT_FLAGS=`echo $RPM_OPT_FLAGS | sed 's|-fexceptions||g'`
+
+%define platform linux-g++
+
+# some 64bit platforms assume -64 suffix, https://bugzilla.redhat.com/569542
+%if "%{?__isa_bits}"  == "64"
+%define platform linux-g++-64
+%endif
+
+# https://bugzilla.redhat.com/478481
+%ifarch x86_64 aarch64
+%define platform linux-g++
+%endif
+
+sed -i -e "s|-O2|$RPM_OPT_FLAGS|g" \
+  mkspecs/%{platform}/qmake.conf 
+
+sed -i -e "s|^\(QMAKE_LFLAGS_RELEASE.*\)|\1 $RPM_LD_FLAGS|" \
+  mkspecs/common/g++-unix.conf
+
+# undefine QMAKE_STRIP (and friends), so we get useful -debuginfo pkgs (#193602)
+sed -i -e 's|^\(QMAKE_STRIP.*=\).*$|\1|g' mkspecs/common/linux.conf
+
+# set correct lib path
+if [ "%{_lib}" == "lib64" ] ; then
+  sed -i -e "s,/usr/lib /lib,/usr/%{_lib} /%{_lib},g" config.tests/{unix,x11}/*.test
+  sed -i -e "s,/lib /usr/lib,/%{_lib} /usr/%{_lib},g" config.tests/{unix,x11}/*.test
+fi
+
+# let makefile create missing .qm files, the .qm files should be included in qt upstream
+for f in translations/*.ts ; do
+  touch ${f%.ts}.qm
+done
+
+
+%build
+
+# build shared, threaded (default) libraries
+./configure -v \
+  -confirm-license \
+  -opensource \
+  -optimized-qmake \
+  -prefix %{_qt4_prefix} \
+  -bindir %{_qt4_bindir} \
+  -datadir %{_qt4_datadir} \
+  -demosdir %{_qt4_demosdir} \
+  -docdir %{_qt4_docdir} \
+  -examplesdir %{_qt4_examplesdir} \
+  -headerdir %{_qt4_headerdir} \
+  -importdir %{_qt4_importdir} \
+  -libdir %{_qt4_libdir} \
+  -plugindir %{_qt4_plugindir} \
+  -sysconfdir %{_qt4_sysconfdir} \
+  -translationdir %{_qt4_translationdir} \
+  -platform %{platform} \
+  -release \
+  -shared \
+  -cups \
+  -fontconfig \
+  -largefile \
+  -gtkstyle \
+  -no-rpath \
+  -reduce-relocations \
+  -no-separate-debug-info \
+  %{?phonon} %{!?phonon:-no-phonon} \
+  %{?phonon_backend} \
+  %{?no_pch} \
+  %{?no_javascript_jit} \
+  -sm \
+  -stl \
+  -system-libmng \
+  -system-libpng \
+  -system-libjpeg \
+  -system-libtiff \
+  -system-zlib \
+  -xinput \
+  -xcursor \
+  -xfixes \
+  -xinerama \
+  -xshape \
+  -xrandr \
+  -xrender \
+  -xkb \
+  -glib \
+  -icu \
+  -openssl-linked \
+  -xmlpatterns \
+  %{?dbus} %{!?dbus:-no-dbus} \
+  %{?graphicssystem} \
+  %{?webkit} %{!?webkit:-no-webkit } \
+  %{?ibase} \
+  %{?mysql} \
+  %{?psql} \
+  %{?odbc} \
+  %{?sqlite} %{?_system_sqlite} \
+  %{?tds} \
+  %{!?docs:-nomake docs} \
+  %{!?demos:-nomake demos} \
+  %{!?examples:-nomake examples}
+
+make %{?_smp_mflags}
+
+# TODO: consider patching tools/tools.pro to enable building this by default
+%{?qvfb:make %{?_smp_mflags} -C tools/qvfb}
+
+# recreate .qm files
+LD_LIBRARY_PATH=`pwd`/lib bin/lrelease translations/*.ts
+
+
+%install
+rm -rf %{buildroot}
+
+make install INSTALL_ROOT=%{buildroot}
+
+%if 0%{?qvfb}
+make install INSTALL_ROOT=%{buildroot} -C tools/qvfb
+%find_lang qvfb --with-qt --without-mo
+%else
+rm -f %{buildroot}%{_qt4_translationdir}/qvfb*.qm
+%endif
+
+%if 0%{?private}
+# install private headers
+# using rsync -R as easy way to preserve relative path names
+# we're cheating and using %%_prefix (/usr) directly here
+rsync -aR \
+  include/Qt{Core,Declarative,Gui,Script}/private \
+  src/{corelib,declarative,gui,script}/*/*_p.h \
+  %{buildroot}%{_prefix}/
+%endif
+
+# Add desktop files, --vendor=qt4 helps avoid possible conflicts with qt3/qt5
+desktop-file-install \
+  --dir=%{buildroot}%{_datadir}/applications \
+  --vendor="qt4" \
+  %{SOURCE20} %{SOURCE21} %{SOURCE22} %{?dbus:%{SOURCE23}} %{?demos:%{SOURCE24}} %{SOURCE25}
+
+## pkg-config
+# strip extraneous dirs/libraries 
+# safe ones
+glib2_libs=$(pkg-config --libs glib-2.0 gobject-2.0 gthread-2.0)
+ssl_libs=$(pkg-config --libs openssl)
+for dep in \
+  -laudio -ldbus-1 -lfreetype -lfontconfig ${glib2_libs} \
+  -ljpeg -lm -lmng -lpng -lpulse -lpulse-mainloop-glib ${ssl_libs} -lsqlite3 -lz \
+  -L/usr/X11R6/lib -L/usr/X11R6/%{_lib} -L%{_libdir} ; do
+  sed -i -e "s|$dep ||g" %{buildroot}%{_qt4_libdir}/lib*.la 
+#  sed -i -e "s|$dep ||g" %{buildroot}%{_qt4_libdir}/pkgconfig/*.pc
+  sed -i -e "s|$dep ||g" %{buildroot}%{_qt4_libdir}/*.prl
+done
+# riskier
+for dep in -ldl -lphonon -lpthread -lICE -lSM -lX11 -lXcursor -lXext -lXfixes -lXft -lXinerama -lXi -lXrandr -lXrender -lXt ; do
+  sed -i -e "s|$dep ||g" %{buildroot}%{_qt4_libdir}/lib*.la 
+#  sed -i -e "s|$dep ||g" %{buildroot}%{_qt4_libdir}/pkgconfig/*.pc 
+  sed -i -e "s|$dep ||g" %{buildroot}%{_qt4_libdir}/*.prl
+done
+
+# nuke dangling reference(s) to %buildroot
+sed -i -e "/^QMAKE_PRL_BUILD_DIR/d" %{buildroot}%{_qt4_libdir}/*.prl
+sed -i -e "s|-L%{_builddir}/qt-everywhere-opensource-src-%{version}%{?pre:-%{pre}}/lib||g" \
+  %{buildroot}%{_qt4_libdir}/pkgconfig/*.pc \
+  %{buildroot}%{_qt4_libdir}/*.prl
+
+# nuke QMAKE_PRL_LIBS, seems similar to static linking and .la files (#520323)
+# don't nuke, just drop -lphonon (above)
+#sed -i -e "s|^QMAKE_PRL_LIBS|#QMAKE_PRL_LIBS|" %{buildroot}%{_qt4_libdir}/*.prl
+
+# .la files, die, die, die.
+rm -f %{buildroot}%{_qt4_libdir}/lib*.la
+
+%if 0
+#if "%{_qt4_docdir}" != "%{_qt4_prefix}/doc"
+# -doc make symbolic link to _qt4_docdir
+rm -rf %{buildroot}%{_qt4_prefix}/doc
+ln -s  ../../share/doc/qt4 %{buildroot}%{_qt4_prefix}/doc
+%endif
+
+# hardlink files to %{_bindir}, add -qt4 postfix to not conflict
+mkdir %{buildroot}%{_bindir}
+pushd %{buildroot}%{_qt4_bindir}
+for i in * ; do
+  case "${i}" in
+    assistant|designer|linguist|lrelease|lupdate|moc|qmake|qtconfig|qtdemo|uic)
+      ln -v  ${i} %{buildroot}%{_bindir}/${i}-qt4
+      ln -sv ${i} ${i}-qt4
+      ;;
+    *)
+      ln -v  ${i} %{buildroot}%{_bindir}/${i}
+      ;;
+  esac
+done
+popd
+
+# _debug targets (see bug #196513)
+pushd %{buildroot}%{_qt4_libdir}
+for lib in libQt*.so ; do
+   libbase=`basename $lib .so | sed -e 's/^lib//'`
+#  ln -s $lib lib${libbase}_debug.so
+   echo "INPUT(-l${libbase})" > lib${libbase}_debug.so 
+done
+for lib in libQt*.a ; do
+   libbase=`basename $lib .a | sed -e 's/^lib//' `
+#  ln -s $lib lib${libbase}_debug.a
+   echo "INPUT(-l${libbase})" > lib${libbase}_debug.a
+done
+popd
+
+%ifarch %{multilib_archs}
+# multilib: qconfig.h
+  mv %{buildroot}%{_qt4_headerdir}/Qt/qconfig.h %{buildroot}%{_qt4_headerdir}/QtCore/qconfig-%{__isa_bits}.h
+  install -p -m644 -D %{SOURCE5} %{buildroot}%{_qt4_headerdir}/QtCore/qconfig-multilib.h
+  ln -sf qconfig-multilib.h %{buildroot}%{_qt4_headerdir}/QtCore/qconfig.h
+  ln -sf ../QtCore/qconfig.h %{buildroot}%{_qt4_headerdir}/Qt/qconfig.h
+%endif
+
+%if "%{_qt4_libdir}" != "%{_libdir}"
+  mkdir -p %{buildroot}/etc/ld.so.conf.d
+  echo "%{_qt4_libdir}" > %{buildroot}/etc/ld.so.conf.d/qt4-%{__isa_bits}.conf
+%endif
+
+# qtchooser conf
+%if 0%{?qtchooser}
+  mkdir -p %{buildroot}%{_sysconfdir}/xdg/qtchooser
+  pushd    %{buildroot}%{_sysconfdir}/xdg/qtchooser
+  echo "%{_qt4_bindir}" >  qt4.conf
+  echo "%{_qt4_prefix}" >> qt4.conf
+  ln -s qt4.conf default.conf
+  %ifarch %{multilib_archs}
+    mv qt4.conf qt4-%{__isa_bits}.conf
+    %ifarch %{multilib_basearchs}
+      ln -sf qt4-%{__isa_bits}.conf qt4.conf
+    %endif
+  %endif
+  popd
+%endif
+
+%if ! 0%{?qt_settings}
+# Trolltech.conf
+install -p -m644 -D %{SOURCE4} %{buildroot}%{_qt4_sysconfdir}/Trolltech.conf
+%endif
+
+# qt4-logo (generic) icons
+install -p -m644 -D %{SOURCE30} %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/qt4-logo.png
+install -p -m644 -D %{SOURCE31} %{buildroot}%{_datadir}/icons/hicolor/48x48/apps/qt4-logo.png
+
+# assistant icons
+install -p -m644 -D tools/assistant/tools/assistant/images/assistant.png %{buildroot}%{_datadir}/icons/hicolor/32x32/apps/assistant.png
+install -p -m644 -D tools/assistant/tools/assistant/images/assistant-128.png %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/assistant.png
+
+# designer icons
+install -p -m644 -D tools/designer/src/designer/images/designer.png %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/designer.png
+
+# linguist icons
+for icon in tools/linguist/linguist/images/icons/linguist-*-32.png ; do
+  size=$(echo $(basename ${icon}) | cut -d- -f2)
+  install -p -m644 -D ${icon} %{buildroot}%{_datadir}/icons/hicolor/${size}x${size}/apps/linguist.png
+done
+
+# qdbusviewer icons
+install -p -m644 -D tools/qdbus/qdbusviewer/images/qdbusviewer.png %{buildroot}%{_datadir}/icons/hicolor/32x32/apps/qdbusviewer.png
+install -p -m644 -D tools/qdbus/qdbusviewer/images/qdbusviewer-128.png %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/qdbusviewer.png
+
+# Qt.pc
+cat >%{buildroot}%{_libdir}/pkgconfig/Qt.pc<<EOF
+prefix=%{_qt4_prefix}
+bindir=%{_qt4_bindir}
+datadir=%{_qt4_datadir}
+demosdir=%{_qt4_demosdir}
+docdir=%{_qt4_docdir}
+examplesdir=%{_qt4_examplesdir}
+headerdir=%{_qt4_headerdir}
+importdir=%{_qt4_importdir}
+libdir=%{_qt4_libdir}
+moc=%{_qt4_bindir}/moc
+plugindir=%{_qt4_plugindir}
+qmake=%{_qt4_bindir}/qmake
+sysconfdir=%{_qt4_sysconfdir}
+translationdir=%{_qt4_translationdir}
+
+Name: Qt
+Description: Qt Configuration
+Version: %{version}
+EOF
+
+# rpm macros
+mkdir -p %{buildroot}%{rpm_macros_dir}
+cat >%{buildroot}%{rpm_macros_dir}/macros.qt4<<EOF
+%%_qt4 %{name}
+%%_qt48 %{version}
+%%_qt4_epoch %{epoch}
+%%_qt4_version %{version}
+%%_qt4_evr %{epoch}:%{version}-%{release}
+%%_qt4_prefix %%{_libdir}/qt4
+%%_qt4_bindir %%{_qt4_prefix}/bin
+%%_qt4_datadir %%{_qt4_prefix}
+%%_qt4_demosdir %%{_qt4_prefix}/demos
+%%_qt4_docdir %%{_docdir}/qt4
+%%_qt4_examples %%{_qt4_prefix}/examples
+%%_qt4_examplesdir %%{_qt4_prefix}/examples
+%%_qt4_headerdir %%{_includedir}
+%%_qt4_importdir %%{_qt4_prefix}/imports
+%%_qt4_libdir %%{_libdir}
+%%_qt4_plugindir %%{_qt4_prefix}/plugins
+%%_qt4_qmake %%{_qt4_bindir}/qmake
+%%_qt4_sysconfdir %%{_sysconfdir}
+%%_qt4_translationdir %%{_datadir}/qt4/translations
+
+%%qmake_qt4 \\
+  %%{_qt4_qmake} \\\\\\
+    QMAKE_CFLAGS="\${CFLAGS:-%%optflags}" \\\\\\
+    QMAKE_CXXFLAGS="\${CXXFLAGS:-%%optflags}" \\\\\\
+    QMAKE_LFLAGS="\${LDFLAGS:-%%?__global_ldflags}"
+EOF
+
+# create/own stuff under %%_qt4_docdir
+mkdir -p %{buildroot}%{_qt4_docdir}/{html,qch,src}
+
+ # create/own stuff under %%_qt4_plugindir
+mkdir -p %{buildroot}%{_qt4_plugindir}/{crypto,gui_platform,styles}
+
+## nuke bundled phonon bits
+rm -fv  %{buildroot}%{_qt4_libdir}/libphonon.so*
+rm -rfv %{buildroot}%{_libdir}/pkgconfig/phonon.pc
+# contents slightly different between phonon-4.3.1 and qt-4.5.0
+rm -fv  %{buildroot}%{_includedir}/phonon/phononnamespace.h
+# contents dup'd but should remove just in case
+rm -fv  %{buildroot}%{_includedir}/phonon/*.h
+rm -rfv %{buildroot}%{_qt4_headerdir}/phonon*
+#rm -rfv %{buildroot}%{_qt4_headerdir}/Qt/phonon*
+rm -fv %{buildroot}%{_datadir}/dbus-1/interfaces/org.kde.Phonon.AudioOutput.xml
+rm -fv %{buildroot}%{_qt4_plugindir}/designer/libphononwidgets.so
+# backend
+rm -fv %{buildroot}%{_qt4_plugindir}/phonon_backend/*_gstreamer.so
+rm -fv %{buildroot}%{_datadir}/kde4/services/phononbackends/gstreamer.desktop
+
+# nuke bundled webkit bits 
+rm -fv %{buildroot}%{_qt4_datadir}/mkspecs/modules/qt_webkit_version.pri
+rm -fv %{buildroot}%{_qt4_headerdir}/Qt/qgraphicswebview.h
+rm -fv %{buildroot}%{_qt4_headerdir}/Qt/qweb*.h
+rm -frv %{buildroot}%{_qt4_headerdir}/QtWebKit/
+rm -frv %{buildroot}%{_qt4_importdir}/QtWebKit/
+rm -fv %{buildroot}%{_qt4_libdir}/libQtWebKit.*
+rm -fv %{buildroot}%{_libdir}/pkgconfig/QtWebKit.pc
+rm -frv %{buildroot}%{_qt4_prefix}/tests/
+
+%find_lang qt --with-qt --without-mo
+
+%find_lang assistant --with-qt --without-mo
+%find_lang qt_help --with-qt --without-mo
+%find_lang qtconfig --with-qt --without-mo
+%find_lang qtscript --with-qt --without-mo
+cat assistant.lang qt_help.lang qtconfig.lang qtscript.lang >qt-x11.lang
+
+%find_lang designer --with-qt --without-mo
+%find_lang linguist --with-qt --without-mo
+cat designer.lang linguist.lang >qt-devel.lang
+
+
+%clean
+rm -rf %{buildroot}
+
+
+%post -p /sbin/ldconfig
+%postun -p /sbin/ldconfig
+
+%files -f qt.lang
+%defattr(-,root,root,-)
+%doc README LICENSE.GPL3 LICENSE.LGPL LGPL_EXCEPTION.txt
+%if 0%{?qtchooser}
+%dir %{_sysconfdir}/xdg/qtchooser
+# not editable config files, so not using %%config here
+%{_sysconfdir}/xdg/qtchooser/*.conf
+%endif
+%if "%{_qt4_libdir}" != "%{_libdir}"
+/etc/ld.so.conf.d/*
+%dir %{_qt4_libdir}
+%endif
+%dir %{_qt4_prefix}
+%if "%{_qt4_bindir}" == "%{_bindir}"
+%{_qt4_prefix}/bin
+%else
+%dir %{_qt4_bindir}
+%endif
+%if "%{_qt4_datadir}" != "%{_datadir}/qt4"
+%dir %{_datadir}/qt4
+%else
+%dir %{_qt4_datadir}
+%endif
+%dir %{_qt4_docdir}
+%dir %{_qt4_docdir}/html/
+%dir %{_qt4_docdir}/qch/
+%dir %{_qt4_docdir}/src/
+
+%if "%{_qt4_sysconfdir}" != "%{_sysconfdir}"
+%dir %{_qt4_sysconfdir}
+%endif
+%if ! 0%{?qt_settings}
+%config(noreplace) %{_qt4_sysconfdir}/Trolltech.conf
+%endif
+%{_qt4_datadir}/phrasebooks/
+%{_qt4_libdir}/libQtCore.so.4*
+%if 0%{?dbus:1}
+%if "%{_qt4_bindir}" != "%{_bindir}"
+%{_bindir}/qdbus
+%endif
+%{_qt4_bindir}/qdbus
+%{_qt4_libdir}/libQtDBus.so.4*
+%endif
+%{_qt4_libdir}/libQtNetwork.so.4*
+%{_qt4_libdir}/libQtScript.so.4*
+%{_qt4_libdir}/libQtSql.so.4*
+%{_qt4_libdir}/libQtTest.so.4*
+%{_qt4_libdir}/libQtXml.so.4*
+%{_qt4_libdir}/libQtXmlPatterns.so.4*
+%dir %{_qt4_plugindir}
+%dir %{_qt4_plugindir}/crypto/
+%dir %{_qt4_plugindir}/sqldrivers/
+%dir %{_qt4_translationdir}/
+%{_qt4_plugindir}/sqldrivers/libqsqlite*
+
+%post assistant
+touch --no-create %{_datadir}/icons/hicolor ||:
+
+%posttrans assistant
+gtk-update-icon-cache -q %{_datadir}/icons/hicolor 2> /dev/null ||:
+
+%postun assistant
+if [ $1 -eq 0 ] ; then
+touch --no-create %{_datadir}/icons/hicolor ||:
+gtk-update-icon-cache -q %{_datadir}/icons/hicolor 2> /dev/null ||:
+fi
+
+%files assistant
+%defattr(-,root,root,-)
+%if "%{_qt4_bindir}" != "%{_bindir}"
+%{_bindir}/assistant*
+%endif
+%{_qt4_bindir}/assistant*
+%{_datadir}/applications/*assistant.desktop
+%{_datadir}/icons/hicolor/*/apps/assistant*
+
+%files config
+%defattr(-,root,root,-)
+%if "%{_qt4_bindir}" != "%{_bindir}"
+%{_bindir}/qt*config*
+%endif
+%{_qt4_bindir}/qt*config*
+%{_datadir}/applications/*qtconfig.desktop
+
+%if 0%{?demos}
+%files demos
+%defattr(-,root,root,-)
+%{_qt4_bindir}/qt*demo*
+%if "%{_qt4_bindir}" != "%{_bindir}"
+%{_bindir}/qt*demo*
+%endif
+%{_datadir}/applications/*qtdemo.desktop
+%{_qt4_demosdir}/
+%endif
+
+%if "%{?webkit}" == "-webkit"
+%files designer-plugin-webkit
+%defattr(-,root,root,-)
+%{_qt4_plugindir}/designer/libqwebview.so
+%endif
+
+%post devel
+touch --no-create %{_datadir}/icons/hicolor ||:
+
+%posttrans devel
+gtk-update-icon-cache -q %{_datadir}/icons/hicolor 2> /dev/null ||:
+update-desktop-database -q &> /dev/null ||:
+
+%postun devel
+if [ $1 -eq 0 ] ; then
+touch --no-create %{_datadir}/icons/hicolor ||:
+gtk-update-icon-cache -q %{_datadir}/icons/hicolor 2> /dev/null ||:
+update-desktop-database -q &> /dev/null ||:
+fi
+
+%files devel -f qt-devel.lang
+%defattr(-,root,root,-)
+%{rpm_macros_dir}/macros.qt4
+%{_qt4_bindir}/lconvert
+%{_qt4_bindir}/lrelease*
+%{_qt4_bindir}/lupdate*
+%{_qt4_bindir}/moc*
+%{_qt4_bindir}/pixeltool*
+%{_qt4_bindir}/qdoc3*
+%{_qt4_bindir}/qmake*
+%{_qt4_bindir}/qmlplugindump
+%{_qt4_bindir}/qt3to4
+%{_qt4_bindir}/qttracereplay
+%{_qt4_bindir}/rcc*
+%{_qt4_bindir}/uic*
+%{_qt4_bindir}/qcollectiongenerator
+%if 0%{?dbus:1}
+%{_qt4_bindir}/qdbuscpp2xml
+%{_qt4_bindir}/qdbusxml2cpp
+%endif
+%{_qt4_bindir}/qhelpconverter
+%{_qt4_bindir}/qhelpgenerator
+%{_qt4_bindir}/xmlpatterns
+%{_qt4_bindir}/xmlpatternsvalidator
+%if "%{_qt4_bindir}" != "%{_bindir}"
+%{_bindir}/lrelease*
+%{_bindir}/lupdate*
+%{_bindir}/moc*
+%{_bindir}/qmake*
+%{_bindir}/uic*
+%{_bindir}/designer*
+%{_bindir}/linguist*
+%{_bindir}/lconvert
+%{_bindir}/pixeltool
+%{_bindir}/qdoc3
+%{_bindir}/qt3to4
+%{_bindir}/qttracereplay
+%{_bindir}/qcollectiongenerator
+%if 0%{?dbus:1}
+%{_bindir}/qdbuscpp2xml
+%{_bindir}/qdbusxml2cpp
+%endif
+%{_bindir}/qhelpconverter
+%{_bindir}/qhelpgenerator
+%{_bindir}/qmlplugindump
+%{_bindir}/rcc
+%{_bindir}/xmlpatterns
+%{_bindir}/xmlpatternsvalidator
+%endif
+%if "%{_qt4_headerdir}" != "%{_includedir}"
+%dir %{_qt4_headerdir}/
+%endif
+%{_qt4_headerdir}/*
+%{_qt4_datadir}/mkspecs/
+%if "%{_qt4_datadir}" != "%{_qt4_prefix}"
+%{_qt4_prefix}/mkspecs/
+%endif
+%{_qt4_datadir}/q3porting.xml
+%if 0%{?phonon:1}
+## nuke this one too?  -- Rex
+%{_qt4_libdir}/libphonon.prl
+%endif
+%{_qt4_libdir}/libQt*.so
+%{_qt4_libdir}/libQtUiTools*.a
+%{_qt4_libdir}/libQt*.prl
+%{_libdir}/pkgconfig/*.pc
+# Qt designer
+%{_qt4_bindir}/designer*
+%{_datadir}/applications/*designer.desktop
+%{_datadir}/icons/hicolor/*/apps/designer*
+%{?docs:%{_qt4_docdir}/qch/designer.qch}
+# Qt Linguist
+%{_qt4_bindir}/linguist*
+%{_datadir}/applications/*linguist.desktop
+%{_datadir}/icons/hicolor/*/apps/linguist*
+%{?docs:%{_qt4_docdir}/qch/linguist.qch}
+%if 0%{?private}
+%exclude %{_qt4_headerdir}/*/private/
+
+%files devel-private
+%defattr(-,root,root,-)
+%{_qt4_headerdir}/QtCore/private/
+%{_qt4_headerdir}/QtDeclarative/private/
+%{_qt4_headerdir}/QtGui/private/
+%{_qt4_headerdir}/QtScript/private/
+%{_qt4_headerdir}/../src/corelib/
+%{_qt4_headerdir}/../src/declarative/
+%{_qt4_headerdir}/../src/gui/
+%{_qt4_headerdir}/../src/script/
+%endif
+
+%if 0%{?docs}
+%files doc
+%defattr(-,root,root,-)
+%{_qt4_docdir}/html/*
+%{_qt4_docdir}/qch/*.qch
+%exclude %{_qt4_docdir}/qch/designer.qch
+%exclude %{_qt4_docdir}/qch/linguist.qch
+%{_qt4_docdir}/src/*
+#{_qt4_prefix}/doc
+%endif
+
+%if 0%{?examples}
+%files examples
+%defattr(-,root,root,-)
+%{_qt4_examplesdir}/
+%endif
+
+%if 0%{?qvfb}
+%files qvfb -f qvfb.lang
+%defattr(-,root,root,-)
+%{_bindir}/qvfb
+%{_qt4_bindir}/qvfb
+%endif
+
+%if "%{?ibase}" == "-plugin-sql-ibase"
+%files ibase
+%defattr(-,root,root,-)
+%{_qt4_plugindir}/sqldrivers/libqsqlibase*
+%endif
+
+%if "%{?mysql}" == "-plugin-sql-mysql"
+%files mysql
+%defattr(-,root,root,-)
+%{_qt4_plugindir}/sqldrivers/libqsqlmysql*
+%endif
+
+%if "%{?odbc}" == "-plugin-sql-odbc"
+%files odbc 
+%defattr(-,root,root,-)
+%{_qt4_plugindir}/sqldrivers/libqsqlodbc*
+%endif
+
+%if "%{?psql}" == "-plugin-sql-psql"
+%files postgresql 
+%defattr(-,root,root,-)
+%{_qt4_plugindir}/sqldrivers/libqsqlpsql*
+%endif
+
+%if "%{?tds}" == "-plugin-sql-tds"
+%files tds
+%defattr(-,root,root,-)
+%{_qt4_plugindir}/sqldrivers/libqsqltds*
+%endif
+
+%post x11
+/sbin/ldconfig
+touch --no-create %{_datadir}/icons/hicolor ||:
+
+%posttrans x11
+gtk-update-icon-cache -q %{_datadir}/icons/hicolor 2> /dev/null ||:
+
+%postun x11
+/sbin/ldconfig
+if [ $1 -eq 0 ] ; then
+touch --no-create %{_datadir}/icons/hicolor ||:
+gtk-update-icon-cache -q %{_datadir}/icons/hicolor 2> /dev/null ||:
+fi
+
+%files x11 -f qt-x11.lang
+%defattr(-,root,root,-)
+%dir %{_qt4_importdir}/
+%{_qt4_importdir}/Qt/
+%{_qt4_libdir}/libQt3Support.so.4*
+%{_qt4_libdir}/libQtCLucene.so.4*
+%{_qt4_libdir}/libQtDesigner.so.4*
+%{_qt4_libdir}/libQtDeclarative.so.4*
+%{_qt4_libdir}/libQtDesignerComponents.so.4*
+%{_qt4_libdir}/libQtGui.so.4*
+%{_qt4_libdir}/libQtHelp.so.4*
+%{_qt4_libdir}/libQtMultimedia.so.4*
+%{_qt4_libdir}/libQtOpenGL.so.4*
+%{_qt4_libdir}/libQtScriptTools.so.4*
+%{_qt4_libdir}/libQtSvg.so.4*
+%{_qt4_plugindir}/*
+%exclude %{_qt4_plugindir}/crypto
+%if "%{?webkit}" == "-webkit"
+%exclude %{_qt4_plugindir}/designer/libqwebview.so
+%endif
+%exclude %{_qt4_plugindir}/sqldrivers
+%if "%{_qt4_bindir}" != "%{_bindir}"
+%{_bindir}/qmlviewer
+%endif
+%{_qt4_bindir}/qmlviewer
+%{_datadir}/icons/hicolor/*/apps/qt4-logo.*
+
+%if 0%{?dbus:1}
+%post qdbusviewer
+touch --no-create %{_datadir}/icons/hicolor ||:
+
+%posttrans qdbusviewer
+gtk-update-icon-cache -q %{_datadir}/icons/hicolor 2> /dev/null ||:
+
+%postun qdbusviewer
+if [ $1 -eq 0 ] ; then
+touch --no-create %{_datadir}/icons/hicolor ||:
+gtk-update-icon-cache -q %{_datadir}/icons/hicolor 2> /dev/null ||:
+fi
+
+%files qdbusviewer
+%if "%{_qt4_bindir}" != "%{_bindir}"
+%{_bindir}/qdbusviewer
+%endif
+%{_qt4_bindir}/qdbusviewer
+%{_datadir}/applications/*qdbusviewer.desktop
+%{_datadir}/icons/hicolor/*/apps/qdbusviewer.*
+%endif
+
+
+%changelog
+* Sat Jun 07 2014 Kevin Kofler <Kevin@tigcc.ticalc.org> 4.8.6-9
+- apply proposed fixes for QTBUG-34614,37380,38585 for LibreOffice (#1105422)
+
+* Tue Jun 03 2014 Rex Dieter <rdieter@fedoraproject.org> 4.8.6-8
+- backport selected upstream commits...
+- Fix visual index lookup (QTBUG-37813)
+- RGB30 fix (QTBUG-25998,#1018566)
+- QDBus comparison
+
+* Wed May 07 2014 Rex Dieter <rdieter@fedoraproject.org> 4.8.6-7
+- gcc should be fixed, drop workaround (#1091482)
+
+* Mon May 05 2014 Rex Dieter <rdieter@fedoraproject.org> 4.8.6-6
+- try -fno-devirtualize workaround fc21+ (#1091482, gcc #60965)
+
+* Mon May 05 2014 Rex Dieter <rdieter@fedoraproject.org> - 4.8.6-5
+- drop f21 gcc-4.9 workarounds (they didn't work)
+- omit qt-cupsEnumDests.patch, again, pending more testing (#980952)
+
+* Fri Apr 25 2014 Rex Dieter <rdieter@fedoraproject.org> 4.8.6-4
+- -fno-tree-vrp (#1091482)
+
+* Fri Apr 25 2014 Rex Dieter <rdieter@fedoraproject.org> 4.8.6-3
+- try -fno-delete-null-pointer-checks to workaround bug #1091482
+
+* Thu Apr 24 2014 Rex Dieter <rdieter@fedoraproject.org> 4.8.6-2
+- DoS vulnerability in the GIF image handler (QTBUG-38367)
+
+* Thu Apr 24 2014 Rex Dieter <rdieter@fedoraproject.org> 4.8.6-1
+- 4.8.6 (final)
+
+* Tue Apr 15 2014 Rex Dieter <rdieter@fedoraproject.org> 4.8.6-0.2.rc2
+- 4.8.6-rc2
+
+* Tue Apr 01 2014 Rex Dieter <rdieter@fedoraproject.org> - 4.8.6-0.1.rc1
+- 4.8.6-rc1
+
+* Wed Mar 26 2014 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-24
+- support ppc64le arch (#1081216)
+
+* Sat Mar 08 2014 Kevin Kofler <Kevin@tigcc.ticalc.org> 4.8.5-23
+- fix QMAKE_STRIP handling (#1074041)
+
+* Fri Mar 07 2014 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-22
+- respin mysql_config patch
+
+* Fri Mar 07 2014 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-21
+- restore qt-cupsEnumDests.patch (#980952)
+
+* Thu Mar 06 2014 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-20
+- systemtrayicon plugin support (from kubuntu)
+
+* Tue Feb 18 2014 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-19
+- cleanup QMAKE_STRIP handling
+
+* Wed Feb 12 2014 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-18
+- rebuild (libicu)
+
+* Sat Feb 01 2014 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-17
+- better %%rpm_macros_dir handling
+
+* Sun Jan 26 2014 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-16
+- macros.qt4: ++%%_qt4_examplesdir (keep %%_qt4_examples around for compatibility)
+
+* Fri Jan 17 2014 Kevin Kofler <Kevin@tigcc.ticalc.org> - 4.8.5-15
+- drop "Discover printers shared by CUPS 1.6 (#980952)" (#1054312, #980952#c18)
+
+* Mon Jan 13 2014 Kevin Kofler <Kevin@tigcc.ticalc.org> - 4.8.5-14
+- fix QTBUG-35459 (too low entityCharacterLimit=1024 for CVE-2013-4549)
+- fix QTBUG-35460 (error message for CVE-2013-4549 is misspelled)
+
+* Mon Dec 23 2013 Peter Robinson <pbrobinson@fedoraproject.org> 4.8.5-13
+- Add support for aarch64 (#1046360) 
+
+* Thu Dec 05 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-12
+- XML Entity Expansion Denial of Service (CVE-2013-4549)
+
+* Wed Oct 09 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-11
+- Discover printers shared by CUPS 1.6 (#980952)
+
+* Mon Oct 07 2013 Daniel Vrátil <dvratil@redhat.com> 4.8.5-10
+- drop revert of the PostgreSQL driver patch (fixed in Akonadi 1.10.3)
+
+* Thu Oct 03 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-9
+- rework %%_bindir %%_qt4_bindir links to be more qtchooser friendly
+
+* Thu Sep 12 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-8
+- Keyboard shortcuts doesn't work for russian keyboard layout (#968367, QTBUG-32908)
+
+* Mon Aug 26 2013 Jon Ciesla <limburgher@gmail.com> - 4.8.5-7
+- libmng rebuild.
+
+* Thu Aug 08 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-6.1
+- qt4 rpm macros not found by rpm in F18 (#994739)
+
+* Tue Jul 30 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-6
+- enable qtchooser support
+
+* Tue Jul 30 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-5
+- revert upstream postgresql driver changes wrt escaping (QTBUG-30076)
+
+* Thu Jul 11 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-4
+- drop qtscript(javascriptcore) debuginfo patch, savings not significant
+
+* Thu Jul 11 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-3
+- reduce debuginfo in qtwebkit(webcore) and qtscript(javascriptcore)
+
+* Tue Jul 02 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-2
+- qdbusviewer subpkg (#968336)
+
+* Tue Jul 02 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-1
+- 4.8.5 (final)
+
+* Wed Jun 26 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-0.6.rc2
+- trim changelog
+- cleaner rpm_macros_dir handling
+
+* Fri Jun 21 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-0.5.rc2
+- drop multilib portion from qt_plugin_path.patch
+
+* Tue Jun 18 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-0.4.rc2
+- (re)add kde4/multilib QT_PLUGIN_PATH
+
+* Mon Jun 10 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-0.3.rc2
+- 4.8.5-rc2
+
+* Mon Jun 10 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-0.2.rc
+- RFE: Add %%qmake_qt4 macro (#870199)
+
+* Sun Jun 09 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.5-0.1.rc
+- 4.8.5-RC
+
+* Thu May 30 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.4-19
+- drop QTBUG-27809 candidate fix, causes regressions (#968794)
+
+* Tue May 28 2013 Than Ngo <than@redhat.com> - 4.8.4-18
+- QTBUG-27809, fix multiple calls to QDBusPendingReply::waitForFinished on separate objects
+
+* Thu Apr 25 2013 Than Ngo <than@redhat.com> - 4.8.4-17
+- Desktop file sanity, drop key "Encoding", it's deprecated
+
+* Fri Apr 19 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.4-16
+- update URL (#859286)
+- include qdbusviewer .desktop/icon
+- .desktop files: +mime scriptlets, +GenericName keys
+
+* Wed Mar 20 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.4-15
+- pull in a few more upstream fixes
+
+* Mon Feb 11 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.4-14
+- SIGSEGV when called from QMetaObject::metaCall (QTBUG-29082, kde#311751)
+
+* Mon Feb 11 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.4-13
+- qmake: add support for pkgconfig Requires.private
+
+* Mon Feb 11 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.4-12
+- add more moc/boost workarounds, thanks boost-1.53 (QTBUG-22829)
+
+* Mon Feb 04 2013 Than Ngo <than@redhat.com> - 4.8.4-11
+- backport: fix security flaw was found in the way QSharedMemory class, CVE-2013-0254
+
+* Sat Jan 26 2013 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.4-10
+- rebuild (icu)
+
+* Thu Jan 24 2013 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.4-9
+- make qtchooser support non-conflicting
+
+* Mon Jan 21 2013 Adam Tkac <atkac redhat com> - 1:4.8.4-8
+- rebuild due to "jpeg8-ABI" feature drop
+
+* Wed Jan 09 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.4-7
+- add qtchooser support (disabled by default)
+
+* Mon Jan 07 2013 Rex Dieter <rdieter@fedoraproject.org> 4.8.4-6
+- blacklist unauthorized SSL certificates by Türktrust
+
+* Fri Jan 04 2013 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.4-5
+- QGtkStyle was unable to detect the current GTK+ theme (#702493, QTBUG-5545))
+
+* Fri Jan 04 2013 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.4-4
+- QSslSocket may report incorrect errors when certificate verification fails
+
+* Thu Jan 03 2013 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.4-3
+- -x11: %%exclude %%{_qt4_plugindir}/designer/libqwebview.so
+
+* Sun Dec 16 2012 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.4-2
+- -designer-plugin-webkit subpkg (#887501)
+- fix/prune/changelog
+
+* Thu Nov 29 2012 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.4-1
+- 4.8.4
+
+* Wed Oct 31 2012 Than Ngo <than@redhat.com> - 1:4.8.3-8
+- add poll support to fix QAbstractSocket errors with more than
+  1024 file descriptors, thanks Florian for the patch
+
+* Wed Oct 24 2012 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.3-7
+- Crash in Qt script (QTBUG-27322)
+
+* Tue Oct 23 2012 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.3-6
+- fix/respin qdevice_pri patch
+
+* Mon Oct 22 2012 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.3-5
+- QDir::homePath() should account for an empty $HOME (QTBUG-4862, kde#249217, #694385)
+
+* Sat Oct 20 2012 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.3-4
+- $RPM_LD_FLAGS should be propagated to qmake's defaults (#868554)
+
+* Fri Sep 28 2012 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.3-3
+- find qdevice.pri even for installed qt builds
+
+* Thu Sep 27 2012 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.3-2
+- upstream disable-SSL-compression patch
+
+* Thu Sep 13 2012 Rex Dieter <rdieter@fedoraproject.org> - 1:4.8.3-1
+- qt-4.8.3 final
+- revert QtScript-JIT commit
+
+* Tue Sep 04 2012 Rex Dieter <rdieter@fedoraproject.org> 4.8.2-6
+- revert "fix QtScript JIT crash" patch, causes frequent segmentation faults (#853587)
+
+* Mon Aug 13 2012 Rex Dieter <rdieter@fedoraproject.org> 4.8.2-5
+- fix QtScript JIT crash (QTBUG-23871, kde#297661) 
+
+* Thu Jul 05 2012 Rex Dieter <rdieter@fedoraproject.org> 4.8.2-4
+- text cursor blinks not in the current cell (kde#296490)
+
+* Tue Jun 19 2012 Than Ngo <than@redhat.com> - 4.8.2-3
+- fix bz#810500, fix crash in assistant
+
+* Tue May 29 2012 Than Ngo <than@redhat.com> - 4.8.2-2
+- fix bz#820767, lrelease-qt4 tries to run qmake not qmake-qt4
+
+* Tue May 22 2012 Than Ngo <than@redhat.com> - 4.8.2-1
+- 4.8.2
+
+* Fri May 18 2012 Than Ngo <than@redhat.com> - 4.8.1-15
+- add rhel/fedora condition
+
+* Thu May 17 2012 Rex Dieter <rdieter@fedoraproject.org> 4.8.1-14
+- Can't build 32bit Qt release application on 64bit (#822710)
+
+* Wed May 16 2012 Than Ngo <than@redhat.com> - 4.8.1-13
+- add upstream patch to fix crash on big endian machine
+
+* Fri May 11 2012 Rex Dieter <rdieter@fedoraproject.org> 4.8.1-12
+- enable debuginfo in libQt3Support
+
+* Fri May 11 2012 Rex Dieter <rdieter@fedoraproject.org> 4.8.1-11
+- lrelease-qt4 tries to run qmake not qmake-qt4 (#820767)
+
+* Thu May 10 2012 Rex Dieter <rdieter@fedoraproject.org> 4.8.1-10
+- Requires: qt-settings (f17+)
+
+* Tue May 08 2012 Rex Dieter <rdieter@fedoraproject.org> 4.8.1-9
+- rebuild (libtiff)
+
+* Thu May 03 2012 Than Ngo <than@redhat.com> - 4.8.1-8
+- add rhel/fedora condition
+
+* Wed Apr 18 2012 Than Ngo <than@redhat.com> - 4.8.1-7
+- add rhel condition
+
+* Tue Apr 17 2012 Rex Dieter <rdieter@fedoraproject.org> 4.8.1-6
+- omit qdbusconnection warnings in release/no-debug mode
+
+* Tue Apr 03 2012 Jaroslav Reznik <jreznik@redhat.com> - 4.8.1-5
+- Fix a crash in cursorToX() when new block is added (QTBUG-24718)
+
+* Fri Mar 30 2012 Than Ngo <than@redhat.com> - 4.8.1-4
+- Fix QTgaHandler::canRead() not obeying image plugin specs
+
+* Thu Mar 29 2012 Rex Dieter <rdieter@fedoraproject.org> 4.8.1-3
+- Header file name mismatch in qt-devel i686 (#808087)
+
+* Thu Mar 29 2012 Than Ngo <than@redhat.com> - 4.8.1-2
+- add correct flags
+
+* Wed Mar 28 2012 Than Ngo <than@redhat.com> - 4.8.1-1
+- 4.8.1
+
+* Wed Feb 22 2012 Rex Dieter <rdieter@fedoraproject.org> 4.8.0-10
+- -demos: Requires: -doc (#795859)
+
+* Mon Feb 20 2012 Than Ngo <than@redhat.com> - 4.8.0-9
+- get rid of timestamp which causes multilib problem
+
+* Tue Jan 24 2012 Than Ngo <than@redhat.com> - 4.8.0-8
+- disable Using gold linker, g++ doesn't support flags gold linker
+- fix gcc-4.7 issue
+
+* Tue Jan 10 2012 Rex Dieter <rdieter@fedoraproject.org> 4.8.0-7
+- improved filter_event patch (kde#275469)
+
+* Mon Jan 09 2012 Than Ngo <than@redhat.com> - 4.8.0-6
+- bz#772128, CVE-2011-3922, Stack-based buffer overflow in embedded harfbuzz code
+
+* Tue Dec 27 2011 Rex Dieter <rdieter@fedoraproject.org> 4.8.0-5
+- fix qvfb 
+
+* Tue Dec 27 2011 Rex Dieter <rdieter@fedoraproject.org> 4.8.0-4
+- filter event patch, avoid "ghost entries in kde taskbar" problem (kde#275469)
+
+* Tue Dec 20 2011 Rex Dieter <rdieter@fedoraproject.org> 4.8.0-3
+- don't spam if libicu is not present at runtime (#759923)
+
+* Mon Dec 19 2011 Dan Horák <dan[at]dannu.cz> 4.8.0-2
+- add missing method for QBasicAtomicPointer on s390(x)
+
+* Thu Dec 15 2011 Jaroslav Reznik <jreznik@redhat.com> 4.8.0-1
+- 4.8.0
+
+* Mon Dec 12 2011 Jaroslav Reznik <jreznik@redhat.com> 4.8.0-0.29.rc1
+- Fixes the position of misplaced mouse input (QTBUG-22420)
+
+* Sun Dec 04 2011 Rex Dieter <rdieter@fedoraproject.org> 4.8.0-0.28.rc1
+- Control whether icu support is built (#759923)
+
+* Sat Dec 03 2011 Kevin Kofler <Kevin@tigcc.ticalc.org> 4.8.0-0.27.rc1
+- work around a MOC issue with Boost 1.48 headers (#756395)
+
+* Wed Nov 30 2011 Than Ngo <than@redhat.com> - 4.8.0-0.26.rc1
+- workaround crash on ppc64
+
+* Mon Nov 14 2011 Rex Dieter <rdieter@fedoraproject.org> 4.8.0-0.25.rc1
+- BuildRequires: pkgconfig(libpng)
+- -devel: drop Requires: libpng-devel libjpeg-devel 
+- qt4.macros: +%%_qt4_epoch, %%_qt4_evr
+
+* Thu Nov 03 2011 Rex Dieter <rdieter@fedoraproject.org> 4.8.0-0.24.rc1
+- build tds sql driver with -fno-strict-aliasing 
+
+* Fri Oct 28 2011 Rex Dieter <rdieter@fedoraproject.org> 4.8.0-0.23.rc1
+- crash when using a visual with 24 bits per pixel (#749647,QTBUG-21754)
+
+* Fri Oct 28 2011 Kevin Kofler <Kevin@tigcc.ticalc.org> 4.8.0-0.22.rc1
+- fix FTBFS in QtWebKit's wtf library with GLib 2.31
+
+* Thu Oct 27 2011 Kevin Kofler <Kevin@tigcc.ticalc.org> 4.8.0-0.21.rc1
+- fix missing NULL check in the toLocalFile patch (fixes Digikam segfault)
+
+* Thu Oct 27 2011 Rex Dieter <rdieter@fedoraproject.org> 4.8.0-0.20.rc1
+- restore qt-4.7-compatible behavior to QUrl.toLocalFile (#749213)
+
+* Wed Oct 26 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1:4.8.0-0.19.rc1
+- Rebuilt for glibc bug#747377
+
+* Mon Oct 24 2011 Than Ngo <than@redhat.com> 4.8.0-0.18.rc1
+- bz#748297, update the URL of qt packages
+
+* Tue Oct 18 2011 Rex Dieter <rdieter@fedoraproject.org> 4.8.0-0.17.rc1
+- Buttons in Qt applications not clickable when run under gnome-shell (#742658, QTBUG-21900)
+
+* Mon Oct 17 2011 Rex Dieter <rdieter@fedoraproject.org> 4.8.0-0.16.rc1
+- Qt doesn't close orphaned file descriptors after printing (#746601, QTBUG-14724)
+
+* Sat Oct 15 2011 Rex Dieter <rdieter@fedoraproject.org> 4.8.0-0.15.rc1
+- revert qlist.h commit that seems to induce crashes in qDeleteAll<QList... (QTBUG-22037)
+
+* Sat Oct 15 2011 Rex Dieter <rdieter@fedoraproject.org> 4.8.0-0.14.rc1
+- pkgconfig-style deps
+
+* Thu Oct 13 2011 Rex Dieter <rdieter@fedoraproject.org> 4.8.0-0.13.rc1
+- 4.8.0-rc1
+
+* Mon Oct 03 2011 Rex Dieter <rdieter@fedoraproject.org> 4.8.0-0.12.20111002
+- 20111002 4.8 branch snapshot
+
+* Sat Sep 17 2011 Rex Dieter <rdieter@fedoraproject.org> 4.8.0-0.11.beta1
+- ./configure -webkit
+
+* Wed Sep 14 2011 Lukas Tinkl <ltinkl@redhat.com> 1:4.8.0-0.10.beta1
+- fix missing CSS styles and JS functions in the generated HTML
+  documentation, omitted from the upstream tarball
+
+* Wed Aug 17 2011 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.0-0.9.beta1
+- -graphicssystem raster (#712617)
+- drop sqlite_pkg option
+
+* Sun Jul 31 2011 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.0-0.8.beta1
+- macros.qt4: s|_qt47|_qt48|
+
+* Thu Jul 28 2011 Dan Horák <dan[at]danny.cz> 1:4.8.0-0.7.beta1
+- fix the outdated standalone copy of JavaScriptCore (s390)
+
+* Sat Jul 23 2011 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.0-0.6.beta1
+- fix QMAKE_LIBDIR_QT, for missing QT_SHARED define (#725183)
+
+* Wed Jul 20 2011 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.0-0.5.beta1
+- 4.8.0-beta1
+- drop webkit_packaged conditional
+- drop old patches
+- drop qvfb (for now, ftbfs)
+
+* Wed Jul 13 2011 Than Ngo <than@redhat.com> - 1:4.8.0-0.4.tp
+- move macros.* to -devel
+
+* Tue Jul 05 2011 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.0-0.3.tp
+- Adding qt-sql-ibase driver for qt (#719002) 
+- qvfb subpackage (#718416)
+
+* Tue Jun 21 2011 Rex Dieter <rdieter@fedoraproject.org> 1:4.8.0-0.2.tp
+- fontconfig patch (#705348, QTBUG-19947)
+
+* Wed May 25 2011 Jaroslav Reznik <jreznik@redhat.com> 1:4.8.0-0.1.tp
+- 4.8.0-tp
+- drop phonon_internal, phonon_backend_packaged build options
+
+* Thu May 19 2011 Rex Dieter <rdieter@fedoraproject.org> 1:4.7.3-3
+- omit %%{_qt4_plugindir}/designer/libqwebview.so too
+
+* Thu May 19 2011 Rex Dieter <rdieter@fedoraproject.org> 1:4.7.3-2
+- omit bundled webkit on f16+ (in favor of separately packaged qtwebkit)
+
+* Thu May 05 2011 Jaroslav Reznik <jreznik@redhat.com> 1:4.7.3-1
+- 4.7.3
+
+* Thu Apr 21 2011 Rex Dieter <rdieter@fedoraproject.org> 1:4.7.2-9
+- -webkit-devel: move qt_webkit_version.pri here
+
+* Fri Apr 01 2011 Rex Dieter <rdieter@fedoraproject.org> 1:4.7.2-8
+- -devel-private: qt-creator/QmlDesigner requires qt private headers (#657498)
+
+* Fri Mar 25 2011 Rex Dieter <rdieter@fedoraproject.org> 1:4.7.2-7
+- followup patch for QTBUG-18338, blacklist fraudulent SSL certifcates
+
+* Fri Mar 25 2011 Rex Dieter <rdieter@fedoraproject.org> 1:4.7.2-6
+- drop qt-designer-plugin-phonon
+
+* Fri Mar 25 2011 Than Ngo <than@redhat.com> - 1:4.7.2-5
+- apply patch to fix QTBUG-18338, blacklist fraudulent SSL certifcates
+
+* Tue Mar 22 2011 Jaroslav Reznik <jreznik@redhat.com> 1:4.7.2-4
+- rebuild (mysql)
+
+* Fri Mar 11 2011 Dan Horák <dan[at]danny.cz> 1:4.7.2-3
+- workaround memory exhaustion during linking of libQtWebKit on s390
+
+* Mon Mar 07 2011 Jaroslav Reznik <jreznik@redhat.com> 1:4.7.2-2
+- Fix QNetworkConfigurationManager crash due to null private pointer (#682656)
+
+* Tue Mar 01 2011 Jaroslav Reznik <jreznik@redhat.com> 1:4.7.2-1
+- 4.7.2
+
+* Wed Feb 23 2011 Rex Dieter <rdieter@fedoraproject.org> 1:4.7.1-18
+- libQtWebKit.so has no debug info (#667175)
+
+* Wed Feb 16 2011 Rex Dieter <rdieter@fedoraproject.org> 1:4.7.1-17
+- Obsoletes: qt-sqlite < 1:4.7.1-16
+
+* Tue Feb 15 2011 Rex Dieter <rdieter@fedoraproject.org> 1:4.7.1-16
+- drop -sqlite subpkg, move into main (#677418) 
+
+* Wed Feb 09 2011 Rex Dieter <rdieter@fedoraproject.org> 1:4.7.1-15
+- -assistant subpkg (#660287)
+- -config drop Obsoletes: qt-x11 (avoid/workaround #674326)
+- -config unconditionally drop NoDisplay (since we're dropping the Obsoletes too)
+- -designer-plugin-phonon subpkg (#672088)
+
+* Tue Feb 08 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1:4.7.1-14
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_15_Mass_Rebuild
+
+* Wed Jan 26 2011 Rex Dieter <rdieter@fedoraproject.org> 4.7.1-13
+- -config: fix Obsoletes for real this time
+
+* Wed Jan 26 2011 Rex Dieter <rdieter@fedoraproject.org> 4.7.1-12
+- fix qt-config related Obsoletes/Provides
+
+* Wed Jan 26 2011 Rex Dieter <rdieter@fedoraproject.org> 4.7.1-11
+- upstream fix for QTextCursor regression (QTBUG-15857, kde#249373)
+
+* Tue Jan 25 2011 Rex Dieter <rdieter@fedoraproject.org> 4.7.1-10
+- -config subpkg
+- qt-x11 pulls in phonon (#672088)
+- qtconfig.desktop: drop NoDisplay (f15+ only, for now)
+
+* Thu Jan 20 2011 Rex Dieter <rdieter@fedoraproject.org> 4.7.1-9.1
+- apply the Assistant QtWebKit dependency removal (#660287) everywhere
+
+* Thu Jan 06 2011 Rex Dieter <rdieter@fedoraproject.org> 4.7.1-9
+- qsortfilterproxymodel fix (merge_request/934)
+
+* Tue Jan 04 2011 Rex Dieter <rdieter@fedoraproject.org> 4.7.1-8
+- only do Requires: phonon-backend if using qt's phonon
+
+* Fri Dec 24 2010 Kevin Kofler <Kevin@tigcc.ticalc.org> 4.7.1-7
+- fix QTreeView crash triggered by KPackageKit (patch by David Faure)
+
+* Fri Dec 24 2010 Rex Dieter <rdieter@fedoraproject.org> 4.7.1-6
+- rebuild (mysql)
+
+* Wed Dec 08 2010 Kevin Kofler <Kevin@tigcc.ticalc.org> 4.7.1-5
+- make the Assistant QtWebKit dependency removal (#660287) F15+ only for now
+- fix QTextCursor crash in Lokalize and Psi (QTBUG-15857, kde#249373, #660028)
+- add some more NULL checks to the glib_eventloop_nullcheck patch (#622164)
+
+* Mon Dec 06 2010 Than Ngo <than@redhat.com> 4.7.1-4
+- bz#660287, using QTextBrowser in assistant to drop qtwebkit dependency
+
+* Tue Nov 23 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.1-3
+- Fails to create debug build of Qt projects on mingw (#653674, QTBUG-14467)
+
+* Mon Nov 22 2010 Than Ngo <than@redhat.com> - 4.7.1-2
+- bz#528303, Reordering of Malayalam Rakar not working properly
+
+* Thu Nov 11 2010 Than Ngo <than@redhat.com> - 4.7.1-1
+- 4.7.1
+
+* Mon Oct 25 2010 Jaroslav Reznik <jreznik@redhat.com> - 4.7.0-8
+- QtWebKit, CVE-2010-1822: crash by processing certain SVG images (#640290)
+
+* Mon Oct 18 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-7
+- qt-devel contains residues from patch run (#639463)
+
+* Fri Oct 15 2010 Than Ngo <than@redhat.com> - 4.7.0-6
+- apply patch to fix the color issue in 24bit mode (cirrus driver)
+
+* Thu Sep 30 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-5
+- Wrong Cursor when widget become native on X11 (QTBUG-6185)
+
+* Mon Sep 27 2010 Than Ngo <than@redhat.com> - 4.7.0-4
+- apply upstream patch to fix QTreeView-regression (QTBUG-13567)
+
+* Thu Sep 23 2010 Than Ngo <than@redhat.com> - 4.7.0-3
+- fix typo in license
+
+* Thu Sep 23 2010 Than Ngo <than@redhat.com> - 4.7.0-2
+- fix bz#562049, bn-IN Incorrect rendering
+- fix bz#562058, bn_IN init feature is not applied properly
+- fix bz#631732, indic invalid syllable's are not recognized properly
+- fix bz#636399, oriya script open type features are not applied properly
+
+* Tue Sep 21 2010 Than Ngo <than@redhat.com> - 4.7.0-1
+- 4.7.0
+
+* Thu Sep 09 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-0.31.rc1
+- -webkit-devel: add missing %%defattr
+- -webkit: move qml/webkit bits here
+
+* Wed Sep 08 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-0.30.rc1
+- Crash in drawPixmap in Qt 4.7rc1 (#631845, QTBUG-12826)
+
+* Mon Aug 30 2010 Than Ngo <than@redhat.com> - 4.7.0-0.29.rc1
+- drop the patch, it's already fixed in upstream
+
+* Thu Aug 26 2010 Than Ngo <than@redhat.com> - 4.7.0-0.28.rc1
+- 4.7.0 rc1
+
+* Thu Jul 08 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-0.26.beta2
+- rebase patches, avoiding use of patch fuzz
+- omit old qt-copy/kde-qt patches, pending review
+- omit kde4_plugin patch
+- ftbfs:s/qml/qmlviewer, libQtMediaServices no longer included
+
+* Thu Jul 08 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-0.25.beta2
+- 4.7.0-beta2
+
+* Thu Jul 01 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-0.24.beta1
+- X11Embed broken (rh#609757, QTBUG-10809)
+
+* Thu Jul 01 2010 Kevin Kofler <Kevin@tigcc.ticalc.org> - 4.7.0-0.23.beta1
+- use find_lang to package the qm files (#609749)
+- put the qm files into the correct subpackages
+- remove qvfb translations, we don't ship qvfb
+
+* Tue Jun 29 2010 Rex Dieter <rdieter@fedoraproject.org. 4.7.0-0.22.beta1
+- workaround glib_eventloop crasher induced by gdal/grass (bug #498111)
+
+* Sun Jun 20 2010 Rex Dieter <rdieter@fedoraproject.org> 4.7.0-0.20.beta1
+- avoid timestamps in uic-generated files to be multilib-friendly
+
+* Fri Jun 18 2010 Rex Dieter <rdieter@fedoraproject.org> 4.7.0-0.19.beta1
+- revert -no-javascript-jit change, false-alarm (#604003)
+- QtWebKit does not search correct plugin path(s) (#568860)
+- QtWebKit browsers crash with flash-plugin (rh#605677,webkit#40567)
+- drop qt-x11-opensource-src-4.5.0-gcc_hack.patch
+
+* Wed Jun 16 2010 Rex Dieter <rdieter@fedoraproject.org> 4.7.0-0.18.beta1
+- -no-javascript-jit on i686 (#604003)
+
+* Wed Jun 16 2010 Karsten Hopp <karsten@redhat.com> 4.7.0-0.17.beta1 
+- add s390 and s390x to 3rdparty/webkit/JavaScriptCore/wtf/Platform.h and
+  3rdparty/javascriptcore/JavaScriptCore/wtf/Platform.h
+
+* Fri Jun 11 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-0.16.beta1
+- scrub -lpulse-mainloop-glib from .prl files (#599844)
+- scrub references to %%buildroot in .pc, .prl files
+
+* Thu May 27 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-0.15.beta1
+- Unsafe use of rand() in X11 (QTBUG-9793)
+
+* Fri May 21 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-0.14.beta1
+- drop -no-javascript-jit (webkit#35154)
+
+* Mon May 17 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-0.13.beta1
+- QT_GRAPHICSSYSTEM env support
+
+* Sun May 16 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-0.12.beta1
+- -webkit-devel: move Qt/qweb*.h here (#592680)
+
+* Fri May 07 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-0.11.beta1
+- -webkit-devel: Obsoletes: qt-devel ... (upgrade path)
+
+* Thu May 06 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-0.10.beta1
+- -webkit-devel: Provides: qt4-webkit-devel , Requires: %%name-devel
+
+* Thu May 06 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-0.9.beta1
+- 4.7.0-beta1
+- -webkit-devel : it lives! brainz!
+
+* Fri Apr 30 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-0.8.tp
+- prepping for separate QtWebKit(-2.0)
+- -webkit subpkg,  Provides: QtWebKit ...
+- -devel: Provides: QtWebKit-devel ...
+- TODO: -webkit-devel (and see what breaks)
+
+* Wed Apr 28 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-0.7.tp
+- own %%{_qt4_plugindir}/crypto
+
+* Sat Apr 03 2010 Kevin Kofler <Kevin@tigcc.ticalc.org> - 4.7.0-0.6.tp
+- backport fix for QTBUG-9354 which breaks kdeutils build
+
+* Fri Apr 02 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-0.5.tp
+- Associate text/vnd.trolltech.linguist with linguist (#579082)
+
+* Tue Mar 23 2010 Tom "spot" Callaway <tcallawa@redhat.com> - 4.7.0-0.4.tp
+- fix type cast issue on sparc64
+
+* Sun Mar 21 2010 Kevin Kofler <Kevin@tigcc.ticalc.org> - 4.7.0-0.3.tp
+- also strip -lpulse from .prl files (fixes PyQt4 QtMultimedia binding build)
+
+* Tue Mar 16 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.7.0-0.2.tp
+- qt-4.7.0-tp
+- macros.qt4 : +%%_qt4_importdir
+- don't strip libs from pkgconfig files, Libs.private is now used properly
+- add -lphonon to stripped libs instead of brutally hacking out
+  QMAKE_PRL_LIBS altogether (#520323)
+- qt-assistant-adp packaged separately now, not included here
+
+* Sat Mar 13 2010 Kevin Kofler <Kevin@tigcc.ticalc.org> - 4.6.2-7
+- BR alsa-lib-devel (for QtMultimedia)
+
+* Sat Mar 13 2010 Kevin Kofler <Kevin@tigcc.ticalc.org> - 4.6.2-6
+- Provides: qt-assistant-adp(-devel)
+
+* Fri Mar 05 2010 Than Ngo <than@redhat.com> - 4.6.2-5
+- Make tablet detection work with new wacom drivers (#569132)
+
+* Mon Mar 01 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.6.2-4
+- fix 64bit platform logic, use linux-g++-64 everywhere except x86_64 (#569542)
+
+* Sun Feb 28 2010 Kevin Kofler <Kevin@tigcc.ticalc.org> - 4.6.2-3
+- fix CUPS patch not to crash if currentPPD is NULL (#566304)
+
+* Tue Feb 16 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.6.2-2
+- macros.qt4: s/qt45/qt46/
+
+* Mon Feb 15 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.6.2-1
+- 4.6.2
+
+* Fri Feb 05 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.6.1-3
+- improve cups support (#523846, kde#180051#c22)
+
+* Tue Jan 19 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.6.1-2
+- drop bitmap_font_speed patch, rejected upstream
+
+* Tue Jan 19 2010 Than Ngo <than@redhat.com> - 4.6.1-1
+- 4.6.1
+
+* Mon Jan 11 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.6.0-5
+- bitmap_font_speed patch (QTBUG-7255)
+
+* Sat Jan 09 2010 Rex Dieter <rdieter@fedoraproject.org> - 4.6.0-4
+- Fix crash when QGraphicsItem destructor deletes other QGraphicsItem (kde-qt cec34b01)
+- Fix a crash in KDE/Plasma with QGraphicsView. TopLevel list of items (kde-qt 63839f0c)
+
+* Wed Dec 23 2009 Kevin Kofler <Kevin@tigcc.ticalc.org> - 4.6.0-3
+- disable QtWebKit JavaScript JIT again, incompatible with SELinux (#549994)
+
+* Sat Dec 05 2009 Kevin Kofler <Kevin@tigcc.ticalc.org> - 4.6.0-2
+- own %%{_qt4_plugindir}/gui_platform
+
+* Tue Dec 01 2009 Than Ngo <than@redhat.com> - 4.6.0-1
+- 4.6.0
+
+* Tue Nov 17 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.6.0-0.6.rc1
+- qt-4.6.0-rc1
+
+* Sat Nov 14 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.6.0-0.5.beta1 
+- -tds: Add package with TDS sqldriver (#537586)
+- add arch'd provides for sql drivers
+
+* Sun Nov 08 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.6.0-0.4.beta1
+- -x11: Requires: %%{name}-sqlite%{?_isa}
+
+* Mon Oct 26 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.6.0-0.3.beta1
+- kde-qt patches (as of 20091026)
+
+* Fri Oct 16 2009 Than Ngo <than@redhat.com> - 4.6.0-0.2.beta1 
+- subpackage sqlite plugin, add Require on qt-sqlite in qt-x11
+  for assistant
+- build/install qdoc3 again
+
+* Wed Oct 14 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.6.0-0.1.beta1
+- qt-4.6.0-beta1
+- no kde-qt patches (yet)
+
+* Sat Oct 10 2009 Than Ngo <than@redhat.com> - 4.5.3-4
+- fix translation build issue
+- rhel cleanup
+
+* Tue Oct 06 2009 Jaroslav Reznik <jreznik@redhat.com> - 4.5.3-3
+- disable JavaScriptCore JIT, SE Linux crashes (#527079)
+
+* Fri Oct 02 2009 Than Ngo <than@redhat.com> - 4.5.3-2
+- cleanup patches
+- if ! phonon_internal, exclude more/all phonon headers
+- qt-devel must Requires: phonon-devel (#520323)
+
+* Thu Oct 01 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.3-1
+- qt-4.5.3
+
+* Tue Sep 29 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.2-21
+- switch to external/kde phonon
+
+* Mon Sep 28 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.2-20
+- use internal Qt Assistant/Designer icons
+- -devel: move designer.qch,linguist.qch here
+- move ownership of %%_qt4_docdir, %%_qt4_docdir/qch to main pkg
+
+* Sun Sep 20 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.2-19
+- Missing Qt Designer icon (#476605)
+
+* Fri Sep 11 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.2-18
+- drop gcc -fno-var-tracking-assignments hack (#522576)
+
+* Fri Sep 11 2009 Than Ngo <than@redhat.com> - 4.5.2-17
+- drop useless check for ossl patch, the patch works fine with old ossl
+
+* Wed Sep 09 2009 Than Ngo <than@redhat.com> - 4.5.2-16
+- add a correct system_ca_certificates patch
+
+* Tue Sep 08 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.2-15
+- use system ca-certificates (#521911)
+
+* Tue Sep 01 2009 Than Ngo <than@redhat.com> - 4.5.2-14
+- drop fedora < 9 support
+- only apply ossl patch for fedora > 11
+
+* Mon Aug 31 2009 Than Ngo <than@redhat.com> - 4.5.2-13
+- fix for CVE-2009-2700
+
+* Thu Aug 27 2009 Rex Dieter <rdieter@fedoraproject.org> 4.5.2-12
+- use platform linux-g++ everywhere (ie, drop linux-g++-64 on 64 bit),
+  avoids plugin/linker weirdness (bug #478481)
+
+* Wed Aug 26 2009 Tomas Mraz <tmraz@redhat.com> - 1:4.5.2-11
+- rebuilt with new openssl
+
+* Thu Aug 20 2009 Than Ngo <than@redhat.com> - 4.5.2-10
+- switch to kde-qt branch
+
+* Tue Aug 18 2009 Than Ngo <than@redhat.com> - 4.5.2-9
+- security fix for CVE-2009-1725 (bz#513813)
+
+* Sun Aug 16 2009 Than Ngo <than@redhat.com> - 4.5.2-8
+- fix phonon-backend-gstreamer for using pulsaudio (#513421)
+
+* Fri Aug 14 2009 Rex Dieter <rdieter@fedoraproject.org> 4.5.2-7
+- kde-qt: 287-qmenu-respect-minwidth
+- kde-qt: 0288-more-x-keycodes (#475247)
+
+* Wed Aug 05 2009 Rex Dieter <rdieter@fedoraproject.org> 4.5.2-6
+- use linker scripts for _debug targets (#510246)
+- tighten deps using %%{?_isa}
+- -x11: Requires(post,postun): /sbin/ldconfig
+
+* Thu Jul 30 2009 Than Ngo <than@redhat.com> - 4.5.2-5
+- apply upstream patch to fix issue in Copy and paste
+
+* Sun Jul 26 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1:4.5.2-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_12_Mass_Rebuild
+
+* Thu Jul 02 2009 Than Ngo <than@redhat.com> - 4.5.2-3
+- pregenerate PNG, drop BR on GraphicsMagick (bz#509244)
+
+* Fri Jun 26 2009 Kevin Kofler <Kevin@tigcc.ticalc.org> - 4.5.2-2
+- take current qt-copy-patches snapshot (20090626)
+- disable patches which are already in 4.5.2
+- fix the qt-copy patch 0274-shm-native-image-fix.diff to apply against 4.5.2
+
+* Thu Jun 25 2009 Lukáš Tinkl <ltinkl@redhat.com> - 4.5.2-1
+- Qt 4.5.2
+
+* Sun Jun 07 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.1-18
+- phonon-backend-gstreamer pkg, with icons
+- optimize (icon-mostly) scriptlets
+
+* Sun Jun 07 2009 Than Ngo <than@redhat.com> - 4.5.1-17
+- drop the hack, apply patch to install Global header, gstreamer.desktop
+  and dbus services file
+
+* Sat Jun 06 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.1-16
+- install awol Phonon/Global header
+
+* Fri Jun 05 2009 Kevin Kofler <Kevin@tigcc.ticalc.org> - 4.5.1-15
+- apply Phonon PulseAudio patch (needed for the xine-lib backend)
+
+* Fri Jun 05 2009 Than Ngo <than@redhat.com> - 4.5.1-14
+- enable phonon and gstreamer-backend
+
+* Sat May 30 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.1-13
+- -doc: Obsoletes: qt-doc < 1:4.5.1-4 (workaround bug #502401)
+
+* Sat May 23 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.1-12
+- +phonon_internal macro to toggle packaging of qt's phonon (default off)
+
+* Fri May 22 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.1-11
+- qt-copy-patches-20090522
+
+* Wed May 20 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.1-10.2
+- full (non-bootstrap) build
+
+* Wed May 20 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.1-10.1
+- allow for minimal bootstrap build (*cough* arm *cough*)
+
+* Wed May 06 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.1-10
+- improved kde4_plugins patch, skip expensive/unneeded canonicalPath
+
+* Wed May 06 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.1-9
+- include kde4 plugin path by default (#498809)
+
+* Mon May 04 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.1-8
+- fix invalid assumptions about mysql_config --libs (bug #440673)
+- fix %%files breakage from 4.5.1-5
+
+* Wed Apr 29 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.1-7
+- -devel: Provides: qt4-devel%%{?_isa} ...
+
+* Mon Apr 27 2009 Than Ngo <than@redhat.com> - 4.5.1-6
+- drop useless hunk of qt-x11-opensource-src-4.5.1-enable_ft_lcdfilter.patch
+
+* Mon Apr 27 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.1-5
+- -devel: Provides: *-static for libQtUiTools.a
+
+* Fri Apr 24 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.1-4
+- qt-doc noarch
+- qt-demos, qt-examples (split from -doc)
+- (cosmetic) re-order subpkgs in alphabetical order
+- drop unused profile.d bits
+
+* Fri Apr 24 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.1-3
+- enable FT_LCD_FILTER (uses freetype subpixel filters if available at runtime)
+
+* Fri Apr 24 2009 Than Ngo <than@redhat.com> - 4.5.1-2
+- apply upstream patch to fix the svg rendering regression
+
+* Thu Apr 23 2009 Than Ngo <than@redhat.com> - 4.5.1-1
+- 4.5.1
+
+* Tue Apr 14 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.0-14
+- fix vrgb/vgbr corruption, disable QT_USE_FREETYPE_LCDFILTER (#490377)
+
+* Fri Apr 10 2009 Than Ngo <than@redhat.com> - 4.5.0-13
+- unneeded executable permissions for profile.d scripts
+
+* Wed Apr 01 2009 Kevin Kofler <Kevin@tigcc.ticalc.org> - 4.5.0-12
+- fix inline asm in qatomic (de)ref (i386/x86_64), should fix Kolourpaint crash
+
+* Mon Mar 30 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.0-11
+- qt fails to build on ia64 (#492174)
+
+* Wed Mar 25 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.0-10
+- qt-copy-patches-20090325
+
+* Tue Mar 24 2009 Than Ngo <than@redhat.com> - 4.5.0-9
+- lrelease only shows warning when duplicate messages found in *.ts( #491514)
+
+* Fri Mar 20 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.0-8
+- qt-copy-patches-20090319
+
+* Thu Mar 19 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.0-7
+- include more phonon bits, attempt to fix/provide phonon bindings
+  for qtscriptgenerator, PyQt, ...
+
+* Tue Mar 17 2009 Than Ngo <than@redhat.com> - 4.5.0-6
+- fix lupdate segfault (#486866)
+
+* Sat Mar 14 2009 Dennis Gilmore <dennis@ausil.us> - 4.5.0-5
+- add patch for sparc64. 
+- _Atomic_word is not always an int
+
+* Tue Mar 10 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.0-4
+- macros.qt4: %%_qt45
+- cleanup more phonon-related left-overs 
+
+* Wed Mar 04 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.0-3
+- -no-phonon-backend
+- include qdoc3
+- move designer plugins to runtime (#487622)
+
+* Tue Mar 03 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.0-2
+- License: LGPLv2 with exceptions or GPLv3 with exceptions
+- BR: gstreamer-devel
+- drop qgtkstyle patch (no longer needed)
+- -x11: move libQtScriptTools here (linked with libQtGui)
+
+* Tue Mar 03 2009 Than Ngo <than@redhat.com> - 4.5.0-1
+- 4.5.0
+
+* Fri Feb 27 2009 Rex Dieter <rdieter@fedoraproject.org> - 1:4.5.0-0.8.20090224
+- 20090224 snapshot
+- adjust pkgconfig hackery
+
+* Wed Feb 25 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1:4.5.0-0.7.rc1
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_11_Mass_Rebuild
+
+* Sun Feb 22 2009 Rex Dieter <rdieter@fedoraproject.org> 4.5.0-0.5.rc1
+- revert license, change won't land until official 4.5.0 release
+- workaround broken qhostaddress.h (#485677)
+- Provides: qgtkstyle = 0.1
+
+* Fri Feb 20 2009 Rex Dieter <rdieter@fedoraproject.org> 4.5.0-0.4.rc1
+- saner versioned Obsoletes
+- -gtkstyle, Obsoletes: qgtkstyle < 0.1
+- enable phonon support and associated hackery
+
+* Mon Feb 16 2009 Than Ngo <than@redhat.com> 4.5.0-0.3.rc1
+- fix callgrindChildExitCode is uninitialzed
+
+* Sun Feb 15 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.5.0-0.2.rc1
+- qt-copy-patches-20090215
+- License: +LGPLv2
+
+* Wed Feb 11 2009 Than Ngo <than@redhat.com> - 4.5.0-0.rc1.0
+- 4.5.0 rc1
+
+* Thu Feb 05 2009 Rex Dieter <rdieter@fedoraproject.org> 4.4.3-16
+- track branches/qt-copy/4.4, and backout previous trunk(qt45) ones
+
+* Mon Feb 02 2009 Than Ngo <than@redhat.com> 4.4.3-15
+- disable 0269,0270,0271 patches, it causes issue in systray
+
+* Thu Jan 29 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.4.3-14
+- qt-copy-patches-20090129
+
+* Mon Jan 26 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.4.3-13
+- Provides: qt4%%{?_isa} = %%version-%%release
+- add %%_qt4 to macros.qt4
+
+* Thu Jan 22 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.4.3-12 
+- respin (mysql)
+
+* Fri Jan 16 2009 Kevin Kofler <Kevin@tigcc.ticalc.org> - 4.4.3-11
+- rebuild for new OpenSSL
+
+* Mon Jan 12 2009 Rex Dieter <rdieter@fedoraproject.org> - 4.4.3-10
+- drop qt-x11-opensource-src-4.3.4-no-hardcoded-font-aliases.patch (#447298),
+  in favor of qt-copy's 0263-fix-fontconfig-handling.diff
+
+* Mon Jan 12 2009 Than Ngo <than@redhat.com> - 4.4.3-9
+- qt-copy-patches-20090112
+
+* Tue Dec 30 2008 Rex Dieter <rdieter@fedoraproject.org> 4.4.3-8
+- qt-copy-patches-20081225
+
+* Fri Dec 12 2008 Rex Dieter <rdieter@fedoraproject.org> 4.4.3-7
+- rebuild for pkgconfig deps
+
+* Wed Nov 12 2008 Rex Dieter <rdieter@fedoraproject.org> 4.4.3-6
+- qt-copy-patches-20081112
+
+* Tue Nov 11 2008 Than Ngo <than@redhat.com> 4.4.3-5
+- drop 0256-fix-recursive-backingstore-sync-crash.diff, it's
+  included in qt-copy-pathes-20081110
+
+* Mon Nov 10 2008 Rex Dieter <rdieter@fedoraproject.org> 4.4.3-4
+- qt-copy-patches-20081110
+
+* Mon Nov 10 2008 Than Ngo <than@redhat.com> 4.4.3-3
+- apply 0256-fix-recursive-backingstore-sync-crash.diff
+
+* Thu Nov 06 2008 Than Ngo <than@redhat.com> 4.4.3-2
+- bz#468814, immodule selection behavior is unpredictable without QT_IM_MODULE,
+  patch from Peng Wu
+- backport fix from 4.5
+
+* Sun Sep 28 2008 Rex Dieter <rdieter@fedoraproject.org> 4.4.3-1
+- 4.4.3
+
+* Wed Sep 24 2008 Rex Dieter <rdieter@fedoraproject.org> 4.4.2-2
+- omit systray patch (for now)
+
+* Sat Sep 20 2008 Than Ngo <than@redhat.com> 4.4.2-1
+- 4.4.2
+
+* Mon Sep 08 2008 Rex Dieter <rdieter@fedoraproject.org> - 4.4.1-3
+- apply QMAKEPATH portion of multilib patch only if needed
+- qt-copy-patches-20080908
+
+* Wed Aug 06 2008 Than Ngo <than@redhat.com> -  4.4.1-2
+- fix license tag
+- fix Obsoletes: qt-sqlite (missing epoch)
+
+* Tue Aug 05 2008 Than Ngo <than@redhat.com> -  4.4.1-1
+- 4.4.1
+
+* Tue Aug 05 2008 Rex Dieter <rdieter@fedoraproject.org> 4.4.0-17
+- fold -sqlite subpkg into main (#454930)
+
+* Wed Jul 23 2008 Rex Dieter <rdieter@fedoraproject.org> 4.4.0-16
+- qt-copy-patches-20080723 (kde#162793)
+- omit deprecated phonon bits
+
+* Sat Jul 19 2008 Rex Dieter <rdieter@fedoraproject.org> 4.4.0-15
+- fix/workaround spec syntax 
+
+* Sat Jul 19 2008 Rex Dieter <rdieter@fedoraproject.org> 4.4.0-14
+- macros.qt4: fix %%_qt4_datadir, %%_qt4_translationdir
+
+* Thu Jul 17 2008 Rex Dieter <rdieter@fedoraproject.org> 4.4.0-13
+- (re)fix qconfig-multilib.h for sparc64
+
+* Fri Jul 11 2008 Rex Dieter <rdieter@fedoraproject.org> 4.4.0-12
+- qt-copy-patches-20080711
+
+* Mon Jun 23 2008 Rex Dieter <rdieter@fedoraproject.org> 4.4.0-11
+- fix dbus conditional (#452487)
+
+* Sat Jun 14 2008 Rex Dieter <rdieter@fedoraproject.org> 4.4.0-10
+- strip -lsqlite3 from .pc files (#451490)
+
+* Sat Jun 14 2008 Kevin Kofler <Kevin@tigcc.ticalc.org> 4.4.0-9
+- restore -qt4 suffixes
+
+* Fri Jun 13 2008 Than Ngo <than@redhat.com> 4.4.0-8
+- drop qt wrapper, make symlinks to /usr/bin
+
+* Tue Jun 10 2008 Than Ngo <than@redhat.com> 4.4.0-7
+- fix #450310, multilib issue 
+
+* Fri Jun 06 2008 Rex Dieter <rdieter@fedoraproject.org> 4.4.0-6
+- qt-copy-patches-20080606
+- drop BR: libungif-devel (not used)
+- move libQtXmlPatters, -x11 -> main
+- move qdbuscpp2xml, qdbusxml2cpp, xmlpatters, -x11 -> -devel
+
+* Tue May 27 2008 Kevin Kofler <Kevin@tigcc.ticalc.org> 4.4.0-5
+- under GNOME, default to QGtkStyle if available
+
+* Mon May 19 2008 Kevin Kofler <Kevin@tigcc.ticalc.org> 4.4.0-4
+- don't hardcode incorrect font substitutions (#447298)
+
+* Fri May 16 2008 Rex Dieter <rdieter@fedoraproject.org> 4.4.0-3
+- qt-copy-patches-20080516
+
+* Tue May 13 2008 Kevin Kofler <Kevin@tigcc.ticalc.org> 4.4.0-2
+- revert _qt4_bindir change for now, needs more work (#446167)
+
+* Tue May 06 2008 Rex Dieter <rdieter@fedoraproject.org> 4.4.0-1
+- qt-4.4.0

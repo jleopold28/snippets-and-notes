@@ -1,0 +1,30 @@
+require 'rake'
+
+#example tasks array
+tasks = [:spec, 'foo:bar']
+
+#would create 'rake tasks' that executes tasks without fatally erroring
+def continue_after_errors(tasks)
+  desc "Rake #{tasks.join(',')} and ignore errors."
+  task 'ignore_errors' do
+    tasks.each do |the_task|
+      system("#{ENV['_']} #{the_task}") {}
+    end
+  end
+end
+
+#would create 'rake bar' that executes foo:bar
+def top_level_alias(tasks)
+  tasks.each do |the_task|
+    if the_task =~ /:/
+      desc "Top level alias for #{the_task}."
+      task the_task.split(':')[0].to_sym => the_task
+    end
+  end
+end
+
+#would create 'rake' that executes spec and foo:bar
+def auto_default(tasks)
+  desc 'Default task'
+  task default: tasks
+end

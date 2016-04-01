@@ -1,0 +1,940 @@
+\documentclass[12pt,letterpaper]{article}
+\usepackage{framed,color}
+\usepackage[dvips,backref,ps2pdf,colorlinks=true]{hyperref}
+\definecolor{shadecolor}{gray}{0.85}
+
+\begin{document}
+\begin{titlepage}
+\mbox{}
+\begin{center}
+
+\Huge PROJECT Development Users' Manual\\
+\vspace{1cm}
+\Large A Users' Perspective Guide to the Repository, Configuration, Build, and Installation of PROJECT\\
+\vspace{3in}
+\large Matthew Schuchard\\
+%\large company\\
+%\large email\\
+%\large phone number\\
+\vspace{1in}
+\today\\
+\vspace{1cm}
+This document is unclassified and not export-controlled.
+
+\end{center}
+\end{titlepage}
+
+\begin{table}[h]
+\centering
+\caption{Version History}
+\begin{tabular}{| c | c | c |}
+Version & Date & Description\\
+\hline
+1 & September 25, 2012 & preview of document\\
+2 & January 8, 2013 & updates and proofreading\\
+3 & March 28, 2013 & new sections and updates\\
+4 & November 1, 2013 & updates, proofreading, and revisions\\
+\end{tabular}
+\end{table}
+\clearpage
+
+\tableofcontents
+
+\section{Introduction}
+
+This document is intended to supersede and obsolete the previous XWiki article detailing the same PROJECT information subjects.  This aforementioned XWiki article contained a large amount of information pertaining to both CVS usage and Greg Galloway's Configuration and Build system.  This new document is not intended to be used as a point of reference for either of these, but rather for exclusively Subversion usage and Matt Schuchard's PROJECT Configuration and Build System.  This document also contains many new points of reference either previously undocumented or sparsely documented.  These new topics include the PROJECT packaging and installation infrastructure.
+
+This document is intended to be exhaustive and answer any questions you may have of the listed subjects.  This manifesto and statement of intent does not include what is considered extrinsic and/or prerequisite knowledge (Linux shell syntax, browser interfaces, text editors, Google, etc.).  If your particular question(s) is unanswered by this documentation and is relevant to the listed subjects, please do not hesitate to contact me with your questions and I will add information to this document immediately.
+
+\section{The PROJECT Subversion Repository}
+
+\subsection{Obtaining a PROJECT Working Copy}
+
+\begin{itemize}
+\item change directory into the location you would like your working copy\\
+This should be done via the \emph{cd} command in Linux.  It is extremely recommended to \textbf{not} perform the checkout in a Windows environment.  Many issues with corrupt working copies of PROJECT are directly linked to inappropriate Subversion actions entered in Windows which the Windows Subversion client incorrectly allows to proceed.  Checking out PROJECT is the most consequential Subversion read command you will perform and therefore should be done in Linux.
+\item svn co https://DEPARTMENTsvn.COMPANY.edu/svn/group/Development/PROJECT (DEPARTMENT)
+\item svn co https://svn.COMPANY.edu/svn/PROJECT/trunk/PROJECT (SPECIAL_AREA)
+\item svn co https://svn.CUSTOMER/svn/PROJECT/trunk/PROJECT (CUSTOMER)\\
+This will cause the entire PROJECT working copy to be downloaded to a directory called \emph{PROJECT} in your current working directory.  If so desired, an argument after the URL can be given to instruct Subversion to place the checkout into a directory specified by the argument (instead of \emph{PROJECT}).  More information about the checkout command can be obtained by \emph{svn help co}.  The usage for the checkout command is that all directories within the URL of the first argument are checked out to a directory (automatically created if otherwise does not exist) named by the second argument.
+\item continue the checkout if it halts\\
+Given the very large size of the SPECIAL_AREA PROJECT repository, it is very likely that a complete checkout will cause the Subversion server to absolutely crash within two hours of the command execution.  If this occurs, wait until someone does hardware and software resets of the Subversion server.  After, either enter the desired checkout command again or execute \emph{svn update PROJECT}.  During unusual circumstances, a halted checkout may cause locked files and require a cleanup.  If this occurs, enter \emph{svn cleanup PROJECT}.
+\end{itemize}
+
+Alternatively, since the SPECIAL_AREA PROJECT repository is so very large, some people may prefer to only check out parts of PROJECT on an as-needed basis.  This can be accomplished by the following commands replacing the checkout command above:
+
+\begin{itemize}
+\item svn co https://svn.COMPANY.edu/svn/PROJECT/trunk/PROJECT \texttt{--}depth empty
+\item svn update PROJECT/Version
+\item svn update PROJECT/src
+\end{itemize}
+
+Additional parts of PROJECT can be acquired for your working copy via \emph{svn update} commands on \emph{PROJECT/dirname}, or from the PROJECT directory itself.  Obtaining additional parts of PROJECT via \emph{svn update} commands from the PROJECT directory may not work due to an incomplete .svn directory, so execute a \emph{svn update PROJECT \texttt{--}depth immediates} command from one directory above if you wish to check out additional PROJECT parts from the PROJECT directory.
+
+Once you have obtained a PROJECT working copy, you can continue to update your working copy from the repository via use of the \emph{svn update} command executed in and on the appropriate locations in your working copy.  Once you have established the top level directory of your working copy as it corresponds to the repository there is no need for further checkout commands, but merely update commands.
+
+\subsection{Frequently Used SVN Commands}
+
+The following SVN commands can be very useful when working within the PROJECT working copy and repository.  They can all be run with file or directory arguments and will execute with the current working directory as the default argument.  To view additional information on any of these commands, enter \emph{svn help ``command''} and usage information will be printed to standard out.
+
+Additional documentation for Subversion can be found here:\linebreak \href{http://svnbook.red-bean.com}{Red Bean Subversion Documentation} as an internet link.  The SPECIAL_AREA location for this documentation is forthcoming.
+
+\begin{itemize}
+\item \textbf{svn log}
+\end{itemize}
+
+The svn log command will display the version history of the file along with commit comments for each version.
+
+\begin{itemize}
+\item \textbf{svn diff}
+\end{itemize}
+
+The \emph{svn diff} command will perform a diff between your version of the file and a version of the file in the repository.  The revision version in the repository your working copy file will be diffed with will be the same revision version as your working copy.  For example, if your working copy is at revision 50 and the repository is at revision 75, if you perform \emph{svn diff foo.c} the diff will be executed in reference to revision 50 of \verb|foo.c| in the repository (considered a ``diff to base'').  This is because the diff is executed using the information from the .svn directory in your working copy.  It is possible to diff your working copy file with other versions in the repository, including the most recent committed (considered a ``diff to head''), but this is really best performed via some Subversion client GUI.
+
+\begin{itemize}
+\item \textbf{svn update}
+\end{itemize}
+
+The \emph{svn update} command will check all of your working copy files against the current version of the repository and attempt to update your working copy accordingly.  This is a read action, and currently anonymous read access to PROJECT is universally supported across all repositories.  If you wish to view how your working copy files will be affected by an update, you can execute a \emph{svn status} command to view their current status versus what is in the repository.  If you wish to obtain a previous version of a file, you can make use of the \emph{svn update -r REVISION-NUMBER} command.  During the update, you will see a character before the list of files and directories indicating its status.  Check the \hyperlink{svnstatus}{\textbf{svn status}} section for more information on these.
+
+When performing an svn update, you may cause files in your working copy to enter the ``conflict'' status.  By default, resolving conflicted states of working copy files occurs in interactive mode during an update.  You will be presented with several options for resolving the conflict along with an option to view more.  You can choose to resolve the conflict status later with \emph{svn resolve} with all the same arguments and options available as during the interactive mode of the update.  Please note the only acceptable option argument for resolving conflicted directories is ``working.''
+
+\begin{itemize}
+\item \textbf{svn commit}
+\end{itemize}
+
+The \emph{svn commit} command will check all of your working copy files against what is in the current version of the repository and attempt to merge your files into the repository accordingly.  You must be on the Subversion writers list to perform this command.  Everyone should be on this list by default in DEPARTMENT, but consult CSG (or whatever acronym DEPARTMENT-IT is this month) if not.  You can be added to this list in SPECIAL_AREA by Matt Schuchard or Brian Smith, but will need to \textbf{immediately} request your client-side Subversion configuration file be updated to avoid committing corrupted or malformed carriage-return/eol-style files to the repository.  Anyone can add people to the Subversion writers list at CUSTOMER.  To specify the commit message, you can either use the \emph{-m} argument with the message following, or set the \emph{SVN\_EDITOR} environment variable to your text-editor of choice (e.g. \emph{export SVN\_EDITOR=vim}).  Text-editors will display the status of committed files prior to the actual commit.  Refer to the \hyperlink{svnstatus}{\textbf{svn status}} section for more information on these.
+
+\begin{itemize}
+\item \textbf{svn revert}
+\end{itemize}
+
+The svn revert command will restore the specified path in your working copy to a pristine version from the repository.  The revision version the files will be reverted to is the same as the revision version of these files in your working copy, since the information for a \emph{svn revert} is stored in your .svn directories.  Please note this command will not restore removed directories due to the missing .svn directory from those directories.
+
+\begin{itemize}
+\item \textbf{svn status}\hypertarget{svnstatus}{}
+\end{itemize}
+
+The \emph{svn status} command will display the status of the specified files and directories in your working copy.  The possible statuses are as follows for the svn status, update, and commit commands:
+
+\begin{itemize}
+\item ?: unknown to the repository
+\item !: missing in the working copy
+\item A: added to your working copy or the repository
+\item D: deleted from your working copy and the repository
+\item U: cleanly updated in your working copy or the repository
+\item M: modified version in your working copy
+\item C: conflicted file or directory in your working copy
+\item G: file or directory was successfully merged with the repository version
+\item I: ignored
+\item E: existed
+\item R: replaced
+\end{itemize}
+
+\begin{itemize}
+\item \textbf{svn move/rename}
+\end{itemize}
+
+The \emph{svn rename} command is aliased to the \emph{svn move} command for the sake of clarity for those unfamiliar with Linux shell syntax.  The \emph{svn move} command enables the user to move files and directories in your working copy and is reflected in the repository after a commit.  This command has the same usage as the \emph{mv} command in the Linux shell.
+
+\begin{itemize}
+\item \textbf{svn merge}
+\end{itemize}
+
+The command \emph{svn merge} will apply the differences between two different versions of a file or directory to the corresponding file or directory in your working copy.  It can be used to revert a file in the repository back to an earlier version cleanly.  The syntax for this repository revert is \emph{svn merge -c REVISION foo.c}.  Please note that \emph{svn merge -c REVISION foo.c} is shorthand for \emph{svn merge -r REVISION-1:REVISION foo.c}, and \emph{svn merge -c -REVISION foo.c} is shorthand for \emph{svn merge -r REVISION:REVISION-1 foo.c}.  For example, if you wish to merge version 5 of a file back to version 2 of the file, you would execute \emph{svn merge -r 5:2 foo.c}.  If the file did not change from version 2 to version 4, then the shorthand \emph{-c} can be readily utilized in this instance as \emph{svn merge -c -5 foo.c}.  Merging a file to a newer version is normally easily achieved through \emph{svn update [-r]}, but you can also make use of \emph{svn merge}.  The \emph{svn merge} command can also be used to merge branches into and out of the svn trunk and each other.  Please note that if the current revision number is not specified in the range (as it is when not using -c/-r M/-M), the head revision (repository) will be used and not the base revision (working copy).  These merges are prior to commits for taking effect within the repository.
+
+\begin{itemize}
+\item \textbf{svn add}
+\end{itemize}
+
+When a new file or directory is created in your working copy and needs to be committed to the repository, the command \emph{svn add} must be executed on the file or directory first.
+
+\begin{itemize}
+\item \textbf{svn delete}
+\end{itemize}
+
+The command \emph{svn delete} will delete the desired file(s) and directory(s) from your working copy, and alter their status to ``deleted'' to ensure their removal from the repository during the next commit.  If \emph{svn delete} is executed on a directory, all files within it will be removed from your working copy prior to the commit, but all directories will be retained as empty until the commit.
+
+\begin{itemize}
+\item \textbf{svn cleanup}
+\end{itemize}
+
+Sometimes, Subversion will place a lock on your working copy.  If this lock resulted from a minor offending action, it can be removed by simply executing the \emph{svn cleanup} command on the highest necessary directory in the tree.  If the command does not fix the working copy lock, then an action incurring potential major damage has been performed in the working copy.  Be aware that an \emph{svn cleanup} should \textbf{always} be executed in Linux preferably to Windows in SPECIAL_AREA.  Even if you are working entirely in Windows, the cleanup should still be attempted in Linux first.  This is partially due to the SAMBA configuration in SPECIAL_AREA.
+
+In this situation, the best course of action is to clean your .svn directory.  Attempt to perform the desired commit first (if applicable).  Next, the highest locked directory should be backed up locally with a \emph{mv} command.  Then, the user should perform an svn update on the directory to restore it.  The desired files to be committed should be ``diffed'' from what was restored by the update.  If the result of the \emph{diff} reveals any files failed to be committed, overwrite what was restored by the update with your backup.  If any files and/or directories need to be added, be sure to execute \emph{svn add} on them since the .svn directory was cleaned.  Commit and proceed as normal.  These kinds of locks can be easily avoided by daily updates and commits.
+
+Unfortunately, sometimes the above solution does not work.  For example, you may want to rename a directory and then Subversion will complain that the old directory no longer exists.  These kinds of locks are generally horrible to deal with (and a compelling reason to switch to GIT), but they can be resolved.  If a rename or move is failing, you can attempt to force the issue with a \emph{svn delete \texttt{--}force} on the old directory in your working copy.  If there appear to be simultaneous locks on directories and files in the tree, you will have to start the cleanup on the lowest level and then ascend from there.  Sometimes, you can avoid Subversion complaints about non-existent missing directories by resolving the conflicts there to ``working.''  If all else fails, backup the changes, restore the working copy directory, blow it away, and then replace it with the good backup.  You lose the subversion history, but illogical conflicts and locks are a known deficiency of Subversion and need to be overcome somehow.
+
+\subsection{Subversion User Configuration}
+
+The Subversion user configuration can be modified in the \verb|home/.subversion| directory.  This is where all the client-side specifications are setup.  Some of the more important ones are described below.
+
+\subsubsection{Subversion Write Action Prompts}
+
+Subversion will prompt you for your password every time you perform a write action.  It will not prompt you for your password prior to read actions, as anonymous read access is permitted.  Subversion is currently configured for a LDAP password configuration, and your LDAP password is the one required.  Unfortunately, this restriction demands that unencrypted password storing be forbidden and encrypted password storing dependent upon RSD approval for classified information access systems.  For unclassified Subversion repositories, password storing is acceptable.
+
+To reduce the number of write action prompts from three to one in classified systems, you can edit your \verb|/home/.subversion/server| file in the following way (these lines already exist in a default configuration file but are commented and have potentially incorrect booleans):
+
+\begin{shaded}
+\noindent\verb|[global]|\\
+store-passwords = no\\
+store-plaintext-passwords = no\\
+store-ssl-client-cert-pp = yes\\
+store-ssl-client-cert-pp-plaintext = no
+\end{shaded}
+
+After saving your server configuration file, you will no longer be prompted to accept the server certificate or queried as to whether you want your password stored encrypted or unencrypted prior to every write action.  Under no circumstances will your password be stored unencrypted with these settings.  If you save your edits to the file and Subversion begins throwing an error of ``option expected,'' then whitespace was retained at the beginning of the lines in the file and should be removed.
+
+\subsubsection{Subversion Auto-Properties}
+
+The auto-properties section primarily assists Subversion with two potential issues: EOL-styles and binary MIME-types.  Ignoring binary MIME-type settings is generally a non-issue in unclassified repositories, but can quickly corrupt files in classified repositories (generally due to the prevalence of more outdated software).  End of line styles must be specified to prevent negative issues when working simultaneously in Unix-based and Windows-based environments.
+
+To set both end of line styles and binary MIME-type settings, you will need to edit your \verb|home/.subversion/config| file.  You should change the settings following the below template (and remember to remove any leading whitespace):
+
+\begin{shaded}
+\noindent\verb|#| enable-auto-props = yes $\rightarrow$ enable-auto-props = yes\\
+...\\
+\verb|[auto-props]|\\
+\verb|#| *.c = svn:eol-style=native $\rightarrow$ *.c = svn:eol-style=native\\
+\verb|#| *.dsp = svn:eol-style=CRLF $\rightarrow$ *.dsp = svn:eol-style=CRLF\\
+...\\
+\verb|#| *.png = svn:mime-type=image/png $\rightarrow$ *.png = svn:mime-type=image/png\\
+\verb|#| *.jpg = svn:mime-type=image/jpeg $\rightarrow$ *.jpg = svn:mime-type=image/jpeg
+\end{shaded}
+
+If the binary MIME-types are not properly set in the user configuration file, there will be a possibility that the associated binary files will be misinterpreted by Subversion during the \emph{svn add} execution (this is when the types are set per file) and they will become corrupted.  If this occurs, they will have to be deleted and then re-added with the proper MIME-type setting.  This is primarily a concern for classified repositories.  The file will remain uncorrupted in your working copy, but any checkout of that file will obtain it in a corrupted state.
+
+After being added to the Subversion writers list in SPECIAL_AREA, you should immediately request an update to your auto-properties in the client-side configuration file.  This action has been retroactively performed for everyone already on the Subversion writers list as of June 2012.  To find the master list for adding to or updating your own configuration file, consult \verb|/users/userone/.subversion/config|.  This file may be unreadable unless using root privileges, but if your config file was setup initially, it is very unlikely to ever need updating.
+
+\subsection{Helpful Subversion Client GUIs}
+
+\begin{itemize}
+\item \textbf{Rapid SVN}
+\end{itemize}
+
+In SPECIAL_AREA, the Linux client RapidSVN should be installed on every seat.  If it is not, version 0.12 should be in the yum repository and able to be installed.  Previous versions are known to be unstable.  RapidSVN can also be installed on unclassified seats, but RabbitVCS is the preferred Linux client.  Unfortunately, RabbitVCS is also very difficult to install.  Stable packages should exist for Fedora and Debian though.
+
+Setting up RapidSVN takes a few minutes, but can pay huge dividends down the road.  The initial setup first requires the selection of \emph{Bookmarks} in the top menu.  Select \emph{Add Existing Working Copy} and select the top level directory of your working copy.  You may also want to select \emph{Add Existing Repository} and enter the URL where you want to view the repository from (suggestion is the trunk).  Viewing the repository in RapidSVN is admittedly less useful than viewing your working copy, but it may prove useful at some future juncture.
+
+The next part of the setup involves configuring helper applications for use with RapidSVN.  Select \emph{View}$\rightarrow$\emph{Preferences} from the top menu.  Select the ``Programs'' tab from those available.  In here, you can configure an editor (e.g. \emph{gvim}), explorer, differ (e.g. \emph{kompare}), and merger (e.g. \emph{meld}).  Make selections based on what you are most comfortable with.
+
+There are two main advantages to working within RapidSVN.  The first is it enables the user to have all the Subversion command line functionality but in a GUI.  For those uncomfortable working within the Linux shell, you may prefer to use RapidSVN.  The second is it allows users to easily view the history of working copy files and directories by selecting items in the sidebar and then right-clicking or making selections in the top menus.  The user can then quickly view log messages, diff between revisions or between the working copy and revisions, resolve conflicts, or merge between revisions and the working copy.  These commands are all much more efficiently and easily performed inside RapidSVN, especially for multiple files simultaneously, and therefore everyone will likely prefer RapidSVN to command line executions for these functions.
+
+\begin{itemize}
+\item \textbf{Tortoise SVN}
+\end{itemize}
+
+If you are forced into the unfortunate circumstance of working on version-controlled files in Windows, TortoiseSVN is the preferred Subversion GUI client.  It is installed on the Windows server virtual machine \emph{gizmo} in SPECIAL_AREA.  It can be used by navigating through your working copy and right-clicking on files, or directly by opening the repository or your working copy in its GUI menus.  For more information, consult its \emph{Help} menus.
+
+\section{The PROJECT Configuration and Build System}
+
+The current PROJECT Configuration and Build system was created in early 2012 with the goal to make personal configuration of PROJECT build trees easier for developers, to enable significantly easier building on customer machines, and to provide a more stable system which works correctly without extensive user input and hassle.  These goals being achieved, additional goals to improve productivity and efficiency were pursued, such as fully automated and complete implicit dependency scanning of targets.  By July 2012, the PROJECT Configuration and Build System had arrived at a state where most additional upgrades, improvements, tweaks, and fixes had been implemented.  The system was at the point where, when considered within the context of daily flux, it was stable and essentially unchanged from the perspective of most observers (i.e. everyone who is not me).  Therefore, this section of the documentation will require only infrequent updates, and notable future changes will be documented mostly in the comments of the primary configuration support files.
+
+\subsection{Easy Guide to Building your PROJECT Working Copy}
+
+\begin{itemize}
+\item ensure your machine has been configured correctly either manually or through Puppet automatically
+\item DEPARTMENT: alabama1 (RHEL5), alabama2 (CentOS6)
+\item SPECIAL_AREA: any seat machine (only obama has the AbSoft Fortran 11.1 license)
+\item CUSTOMER: all seat machines and vis\\
+These machines are maintained with the necessary updated packages to configure and build all components of RHEL-5/6 PROJECT correctly.  It is possible, with \emph{root} access and the list of required packages, to convert any RHEL-5/6 machine into a build machine with the GFortran 4.4.x configuration (see below).  This process will be automated by Puppet in the near future since official support has been dropped for AbSoft and GFortran has become the official Fortran compiler.  It is also possible to build and execute PROJECT on an Enterprise Linux 6 system.  There are no additional subleties for this other than a single user switch in \verb|BuildPROJECTsrc.sh|.
+\item \verb|cd PROJECT/src|\\
+This is the default location for your PROJECT source tree.  If your source tree is located somewhere else, you should change directory into there instead.
+\item \verb|`text editor` BuildPROJECTsrc.sh|
+Change the \emph{CONFIGNAME} user switch to something unique, appropriate, and identifiable by you.
+\item \verb|./BuildPROJECTsrc.sh|\\
+This action will configure, build, and install all of PROJECT in your working copy according to the default configuration.  For alternate switch settings which modify the configuration of the resulting build tree, consult the \hyperlink{configswitches}{\textbf{Configuration Switches}} section below.  If a build tree configuration error occurs, the the machine has been configured incorrectly.  If the Ada executables fail to link successfully, then perform an action which forces a build tree reconfiguration and then execute a \emph{make install} in the build tree.
+\end{itemize}
+
+After you have configured your build tree, you should have no need to execute \verb|BuildPROJECTsrc.sh| on this build tree ever again.  The primary purpose of the \verb|BuildPROJECTsrc.sh| frontend script is to configure a new build tree (executing it on an already configured build tree will have mixed or no results).  Executing a \emph{make} or \emph{make install} where appropriate will automatically reconfigure your build tree according to your source tree and, in most instances, a change in your system environment.  Changing a user switch in \verb|BuildPROJECTsrc.sh|, configuring on a different machine, or installing/removing/moving a required external package are the normal actions which require a subsequent re-execution of \verb|BuildPROJECTsrc.sh| on your build tree (still executed from the source tree).  There are also rare instances (once or twice a year) where a build system update will require a subsequent recreation of build trees through the execution of \verb|BuildPROJECTsrc.sh|.
+
+It is also worth noting that if you have root you can easily configure your local machine as a build machine.  If you are inside SPECIAL_AREA, you can find the list of required packages in \verb|PROJECT/rpm_scripts/specheader.tmpl|.  They are denoted by \emph{BuildRequires} tags in that file.  You will have to configure your build tree with the GFortran compiler instead of AbSoft Fortran due to licensing issues.  If you are on your personal unclassified office machine, you are likely using Red Hat 6 or Ubuntu 12.x/13.x, and not Red Hat 5.  Your results building PROJECT on Debian/Ubuntu will vary, but it can succeed with enough persistence.  The initial build tree configuration diagnostic output gives clear indications as to what additional machine configuration steps need to be performed for the correct build tree configuration.
+
+\subsection{PROJECT Configuration Switches}\hypertarget{configswitches}{}
+
+The PROJECT configuration switches are listed below along with their default values.  Underneath each entry is a description of each switch and its effects on the configured build tree.
+
+\begin{itemize}
+\item \textbf{SRCDIR=src}
+\end{itemize}
+
+The directory location where the desired PROJECT source tree is for this build tree configuration.  The specified build tree will perpetually reconfigure based on changes to this source tree.
+
+\begin{itemize}
+\item \textbf{CONFIGNAME=EMPTY\_STRING}
+\end{itemize}
+
+This user switch is a string which will be used in several places to customize this build tree configuration.
+
+The directory where you want this specific build configuration tree to be established will have this string appended to ``bld''.  It is very possible and easy to have multiple and independent build trees which are respectively capable of automatically reconfiguring correctly to reflect changes in the same source tree.
+
+The directory where you want this specific build configuration tree to install its executable installation targets during a \emph{make install} will have this string appended to ``bin''.  While it is possible to have separate build configurations install targets to the same installation directory, it is almost always a bad idea unless you are certain there will be no overlap or do not care if there is overlap.
+
+The directory where you want this specific build configuration tree to install shared object libraries will be in ``lib.''  All dynamic link libraries installed will have this string interspersed between the library name and its extension (i.e. \verb|libvisitCONFIGNAME.so|).
+
+\begin{itemize}
+\item \textbf{DEBUG=TRUE}
+\end{itemize}
+
+Compilers will be configured with all appropriate debug flags.  There is no compelling reason to turn this switch off unless preparing a delivery for internal or external release.  Turning this switch off will disable the debug flags and instead configure compilers with appropriate optimization flags.  It will also trigger various bools reserved solely for release builds.
+
+\begin{itemize}
+\item \textbf{NOBUILD=FALSE}
+\end{itemize}
+
+The specified build tree will be created and configured.  Makefiles and all their associated CMake support files will be generated.  However, there will be no implicit execution of a \emph{make install} during the execution of \verb|BuildPROJECTsrc.sh|.  This is useful for testing configuration updates, assembling configuration diagnostics for different machines and setups, and correcting non-fatal configuration errors prior to attempting a build.
+
+\begin{itemize}
+\item \textbf{USEABSOFT=FALSE}
+\end{itemize}
+
+This build configuration will make use of the most recent AbSoft Fortran Compiler installed on the machine where you are configuring.  Turning this switch off will cause the build configuration to instead make use of the most recent GNUFortran compiler in the 4.4.x release branch installed on the machine where you are configuring.  If for some reason you actually want to use the AbSoft Fortran Compiler, check with someone knowledgeable for what machines have an AbSoft license.
+
+\begin{itemize}
+\item \textbf{PROFILE=FALSE}
+\end{itemize}
+
+This build configuration will enable extensive profiling options for code optimization.  All appropriate profiling flags will be configured for use with compilers and linkers.  You will need to run the executables with \emph{gprof} to make use of these options.  Due to complications resulting in errors, some code coverage flags are not included in this switch, but potentially one can also make use of \emph{gcov} with these executables.  After initially using \emph{gprof} with these executables and obtaining profiler output files, the associated objects can be recompiled and executables relinked to acquire even more profiling options, capabilities, and information with \emph{gprof}.  Profiling options have not been extensively tested with PROJECT, so your results may vary.
+
+\begin{itemize}
+\item \textbf{USEOPENGL=TRUE}
+\end{itemize}
+
+This build configuration will make use of the NVIDIA OpenGL system drivers, libraries, and header files.  The OpenGL-exclusive components of PROJECT will also be included in this build configuration.  These PROJECT and system libraries may be used to enable new performance capabilities in non-OpenGL exclusive components of PROJECT, such as background rendering in missiles.
+
+\begin{itemize}
+\item \textbf{USEOPENGLRENDER=TRUE}
+\end{itemize}
+
+This build configuration will make use of the general (including terrain) OpenGL rendering capabilities in PROJECT.  This switch is defunct unless \emph{USEOPENGL} is enabled, as the Open-GL rendering components are dependent upon OpenGL.  This switch will have the most effects in the rest of the PROJECT build tree (relative to the other \emph{OPENGL} switches since there are numerous PROJECT components with potential general OpenGL rendering capabilities.
+
+\begin{itemize}
+\item \textbf{USEOPENGLFLARE=TRUE}
+\end{itemize}
+
+This build configuration will make use of the OpenGL flare-rendering capabilities in PROJECT.  This switch is defunct unless \emph{USEOPENGL} is enabled, as the Open-GL flare rendering components are dependent upon OpenGL.  This switch exists because the OpenGL flare-rendering component has a co-dependence with the decoy manager component.
+
+\begin{itemize}
+\item \textbf{USEOPENGLSMOKE=FALSE}
+\end{itemize}
+
+This build configuration will make use of the OpenGL smoke-rendering capabilities in PROJECT.  This switch is defunct unless \emph{USEOPENGL} is enabled, as the Open-GL smoke rendering components are dependent upon OpenGL.  This switch currently has merely nominal effects, but will have a true effect after the renovation of the PROJECT OpenGL codebase and when the the OpenGL smoke code reaches a stable state.
+
+\begin{itemize}
+\item \textbf{USESGIP=FALSE}
+\end{itemize}
+
+This build configuration will make use of the externally provided SGIP OpenGL rendering libraries.  This switch is defunct unless \emph{USEOPENGLRENDER} is enabled, as the SGIP OpenGL rendering components are dependent upon the general OpenGL rendering components.  These libraries are most commonly utilized for terrain rendering in PROJECT.
+
+\begin{itemize}
+\item \textbf{USECUDA=TRUE}
+\end{itemize}
+
+This build configuration will make use of the NVIDIA CUDA system libraries and header files.  The CUDA-exclusive components of PROJECT will also be included in this build configuration.  These PROJECT and system libraries may be used to enable new performance capabilities in non-CUDA exclusive components of PROJECT, such as reticle rendering in missiles.
+
+\begin{itemize}
+\item \textbf{USEFLAME=TRUE}
+\end{itemize}
+
+This build configuration will make use of the Flame code and its library to support other PROJECT components such as decoy manager.  This switch is defunct unless \emph{PROPRIETARY}, \emph{PROJECTUNIFIEDISAMS}, and \emph{CLASSIFIED} are enabled.
+
+\begin{itemize}
+\item \textbf{USESMOKE=TRUE}
+\end{itemize}
+
+This build configuration will make use of the Smoke source code files when compiling and linking into the PROJECT VISIT rendering library and when linking against this library.
+
+\begin{itemize}
+\item \textbf{USEOCEAN=TRUE}
+\end{itemize}
+
+This build configuration will make use of the Ocean source code files when compiling and linking into the PROJECT VISIT rendering library and when linking against this library.
+
+\begin{itemize}
+\item \textbf{USEMODTRAN5=TRUE}
+\end{itemize}
+
+This build configuration will make use of the MODTRAN5 source code when compiling and linking into the atmospheric transmission library and when executables link against the atmospheric transmission library.  Turning this switch off will result in MODTRAN4 source code being used for the atmospheric transmission library.  This switch is defunct unless \emph{PROPRIETARY} is enabled.
+
+\begin{itemize}
+\item \textbf{USESENSE=TRUE}
+\end{itemize}
+
+This build configuration will make use of the Sense code and its library to support other PROJECT components.  Note that this switch will only affect PROJECT components outside of \emph{PROJECTUNIFIEDISAMS}, as these components will always use a very similar Sense ISAMS version library.
+
+\begin{itemize}
+\item \textbf{USESIL=FALSE}
+\end{itemize}
+
+This build configuration will make use of the COMPANY version of SIL code and its associated library to support other components of PROJECT.  Officially, SIL work is performed with the E2E version of SIL, and therefore it is extremely recommended to leave this switch off unless you are certain you want this switch on and are aware of its effects.
+
+\begin{itemize}
+\item \textbf{USEFLITES=FALSE}
+\end{itemize}
+
+This build configuration will make use of the proprietary FLITES external libraries, data, and header files.  The FLITES-exclusive components of PROJECT will also be included in this build configuration.  These PROJECT and system libraries may be used to enable new performance capabilities in non-FLITES exclusive components of PROJECT such as target rendering.  This switch is defunct unless \emph{USEOPENGL} and \emph{USECUDA} are also enabled.
+
+\begin{itemize}
+\item \textbf{USESAIL=FALSE}
+\end{itemize}
+
+This build configuration will make use of the SAIL libraries and players for NvM simulation events and scenarios.  The SAIL-exclusive components of PROJECT will also be included in this build configuration.  The executables created as part of this build configuration will utilize SAIL instead of PROJECTRA for NvM IPC.
+
+\begin{itemize}
+\item \textbf{PROPRIETARY=TRUE}
+\end{itemize}
+
+This build configuration will make use of MODTRAN, potentially Flame, and any other source code files, libraries, and executables which are considered proprietary.  To differentiate between versions of MODTRAN use the \emph{USEMODTRAN5} switch.  Disabling this switch will result in the use of LOWTRAN7 for atmospheric transmission.  Disabling this flag will, in general, reduce certain performance capabilities of executables, but not completely remove them.
+
+\begin{itemize}
+\item \textbf{PROJECTUNIFIEDISAMS=TRUE}
+\end{itemize}
+
+This build configuration will configure, build, and install all of the PROJECT components which are part of the ISAMS subcomponents.  These include transfer, flare\_dispense\_cuer, scatter, missiles\_isams, image\_tracker, resolver, mobile\_targeting\_platform, adjunct\_tracker, irst\_player, sense\_isams, and onboard\_image\_tracker.  This also includes flame when the other appropriate switches are enabled.
+
+\begin{itemize}
+\item \textbf{CLASSIFIED=FALSE(DEPARTMENT)/TRUE(SPECIAL_AREA)}
+\end{itemize}
+
+This build configuration will configure, build, and install all of the PROJECT components which are considered classified or exclusive to the classified version of PROJECT.  Attempting to enable this switch in a configuration of unclassified PROJECT will result in a massive number of configuration errors.
+
+\begin{itemize}
+\item \textbf{REDHAT6=FALSE}
+\end{itemize}
+
+This build configuration will assume the system environment is derived from RHEL-6 and not RHEL-5.  There are many subtle differnces associated with this switch but none that will concern any PROJECT developer.  This switch will need to be enabled when configuring on any RHEL-6 machine and is fully supported.  This switch will become enabled by default by the end of 2013.
+
+\begin{itemize}
+\item \textbf{CMAKEDEV=FALSE}
+\end{itemize}
+
+This build configuration will attempt to make use of a CMake version that is more current than the officially supported version.  As of \today, the official COMPANY-group supported version of CMake is 2.8.7.  If the version of CMake installed on the build configuration machine is 2.8.8 or later, you will need to enable this switch.  It is very much not recommended to attempt use of CMake versions beyond what is officially supported.  You will have varied results with the enabling of this switch.
+
+\subsection{CMake, GNUMake, and Their Commands}
+
+The PROJECT Configuration and Build System uses CMake for configuration and GNUMake for building.  The makefiles created by CMake will sometimes have CMake executions overloaded into the GNUMake make rules to immediately occur during GNUMake's execution.  Currently only 64-bit builds of PROJECT are supported due to limitations imposed by externally utilized software and operating systems.
+
+GNUMake documentation is readily available online via googling, and a usage statement is available via execution of \emph{make -help}.  \hypertarget{cmakedoc}{}CMake documentation is also readily available online, but will vary from version to version.  The best way to generate and navigate CMake documentation is to execute the command \emph{cmake \texttt{--}help-html foo.html} and then open the resulting file indicated by the \verb|foo.html| argument in a web browser.  This will ensure the documentation is current with your version and allows for easy parsing of information.
+
+The following commands are GNUMake commands which are specifically created by CMake.  These are the most common GNUMake commands you will invoke in a CMake configured build tree.  These commands may have no or different effects when executed with GNUMake in a non-CMake configured build tree.
+
+\begin{itemize}
+\item \textbf{make}
+\end{itemize}
+
+Executes \emph{make} on the current build directory.  This will compile source files into objects and archive/link all libraries and executables specified in the makefile.  Please note that targets specified in the build directories will be built regardless of source files in parallel source directories.  For example, if \verb|foo.c| is in \emph{dir1} and is being linked into the library \verb|foo.a| built in \emph{dir2}, the file will be compiled for a \emph{make} executed in \emph{dir2} and not \emph{dir1}.  This is because the source file object \verb|foo.o| target is being specified in the same makefile as the resulting library or executable.  Obviously a \emph{make} executed in a directory containing both \emph{dir1} and \emph{dir2} will also compile the source file due to tree parsing.  This inherent logic should also be remembered for any associated targets of the source file, such as its object or preprocessed output targets.
+
+Build tree reconfigurations are overloaded into all \emph{make} commands and are triggered by their execution.  Any changes to CMakeLists will be automatically reflected in all corresponding build trees during their implicit reconfigurations.  All configured external packages which are missing or below the specified version during the current configuration will be searched for during every reconfiguration until a satisfactory result is arrived at.  The reconfiguration overloaded into \emph{make} commands suffices for almost every situation requiring a build tree reconfiguration.  Otherwise, invoke a reconfiguration implicitly from within \verb|BuildPROJECTsrc.sh| by executing it appropriately.
+
+\begin{itemize}
+\item \textbf{make clean}
+\end{itemize}
+
+The execution of \emph{make clean} will remove all compiled/linked dependencies, objects, libraries, and executables specified in the build directory makefile.  It can be used to perform a clean rebuild.  A more drastic solution is to blow away the build directory and let CMake reconfigure the build directories.  This alternative solution is useful when stale configuration files are causing build errors.
+
+\begin{itemize}
+\item \textbf{make install}
+\end{itemize}
+
+The execution of \emph{make install} will perform all the normal functions of a \emph{make} execution, but then subsequently installs all targets which are instructed to be installed by CMakeLists.  By default, these are all executables and shared object/dynamic linked libraries built in the specified configuration.
+
+\begin{itemize}
+\item \textbf{make VERBOSE=1}
+\end{itemize}
+
+The makefiles configured by CMake suppress the standard out from compilers, linkers, and configuration scripts which are executed as parts of a \emph{make}.  Giving the argument of \emph{VERBOSE=1} to the \emph{make} execution triggers the make rules in the makefile which enable showing the standard out of compilers, linkers, and configuration scripts.  The standard out from the CMake executable binary process will also be displayed.  This is very helpful as a first step toward debugging CMakeLists.
+
+\begin{itemize}
+\item \textbf{make foo.i}
+\end{itemize}
+
+Every target object of the C and C++ languages has an associated preprocessor target with a \verb|.i| extension which allows the user to view the preprocessed output of a source file.  The output preprocessed source file will be located at \verb|CMakeFiles/target.dir/foo.i|.  This is useful for debugging issues with header files, defines, and other errors associated with the preprocessing prior to compilation.
+
+Please note that currently Fortran and Ada source files are preprocessed independently of the compiler execution.  Therefore, all preprocessed source files are placed into the corresponding build directory as \verb|foo.tmp.f|, \verb|foo.adb|, or \verb|foo.ads|. Fortran files will be preprocessed as part of the compiler execution and arguments eventually.  For now this is impossible because we have many Fortran source code files with \verb|.f90| extensions which are not up to Fortran90 standard and GNUFortran refuses to utilize Fortran77 standard via compiler arguments.  For now, neither Fortran nor Ada source files have associated \verb|.i| targets.  Please note that Ada is preprocessed only within the AAR47 codebase.
+
+\begin{itemize}
+\item \textbf{make -k}
+\end{itemize}
+
+The build rules in makefiles created by CMake configurations will instruct \emph{make} commands and all related processes to terminate after the first returned error by GNUMake by default.  Giving the \emph{-k} argument to a \emph{make/make install} command will instruct the processes to continue through the entire build tree and not halt after any error.  This can be useful to debug an error that propagates, or to push through a build tree as much as possible before isolating and debugging errors.
+
+\begin{itemize}
+\item \textbf{make -j nthreads}
+\end{itemize}
+
+fill in later
+
+\subsection{The CMakeLists.txt}
+
+\subsubsection{Creating CMakeLists}
+
+The \verb|CMakeLists.txt| are the primary user-created support files which CMake utilizes to configure the makefiles in the resulting build tree.  They are populated with a powerful script-like language that is fully documented in the \linebreak\hyperlink{cmakedoc}{\textbf{CMake documentation}}.  The sections of the CMake documentation which will prove relevant to creating your own CMakeLists will be those regarding libraries and executables.  When first creating a CMakeList, you should very much consider basing it off an already established CMakeList as a template.  Find a place in the source tree with a \verb|CMakeLists.txt| that is similar to what you are attempting to create, and then copy it over and proceed to edit and customize it until satisfied.
+
+Creating a CMakeList from scratch is almost never necessary.  If there arises a situation where you feel certain that you require functionality not previously demonstrated, or where your project requires a change to the central configuration, please contact me immediately.
+
+Consult the following \hyperlink{cmakelisttable}{table} if you are having difficulties finding a relevant CMakeList:
+
+\begin{table}[h]
+\centering
+\caption{Project Build Situations and Examples}\hypertarget{cmakelisttable}{}
+\begin{tabular}{| c | c |}
+CMakeList Requires & Example CMakeList Location\\
+\hline
+multiple language sources in one library & util\\
+Fortran 90 module dependencies & transfer/src\\
+executable link against libraries & imagegen/src\\
+library with disparate source files & missiles\_isams/it/src\\
+source files in variable arrays & visit\\
+preprocessing Ada & mws/aar47/*\\
+FLEX and BISON & sense/main\\
+compile .cu (CUDA) source & cudalib/reticlelib\\
+establishing a library dependency & simcontroller\_and\_api\\
+executable depends on non-compiled file & sail/players/recorder\_playback\\
+library depends on non-compiled file & sense/main\\
+integrating a QT4 project & trajplot\\
+generating a header file & sense/main\\
+creating a FLITES plugin & flites\_if/terrain/module\\
+\end{tabular}
+\end{table}
+
+\subsubsection{Custom CMake Functions}
+
+Some CMake functions used in the PROJECT Configuration and Build are custom scripted and defined.  These will not be documented in the official CMake documentation, so they are described below.  The description for these functions is pulled directly from the comments in the primary configuration files.  Therefore, these descriptions might seem confusing or uninteresting, but they are provided for completeness.
+
+\begin{itemize}
+\item \textbf{preprocess\_fortran(outputfiles extrafppflags inputfiles)}
+\end{itemize}
+
+When calling ``preprocess\_fortran'' within a local CMakeList, the first argument should be a variable which will store the output list of renamed or originally named source files.  This variable will be used for building libraries or executables later in the CMakeList.  The second argument should be extra Fortran preprocessor flags for that local CMakeList.  The second argument variable must be passed in as a single argument, but assigned within the CMakeList as an array of strings.  Failure to assign the argument variable internally as an array will lead to faulty define preprocessing, and failure to pass the array in as a single argument will cause a fatal configuration error. The third argument should be the full list of source files to be preprocessed.  This function treats each preprocessed Fortran file as a target with full support for automatic dependency scanning.  The preprocessed files are then the dependencies for the target objects which are built before the library link.
+
+\begin{itemize}
+\item \textbf{preprocess\_ada(outputfiles appflags nobldfiles inputfiles)}
+\end{itemize}
+
+Read description of preprocess\_fortran first.  Changes for preprocess\_ada include an extra argument before the input preprocessor flags and the input source files.  The files in that argument are passed to preprocess\_ada\_nobuild.  Those files must be set as an array in the CMakeLists, but passed through as a single argument.  These files are primarily .ads files corresponding to .adb files.  They are not meant to be built, but rather preprocessed and construed as dependencies for the preprocessed .adb files.
+
+\begin{itemize}
+\item \textbf{preprocess\_ada\_nobuild(appflags nobldfiles)}
+\end{itemize}
+
+A stripped down version of preprocess\_ada for preprocessing .ads files which are dependencies of preprocessed .adb files.  All files which are passed as "nobldfiles" into preprocess\_ada will be configured through this function, but only actually preprocessed if preprocess\_ada determines them as dependencies.  This function should never be called directly from a CMakeList.
+
+\begin{itemize}
+\item \textbf{add\_static\_library(target libname inputfiles)}
+\end{itemize}
+
+This function is written primarily to remove the ''lib`` prefix when linking a library that we build in PROJECT.  CMake normally has executables link to libraries with the ''lib`` prefix and ''.a.`` or ''.so`` suffixes EXCEPT that CMAKE\_STATIC\_LIBRARY\_PREFIX is forced to ''`` so we avoid this potential trap. Also, CMake demands each target be uniquely named, so we have differently named targets that still have the same output filename to be consistent with current PROJECT naming conventions.  The library SUFFIX is now handled similarly to the PREFIX.  All libraries are also installed to the library install directory for non-Debug configurations.
+
+\begin{itemize}
+\item \textbf{add\_static\_cuda\_library(target libname inputfiles)}
+\end{itemize}
+
+Same as above add\_static\_library function but passes in arguments to cuda\_add\_library so that NVCC acts appropriately on the .cu files.
+
+\begin{itemize}
+\item \textbf{add\_shared\_library(target libname inputfiles)}
+\end{itemize}
+
+Same as above add\_static\_library function but AR/RANLIB establish the library as a shared object for dynamic linking.
+
+\begin{itemize}
+\item \textbf{add\_shared\_cuda\_library(target libname inputfiles)}
+\end{itemize}
+
+Combination of add\_shared\_library and add\_static\_cuda\_library functions towards the obvious end.
+
+\begin{itemize}
+\item \textbf{add\_flites\_plugin (target libname inputfiles)}
+\end{itemize}
+
+Same as add\_shared\_library function but also installs the target inside a "flites" subdirectory located within the library install directory.
+
+\begin{itemize}
+\item \textbf{add\_ada\_executable(target source-files)}
+\end{itemize}
+
+This function exists to give the user a comfortable add\_executable syntax while now providing a simplified and streamlined backdoor to \emph{gnatmake}.  The provided target name argument is still used to identify the primary source file ($<$TARGET\_BASE$>$.adb), but the executable argument objects are now compiled in the compile step and found during the link step (-aO$<$OBJECT\_DIR$>$/-aL$<$OBJECT\_DIR$>$). Hypothetically, if one knew all the source files that gnatmake required for each executable and passed them as arguments to add\_ada\_executable \verb|${ARGN}|, all the side compilations in gnatmake could be performed during the compile step.  Gnatmake's bind/link cannot be split apart since gnatbind would need to access .ali files in other directories' $<$OBJECT\_DIR$>$, which is either impossible or difficult beyond any solutions I can conceive of for CMake intrinsics.  Under the alternative method of providing all necessary source files to add\_ada\_executable \verb|${ARGN}|, these .ali files would be in $<$OBJECT\_DIR$>$ and the bound source files would be accessed via the include gathering.  The main purpose of this function now is to gather the includes and transform them into -aI flags for gnatmake.  No library link or preprocessor hacks/kludges are necessary now.  A risk of adding -I- to the gnatmake flags could be attempted in the future to completely block potential compilations which are actually unnecessary.
+
+\begin{itemize}
+\item \textbf{script\_install(scripts)}
+\end{itemize}
+
+This function installs scripts.  The scripts to be installed are the only arguments to be passed into this function.
+
+\begin{itemize}
+\item \textbf{add\_executable(target sources)}
+\end{itemize}
+
+This function overload makes every target executable a target for make install.
+
+\subsubsection{PROJECT-Specific Include/Library Variable Lists}
+
+Although there are many variables set internally by CMake and its associated intrinsic modules, there are also many variables created and assigned for specific use by the PROJECT configuration and build system.  Please note that software packages which are externally produced and considered open source with no official CMake module (e.g. FFMPEG, LIBXML++, PVM3) are NOT covered by this description.  This is because their variables are set via the same behavior as packages with intrinsic CMake modules and their variables conform to the expected nomenclature.  This is because the custom CMake modules for these software packages follow general CMake behavioral guidelines.  Their variables can also be diagnosed by users as per normal investigation.  Externally created software packages which are NOT considered open-source (e.g. FLITES) and internally created software (e.g. SAIL) are both considered to be part of this category.  The PROJECT-specific CMake variables are listed below and should always be used whenever appropriate in CMakeLists to ensure build integrity for all build tree configuration variations.
+
+\begin{itemize}
+\item \textbf{RENDERLIB}
+\end{itemize}
+
+The OpenGL scene rendering library and an intrinsic \emph{OPENGLLIBS} to resolve all necessary symbols for OpenGL scene rendering links.
+
+\begin{itemize}
+\item \textbf{FLARERENDERLIB}
+\end{itemize}
+
+The OpenGL-Flare rendering library and an intrinsic \emph{OPENGLLIBS} to resolve all necessary symbols for OpenGL Flare rendering links.
+
+\begin{itemize}
+\item \textbf{SMOKERENDERLIB}
+\end{itemize}
+
+The OpenGL-Smoke rendering library and an intrinsic \emph{OPENGLLIBS} to resolve all necessary symbols for OpenGL Smoke rendering links.
+
+\begin{itemize}
+\item \textbf{SGIPLIBS}
+\end{itemize}
+
+The OpenGL terrain rendering libraries and intrinsic \emph{LIBXML2\_LIBRARIES}, \emph{GSL\_LIBRARIES} (static), and \emph{BOOSTLIBS} to resolve all necessary symbols for OpenGL terrain rendering links.
+
+\begin{itemize}
+\item \textbf{FLITES\_INCLUDE\_DIR}
+\end{itemize}
+
+The directory location for all the FLITES files necessary for includes in preprocessor statements.  Should be used as an include in all local compilation directories which require FLITES variable declarations.
+
+\begin{itemize}
+\item \textbf{FLITESLIB}
+\end{itemize}
+
+The FLITES library and all associated required libraries (specific CUDA, OpenGL, and TIFF) thereafter to resolve the symbols necessary for the FLITES library to link successfully.  The FLITES library link will also resolve all symbols defined in the code linking against this variable library set.  Please note that the FLITES package is left ``as-is'' for unclassified systems, but is intelligently reorganized in classified systems prior to RPM packaging.  Therefore, FLITES variables are established in unclassified system via a user-set environment variable.  In classified systems, these variables are automatically defined via a custom CMake module.
+
+\begin{itemize}
+\item \textbf{RETLIB}
+\end{itemize}
+
+The CUDA Reticle rendering library, an intrinsic \emph{CUDALIBS}, and the debug or optimized CUDA CUTIL library to resolve all necessary symbols for CUDA reticle rendering links.
+
+\begin{itemize}
+\item \textbf{FLAMELIB}
+\end{itemize}
+
+The Flame library to resolve all necessary symbols for Flame function definition links.
+
+\begin{itemize}
+\item \textbf{SENSELIB}
+\end{itemize}
+
+The SENSE (not ISAMS SENSE) library to resolve all necessary symbols for SENSE function definition links.  Please note the ISAMS SENSE can and should be linked against specifically by target name within PROJECT Unified ISAMS components, since the ISAMS SENSE is proprietary within the same scope as ISAMS components.
+
+\begin{itemize}
+\item \textbf{SILLIB}
+\end{itemize}
+
+The SIL library to resolve all necessary symbols for legacy group-SIL function definition links.  Please note that this version of SIL is unsupported and the behavior of this variable is currently unknown.  The officially supported version of SIL is a CAS original/group modified version based on the E2E-PROJECT software distribution.
+
+\begin{itemize}
+\item \textbf{SAILLIBS}
+\end{itemize}
+
+The SAIL libraries to resolve all necessary symbols for SAIL function definition links.
+
+\begin{itemize}
+\item \textbf{ATMOSLIB}
+\end{itemize}
+
+The atmospheric transmission library to resolve all necessary symbols for atmospheric transmission function definition links.  Please note this variable will have an assignment of LOWTRAN7, MODTRAN4, or MODTRAN5 depending upon which build tree configuration is selected.  Your code must either be compatible with all three libraries or its compilation must be disabled for all incompatible build tree configurations.
+
+\begin{itemize}
+\item \textbf{OPENGLLIBS}
+\end{itemize}
+
+A composite variable consisting of the OpenGL, GLU, GLUT, and GLEW libraries.  This variable should always resolve all necessary symbols for OpenGL function definition links.  There is a hardcoded static cmath library link in this variable also.
+
+\begin{itemize}
+\item \textbf{CUDALIBS}
+\end{itemize}
+
+A composite variable consisting of the CUDART, CUFFT, and CUBLAS libraries.  This variable should always resolve all necessary symbols for CUDA function definition links.  There is a hardcoded static cmath library link in this variable also.
+
+\begin{itemize}
+\item \textbf{CUDAAUXLIBS}
+\end{itemize}
+
+A composite variable consisting of the CUDA CUTIL, PARAMGL, and RENDERCHECKGL libraries.  This variable should always resolve all necessary symbols for CUDA C utility function definition links.  Please note the debug libraries will be linked against for debug configurations and the optimized libraries will be linked against for non-debug configurations.
+
+\begin{itemize}
+\item \textbf{HDF5LIBS}
+\end{itemize}
+
+A composite variable consisting of the HDF5, HDF5 CPP, HDF5 HL, and HDF5 HL CPP libraries.  This variable should always resolve all necessary symbols for HDF5 function definition links.
+
+\begin{itemize}
+\item \textbf{SUNDIALS\_INCLUDE\_DIRS}
+\end{itemize}
+
+A composite variable consisting of the five primary Sundials include directories.  If Sundials includes are required in a local build directory and they are spread out across the include locations, this variable can be helpful to access all include directories simultaneously.  Please note this variable is established within the custom CMake module and not from within the configuration and build system.  Also, common practice for Sundials includes is to \verb|#include "sundials_dir/foo.h"| in which case you would use \emph{SUNDIALS\_INCLUDE\_DIR} in the \emph{INCLUDE\_DIRECTORIES}, and not this include variable.
+
+\begin{itemize}
+\item \textbf{SUNDIALS\_LIBRARIES}
+\end{itemize}
+
+A composite variable consisting of the Sundials CVODE, IDA, KINSOL, and NVECSERIAL libraries.  This variable should always resolve all necessary symbols for Sundials function definition links.  Please note this variable is established within the custom CMake module and not from within the configuration and build system.
+
+\subsection{The CMakeFiles}
+
+CMake will generate various files in the build directory during a build tree configuration process.  These files can be very helpful in debugging errors in local CMakeLists and machine system environment configurations.  They can also be very helpful in constructing specialized local CMakeLists by giving hints indicating CMake's behavior and the capabilities instilled by the PROJECT Configuration and Build.
+
+\subsubsection{CMakeCache.txt}
+
+The file located at \verb|${CMAKE_BINARY_DIR}/CMakeCache.txt| can provide a great deal of meaningful information about creating local CMakeLists and debugging build errors.  Opening this file in a text editor will display the vast majority of configured variables and settings for the specified build tree.  The section under ``External Cache Entries'' lists most of the variables for the build tree, any of which can be used by placing \verb|${foo}| around them in CMakeLists.  These variables are listed in the format:
+
+\begin{shaded}
+\noindent//comment\\
+variable name:variable type=variable assigned value
+\end{shaded}
+
+It is extremely recommended to not use variables associated with project names (those specified in \emph{project(foo)} within CMakeLists).  Use of these will prove erratic.
+
+There is an additional section beneath the ``External Cache Entries'' labeled as ``Internal Cache Entries.''  This section is useful for PROJECT Configuration and Build developers, such as internal configuration variable properties marked as advanced and derived from intrinsic or extrinsic configuration modules.  By far the safest course of action for this section is to ignore it.
+
+Normally when an external package is updated or removed and then re-added, one must re-execute \verb|BuildPROJECTsrc.sh|.  However, there are a couple tricks to avoid this.  Please note that this does not include the core-level configuration aspects, such as which compiler is being used for a language.  You cannot avoid a complete reconfiguration in that circumstance.  Consider branching into multiple build trees if you need to support multiple compilers.
+
+The first situation which can be worked around is when the incorrect version of a package is configured for use with the build tree.  This can either be due to its incorrect removal from a machine or outright lack thereof pertaining to said removal.  You can quickly and easily use \emph{sed} on the \verb|CMakeCache.txt| or perform a find/replace in a text editor to fix this.  This is likely best illustrated in an example.  Suppose that your build tree was configured for use with QT 4.7.3 and the package was updated on the machine to 4.7.4.  The \verb|sed -ir `s/4.7.3/4.7.4/' CMakeCache.txt| command will quickly fix this issue assuming 4.7.3 appears nowhere else in the cache.  Verify this for yourself and use appropriate Linux tricks if need be.  Running \emph{make} commands in your build tree will then succeed where failures previously occurred due to the incorrect QT version, combined with the added bonus of no subsequent automatic CMake reconfiguration.
+
+The second situation is when the incorrect location of a package was found or the package was updated to a new version which has a different directory structure affecting your configuration.  For example, you may have configured your build tree to contain a PROJECT component making use of LibXML++, and a necessary LIBXML++ header file became included in a different CMake path variable because of a newly installed LibXML++ version.  Note this workaround will also fix an incomplete configuration, such as when the libraries and some include paths were found and assigned to variables, but not all includes associated with a given package were found and assigned.  This is because only certain parts of packages (unique to each package) are required to be missing by CMake modules to trigger a fatal configuration error which triggers a re-find during each consecutive \emph{make} command.
+
+This second situation is mostly quickly and easily fixed by performing an action similar to the following example.  Using LIBXML++ again as an example, find the part of the external cache in \verb|CMakeCache.txt| related to LIBXML++'s assigned variables:
+
+\begin{shaded}
+\noindent//Path to a file.\\
+LIBXML++\_CONFIG\_INCLUDE\_DIR:PATH=/usr/lib64/libxml++-2.6/include\\
+\\
+//Path to a file.\\
+LIBXML++\_INCLUDE\_DIR:PATH=/usr/include/libxml++-2.6\\
+\\
+//Path to a library.\\
+LIBXML++\_LIBRARY:FILEPATH=/usr/lib64/libxml++-2.6.so\\
+\end{shaded}
+
+Suppose that all three of these variables are assigned incorrectly because a newer LIBXML++ package was installed to a different location in the system environment.  Change the essential include and library variables of the package to ``NOTFOUND'' status.  If you do not know which parts of the package are essential, either change all associated variables to ``NOTFOUND'' or change the primary library to ``NOTFOUND'' (this is always an essential package component and and will almost certainly trigger the re-find).  The variables would look like this for LIBXML++ (any below line breaks and spaces being unintentionally inserted by \LaTeX):
+
+\begin{shaded}
+\noindent//Path to a file.\\
+LIBXML++\_CONFIG\_INCLUDE\_DIR:PATH= LIBXML++\_CONFIG\_INCLUDE\_DIR-NOTFOUND\\
+\\
+//Path to a file.\\
+LIBXML++\_INCLUDE\_DIR:PATH=LIBXML++\_INCLUDE\_DIR-NOTFOUND\\
+\\
+//Path to a library.\\
+LIBXML++\_LIBRARY:FILEPATH=LIBXML++\_LIBRARY-NOTFOUND\\
+\end{shaded}
+
+Prior to the next \emph{make} command you execute, CMake will automatically re-find the package (remember to remove the incorrect package version from the machine beforehand if multiple are installed) and then reconfigure your build tree appropriately.  If you want to determine the specific missing component of a package which triggers a refind, consult the beginning of the associated \verb|FindPackage.cmake| module.  There will be a section at the top with a logical which directs CMake to ``find quietly'' if a specific component's associated configuration variable is already defined in the \verb|CMakeCache.txt|.  This is also the primary logic to block a refind on consecutive CMake supported GNUMake commands and executions.
+
+\subsubsection{\texttt{\$\{CMAKE\_BINARY\_DIR\}}/CMakeFiles}
+
+In the highest directory of your build tree, a \emph{CMakeFiles} directory will be created.  Files in this directory dictate aspects of the overall configuration and store output from the initial configuration process.  This directory's primary use is for debugging errors due to implicit compiler behavior, debugging errors during the initial configuration, and identifying information about your system's compilers, environment, and platform attributes.  Most of the information pertaining to the initial configuration of the build tree and regarding its global scope can be gathered from this directory.  This directory may assist with debugging errors which occur during configuration or are repeated throughout.
+
+\begin{itemize}
+\item \textbf{CMake$<$LANG$>$Compiler.cmake}
+\end{itemize}
+
+Inside the directory are found \emph{CMake$<$LANG$>$Compiler.cmake} files which are generated during the initial configuration and derived from compiler input modules and test output regular expression parsing by CMake.  These can be edited, but any changes will be overwritten during a complete reconfiguration.  Also, editing these files should only be performed for legitimately good reasons, unless you desire potentially random effects in your build tree.
+
+Most of the items in these compiler configuration files are rather self-explanatory.  The ones that are not will be explained here.  The C++ compiler will be used as an example since it is the most transparent.  Be warned that the Fortran compiler configuration file may be a bit confusing, and the Ada one certainly will be, but any additional items in those configuration output files should not be touched anyway.
+
+\begin{shaded}
+\noindent SET(CMAKE\_CXX\_COMPILER\_ENV\_VAR ``CXX'')
+\end{shaded}
+
+During the initial configuration, CMake will override its intrinsic presets and behavior specified by configuration input files with settings specified by the user in his or her environment variables with this (CXX) prefix.  This is obviously not desired, so be sure not to have any environment variables with these prefixes.
+
+\begin{shaded}
+\noindent SET(CMAKE\_CXX\_COMPILER\_ID\_RUN 1)
+\end{shaded}
+
+This specifies whether the compiler was configured using output parsed from the compiler/linker test during the initial configuration or if the test was bypassed and the configuration was forced.  Once again, it is obviously not desired to force the compiler configuration, and this boolean should always be ``true.''
+
+\begin{shaded}
+\noindent SET(CMAKE\_CXX\_IGNORE\_EXTENSIONS inl;h;hpp;HPP;H;o;O;obj;OBJ;def;DEF;rc;RC)\\
+SET(CMAKE\_CXX\_SOURCE\_FILE\_EXTENSIONS C;M;c++;cc;cpp;cxx;m;mm;CPP)
+\end{shaded}
+
+These two lists deal with two of three categories of files which can be passed as input arguments to CMake library and executable arguments.  The categories are: files that may appear to be code or are regularly passed into compilation functions that should not be compiled, files that may appear to be code or are regularly passed into compilation functions that should be compiled, and files that are not related to code nor regularly passed into compilation functions.  This third category can be safely ignored and therefore is not dealt with in the above lists.
+
+The first category of files, those which should not be compiled, should be fully specified in the ``ignore extensions'' list.  When CMake constructs makefiles with the list of targets and their dependencies, the files with extensions listed under ``IGNORE'' will be construed as non-compiled dependencies.  These files may still have other actions performed on them as specified by CMake add\_custom\_command functions.  These include CMake intrinsically supported custom commands with aliased/overloaded CMake functions, such as FLEX and BISON parsing.  The second category of files, those which should be compiled, should be specified in the ``source file extensions'' list.  When CMake constructs makefiles, the files with extensions listed under ``SOURCE'' should be construed as dependencies to be compiled.  It is advisable to never alter these two lists unless you are certain you know what you are doing.
+
+Ostensibly it appears that the reason to generate these two lists is because we wish to avoid attempting to compile header files into objects.  However, there are additional capabilities here which can be exploited.  For one, integrating unsupported languages into CMake with proper multi-language support is made a possibility.  Also, header files and other code support files which are not to be compiled but instead construed as dependencies for executables and libraries can be input as compilation arguments.  CMake will then construe these files as dependencies of the targets.  This is \textbf{not} necessary for code support files which are naturally or implicitly parsed as dependencies, such as those specified in \verb|#include "foo.h"| statements within code.  Rather, this is necessary for those dependencies which would not be naturally or implicitly parsed, such as those generated by the CMake add\_custom\_command functions.
+
+\begin{shaded}
+\noindent SET(CMAKE\_CXX\_LINKER\_PREFERENCE 30)\\
+SET(CMAKE\_CXX\_LINKER\_PREFERENCE\_PROPAGATES 1)
+\end{shaded}
+
+This item probably wins the award for being the most mysterious out of all standard compiler configuration output variables.  This item also will not make sense without first explaining CMake's behavior when generating link statements for executables.
+
+Often a user places a target\_link\_libraries function in a CMakeLists with an executable target as the target to be linked from and libraries as the targets to be linked against.  When CMake generates link statements from these functions, the first objective it satisfies is attempting to determine the linker language.  CMake will evaluate the language(s) of the executable source file(s) and the libraries being linked against.  These libraries may also be multi-language.  It then combines the population of the languages in these files with the ``LINKER\_PREFERENCE'' weighting value(s) to determine the linker language template which will be used to form the generated link statement.  The link statement template is derived from the ``CMAKE\_$<$LANG$>$\_LINK\_EXECUTABLE'' macro from the language information module and its associated variables are populated by the execution of CMake source code generalized for any language.  The explanation of this behavior pertains to the developer side of configuration and build systems and therefore is beyond the scope of this document.
+
+The ``LINKER\_PREFERENCE'' value is used as part of CMake's assessment of the linker language template to be used.  The higher the value, the more that language will be given weight in the calculation.  The highest possible value is actually achieved with the string ``preferred'', which should only ever be used with Ada.  This is due to the unique behavior of \emph{gnatlink} and its associated arguments, and because its linker statement is compatible with other languages when it executes \emph{g++} under the hood.  The ``LINKER\_PREFERENCE\_PROPAGATES'' is unique to the C++ compiler configuration output file.  It should not be enabled or even appear in any other compiler configuration output file at the moment.  The reason for this, directly from Brad King, is ``this should only be done for some languages, such as C++, because normally the language of the program entry point (main) should be used.''  This is because the linker preference propagation is upward from the libraries and can cause issues for other languages.
+
+\begin{shaded}
+\noindent SET(CMAKE\_CXX\_SIZEOF\_DATA\_PTR ``8'')\\
+SET(CMAKE\_CXX\_COMPILER\_ABI ``ELF'')
+\end{shaded}
+
+The first item will be ``8'' for 64-bit native compilers and ``4'' for 32-bit native compilers.  Therefore, if you observe a ``4'' here then something has very likely gone wrong.  The second item is determined during the ABI testing phase of the initial configuration.  Both items are determined from preprocessor defines and ``if'' statements from a dummy source file designed specifically for ABI diagnostics.  Because of this, Ada will never be able to have a clean ABI test, and therefore these items are hacked for Ada.
+
+\begin{shaded}
+\noindent SET(CMAKE\_CXX\_IMPLICIT\_LINK\_LIBRARIES ``stdc++;m;c'')\\
+SET(CMAKE\_CXX\_IMPLICIT\_LINK\_DIRECTORIES ``/usr/lib/gcc/x86\_64-redhat-linux/4.4.6;/usr/lib64;/lib64;/usr/lib'')
+\end{shaded}
+
+The lists of implicit libraries and link directories are generated from parsing the output of the compiler tests during the initial configuration.  These libraries and directories will be implicitly included in the link statement for every linker execution of that language.  What this means for the user is that these libraries do not have be included as targets to be linked against since they always will be included in link statements.  This will actually NOT be true for dependent libraries of OpenGL and/or CUDA when utilizing target-based linking.  Linker statements generated for these targets will mysteriously drop the CMath library from the link statements (causing obvious link errors), but the re-inclusion of CMath for OpenGL and CUDA link statements is hacked in by the PROJECT Configuration and Build System.  Also, libraries found in the implicit link directories can be linked against by name and not additionally path-specified since those link directories will be implicitly searched for libraries to link against.  Please note that you will not observe these implicit libraries or directories in the link statements generated in the \verb|link.txt| files or \emph{VERBOSE=1} executions.
+
+\begin{itemize}
+\item \textbf{CMakeOutput.log}
+\end{itemize}
+
+The \verb|CMakeOutput.log| will capture all of the important CMake standard out output during the initial configuration.  This file will show the output produced during compiler and platform identification.  It will also show the output produced during the initial compiler configuration tests.  There are a plethora of additional flags and libraries during the \emph{TryCompile} execution to capture the intrinsic compiler configuration and the implicit library links and directories.  The compiler ABI tests will also have their standard out captured in this file.  Finally, some packages will have subcomponent existence tests that are performed using GNUMake and compilers during the use of CMake modules for configuration.  The standard out of these tests will also be captured in this file.  People interested in how compiler configuration output files are created and how CMake generates other configuration files during the initial configuration setup may wish to peruse \verb|CMakeOutput.log|.
+
+\begin{itemize}
+\item \textbf{CMakeError.log}
+\end{itemize}
+
+The \verb|CMakeError.log| will capture all of the CMake error output during the initial configuration.  This mostly includes the error output during a failed \emph{TryCompile} test of a compiler and its configuration, or a failed ABI detection during the initial configuration.  It is helpful to note that a compiler ABI detection will only be attempted if the compiler passes the \emph{TryCompile} test.
+
+This directory is also where CMake places all errors related to package configurations and build tree configurations.  Although straightforward diagnostics are displayed in the console standard out, more specific error messages are captured in the \verb|CMakeError.log| in case the package configuration error is not starightforward.  The same is also true for build tree configuration errors: straightforward diagnostics are displayed to the console standard out and more specific error messages are captured in \verb|CMakeError.log|.
+
+\begin{itemize}
+\item \textbf{CMakeTmp Directory}
+\end{itemize}
+
+This directory is where CMake places input/output files related to the compiler testing for both proper configuration and ABI detection.  This directory will be cleaned out after every initial configuration unless the flag \emph{\texttt{--}debug-trycompile} is used with the execution of CMake in \verb|BuildPROJECTsrc.sh|.  Those interested may use the flag to view the input, output, and generated configuration files CMake uses to test compiler configuration and verify ABI.
+
+\subsubsection{CMakeFiles/target.dir}
+
+In each local build directory of your build tree, a \emph{CMakeFiles} directory will be created which configures aspects of each target in that build directory.  Although a makefile is generated in each local build directory, a cursory glance quickly reveals it is heavily dependent upon supporting files generated by CMake during the configuration process.  These makefile support files are primarily located in \verb|CMakeFiles/target.dir|.  It is true that switching \emph{VERBOSE} on during a GNUMake execution will reveal many of the effects of these files, but the output can be murky.  Also, you can directly edit these support files to test changes to compile and link statements and then reverse engineer these changes into your \verb|CMakeLists.txt|.
+
+\begin{itemize}
+\item \textbf{flags.make}
+\end{itemize}
+
+The \verb|flags.make| file is the support file for the compilers' flags (default and target-specific arguments).  In this file you can view all the compiler flags, the full paths for includes, and the local defines for the preprocessor.  Please note that for compiled Ada objects, the listed local defines in this file are not the true defines.  Also, there may be additional defines not listed here for compiled Fortran objects when utilizing the ABSoft Fortran compiler for a build tree.  In CMake, although includes and flags are in a combined list here, they belong to separate instrinsic variables derived from the source code.  This applies also to the defines.
+
+\begin{itemize}
+\item \textbf{link.txt}
+\end{itemize}
+
+The \verb|link.txt| file is the support file for the linkers' link statements.  These will be distinctly different depending upon whether a library or an executable is being linked.  In general, these files will be more useful for debugging executable link steps than library link steps (unless the library is dynamically linked).  If an archived static library link step is failing, then something else is seriously wrong.  The static library link statements will generally be \emph{ar} creating and appending the archive from the objects with hardcoded default flags of \emph{crv}, and then \emph{ranlib} finishing the library archive.
+
+The \verb|link.txt| file for executable link statements is immensely useful for debugging executable linking errors.  It displays the full verbose link statement that is executed during the link step.  CMake will sometimes erroneously insert debug flags into the link statements.  These can be safely ignored by the user since they are also ignored by the linker.  The object and executable name will be listed in the file followed by the libraries to be linked against.  They will either be linked by path or with \emph{-L/-l} flags depending upon how they were specified in CMakeLists prior to configuration.  There are other flags and options which may be specified in the generated link statement, but that is considered knowledge pertaining to link statements and beyond the scope of this document.  There are various guides online for those interested in learning about executable link statements.
+
+\begin{itemize}
+\item \textbf{build.make}
+\end{itemize}
+
+The \verb|build.make| file is essentially a wall of text that forms the bulk of what is displayed during a \emph{make VERBOSE=1} during object compilation, albeit with unresolved variables.  The beginning of the file displays CMake-unique targets.  The second part of the file displays relevant CMake system environment variables.  The reason these exist is to preserve the ``cross-platform'' that is the ``C'' in CMake.  For example, if one wishes to copy a file in CMake, you would specify it in the CMakeList as \linebreak\verb|${CMAKE_COMMAND} -E copy dir1/foo.c dir2/foo.c| and CMake would then alias this to however this action is commonly performed on your system.  Most often it will be aliased to \verb|cp dir1/foo.c dir2/foo.c|.  Finally, the support files which the \verb|build.make| file absorbs to resolve variables are also listed.  A few of these files are described elsewhere in this doucment.  Please note that \verb|progress.make| is not a useful file for the user to view.
+
+The rest of the file is primarily concerned with the make commands for the various targets in the makefile.  You will see assembly, object, preprocessor, and various other targets.  The listed commands will contain variables, but are still generally useful to view what the command to build each target is.  There will be ``requires'' statements for targets, but you should not be concerned with those other than to recognize they are currently nonexistent for targets which are not Fortran-based.  The ``provides'' statements for targets are rather self-explanatory.  The end of the file lists objects and archives which are dependencies of the specific target archive, library, or executable for this \verb|build.make| in the local \verb|CMakeFiles| directory.
+
+\begin{itemize}
+\item \textbf{depend.internal}
+\end{itemize}
+
+There are several files generated by CMake for the purpose of dependency scanning which are then used to generate dependency trees.  Of all these files, the \verb|depend.internal| file is the most useful to view diagnostics from.  Each of these \verb|depend.internal| files has a listing of all the target object files with an indented listing underneath each target of its source file dependencies.  This is immensely useful for viewing which header files are being used by a target object.  This is because there may be multiple versions of a system header file, or multiple header files with the same name, where one is chosen only because it is in the first ordered include.  These errors can very difficult to diagnose and resolve without the use of this file.  This file is also useful for removing extraneous includes if you notice that none of the files from a given include path are being used (remember that they may be used for a different configuration though).
+
+\subsubsection{CMake's Behavior}
+
+placeholder
+
+\section{The PROJECT Packaging and Installation Infrastructure}
+
+\subsection{Introduction}
+
+It is not the purpose of this document to elucidate on the actual RPM creation process and its various subtleties including GPG2 signatures.  This is considered prerequisite knowledge for anyone who wants to package with RPMs.  For more information, please consult:
+
+\begin{itemize}
+\item \href{http://fedoraproject.org/wiki/How_to_create_an_RPM_package}{FedoraProject Wiki}: current and covers the basics
+\item \href{http://www.rpm.org/max-rpm/}{Maximum RPM}: somewhat outdated but exhaustive reference
+\item \href{http://www.google.com}{Google}: many basic gpg tutorials but no definitive one (although outdated, \href{http://fedoranews.org/tchung/gpg/}{this tutorial} provides a no-filler starter guide)
+\end{itemize}
+
+\subsection{Packaging Process}
+
+This is the step-by-step process to package PROJECT devel/binary via RPMs with the preferred mock environment established in the appropriate virtual machine in SPECIAL_AREA.  Various steps can be omitted or simplified for unclassified systems.
+
+\begin{itemize}
+\item copy the source directory, rpm\_scripts directory, and Version file to the quarantined directory for the delivery; alternatively, check out PROJECT from the appropriate branch/trunk
+\item if the first step involved a checkout from the repository or a copy from a source with unprepared permissions, change the permissions of all scripts in the source directory to allow execution
+\item remove any and all source previous to packaging which is irrelevant to all PROJECT internal and external installations (e.g. \emph{xPROJECT})
+\item remove any and all source which will not be included in the configuration or not allowed to be delivered to this specific customer (does not include the source for that one DISAMS; this is removed later)
+\item edit the top-level CMakeList and all subsidiary CMakeLists to remove any add\_subdirectory lines which are now ineffective
+\item edit the switches in \verb|BuildPROJECTsrc.sh| for this specific installation configuration
+\item delete all hidden file descriptors from the source directory
+\item execute \verb|BuildPROJECTsrc.sh| and then execute \emph{make install -k} in the resulting build directory
+\item correct any and all resulting build errors until the \emph{make install} succeeds
+\item edit the spec file templates for any modifications specific to this delivery
+\item change directory into the \emph{rpm\_scripts} directory and then execute the \verb|specgenerator| script
+\item open the resultant \verb|PROJECT.spec| file and skim it for obvious errors
+\item copy the generated VDD file into the appropriate delivery directory for external releases
+\item delete all .svn directories from the source tree
+\item tar the source directory and specify the tarball name as \linebreak\verb|PROJECT-<version>.tar.gz|
+\item secure shell into the mock virtual machine as user \emph{mockbuild}
+\item change directory into the mockbuild user's rpmbuild directory
+\item initialize the mock environment
+\item verify that mock has enough free space to create the necessary RPMs
+\item as root, mount your user drive unless relying upon sftp for file transfers to the mock virtual machine; mount nothing else as this may assist fatal dependency scanning
+\item still as root, locally install via the \emph{rpm} command the [R-hdf5 and] libgcc 4.1.x packages; this is because [the RHEL-5 R-hdf5 RPM has misconstrued dependencies and] all gcc 4.1.x packages are not recognized by the RPM creation process as \emph{BuildRequires} possibilities in the spec file ([] denotes caveat which will soon no longer be true)
+\item if AbSoft is the Fortran compiler utilized for these packages, locally install via the \emph{rpm} command the libstdc++ 3.3.x and glibc 2.5.x packages, and then untar the AbSoft compiler into the \emph{opt} directory in the buildroot
+\item become user \emph{mockbuild} again
+\item if AbSoft is the Fortran compiler utilized for these packages, install the 32-bit libgcc via the \emph{mock} install command and not the root \emph{rpm} command
+\item copy the source tarball from your user drive to \emph{SOURCES}
+\item copy the RPM spec file from your user drive to \emph{SPECS}
+\item change directory into the \emph{SPECS} directory and generate the SRCRPM
+\item change directory into the \emph{SRPMS} directory and generate RPMs from the PROJECT SRCRPM
+\item follow the \verb|build.log| in the buildroot result directory to check for errors during the RPM creation process and correct those as necessary
+\item using \emph{sftp} or some other preferred file transfer protocol, transfer all the created RPMs from the buildroot RPM output directory to the desired location
+\item remove that one DISAMS-devel RPM from the delivery location for external releases
+\item sign all the created RPMs with your user GPG-KEY (please use only one GPG-KEY per user and ensure it is imported on machines and propagated across any appropriate networks via Puppet)
+\item test the created packages on the PROJECT\_test virtual machine
+\item populate Spacewalk with the new RPMs for internal releases or use \emph{yum localinstall} for external releases
+\end{itemize}
+
+This is the step-by-step process to package PROJECT data, tests, demos, documents, security classification guides, and any other parts of PROJECT which are not built or installed:
+
+\begin{itemize}
+\item secure shell into the mock virtual machine as user \emph{mockbuild}
+\item change directory into the mockbuild user's rpmbuild directory
+\item execute the \verb|PROJECT2rpm.py| python script found in the \emph{rpm\_scripts} directory on the directory to be packaged, e.g. \linebreak\verb|/usr/local/PROJECT/data|; ensure there is no trailing slash in the directory argument
+\item using \emph{sftp} or some other preferred file transfer protocol, transfer all the created RPMs from the RPM output directory specified in \linebreak\verb|PROJECT2rpm.py| to the desired location
+\item sign all the created RPMs with your user GPG-KEY (please use only one GPG-KEY per user and ensure it is imported and propagated across any appropriate networks via Puppet)
+\item populate Spacewalk with the new RPMs for internal releases or use \emph{yum localinstall} for external releases
+\end{itemize}
+
+For all external deliveries, remember to place needed GPG-KEYs in the delivery directories.  Also remember to place all necessary delivery-static non-repository RPMs (e.g. DTMAP) in the delivery directories.
+
+\subsection{Installation Process}
+
+Installation of the PROJECT software via the RPM infrastructure is streamlined and offers all the standard benefits derived from the Red Hat Package Manager.  After proper unpacking of the PROJECT RPMs, the user is immediately completely prepared for all desired uses of PROJECT on his or her machine.  This section will describe the method for proper installation of PROJECT software on your machine(s).  Please note the officially supported operating systems are currently Red Hat Enterprise Linux 5/6 and CentOS 5/6.
+
+\begin{itemize}
+\item Import the provided GPG-KEYs onto the appropriate machines where PROJECT will be installed.  If multiple machines require the GPG-KEYs, consider scripting the command or utilizing a \emph{Puppet} manifest for this task.
+\item Currently PROJECT is EL5/6-native software. Although PROJECT officially supports RHEL5/6 and CentOS5/6, there is always the possibility that official RHN, EPEL, ELREPO, RPMFORGE, etc. support packages are outdated relative to what PROJECT requires.  In this instance, the updated support/dependency RPMs will be provided separately from the PROJECT RPMs.  These will have been signed with the provided GPG-KEYs and should be added to your custom package repository.  If a custom package repository does not exist on your system, consider creating one as this will prove helpful in the next step anyway.
+\item Populate a yum repository with the provided PROJECT RPMs.  Some of the provided RPMs will not originate from PROJECT software nor are considered support packages, but are still necessary to be installed (e.g. TMT).
+\item Install the provided software RPMs from the yum repository.  All PROJECT RPMs have the \emph{-n} specification omitted from the subpackage tags in the spec file, so they will all fit the filename structure of \verb|PROJECT-*.rpm|.  Other provided software RPMs will not fit this naming convention, and if the user is unsure of their complete installation, please consult the provided VDD for a listing.
+\item Please note that if the PROJECT RPMs are not found during \emph{yum} commands, you should consider resyncing the server side yum channels and refreshing the client side repository configuration cache as per usual.
+\item All PROJECT and some related software RPMs will install to \linebreak\verb|/usr/local/PROJECT|.  Standard directories within this location include \verb|bin|, \verb|src|, \verb|lib|, \verb|doc|, and \verb|data|.  These directories' contents are all self-explanatory and fit the normal Linux organization convention.  Although \emph{ldconfig} will reconfigure \verb|/usr/local/PROJECT/lib| to your path appropriately, you may want to update your \emph{LD\_LIBRARY\_PATH} in profiles regardless.
+\end{itemize}
+
+If these instructions prove onerous or confusing, there is a less proper shortcut to quickly and easily install PROJECT.  Please note that although these instructions will be fully functional for the most part, including clean future updates, there may be subtle drawbacks to this method which you may or may not care about.
+
+\begin{itemize}
+\item Perform a \emph{yum localinstall *.rpm --nogpgcheck} on all the provided support RPMs on every required machine, and then repeat for all the PROJECT and other provided software RPMs.
+\end{itemize}
+
+After a successful installation of PROJECT, you may wish to rebuild the source code at a later date and potentially with edits.  Open the provided \verb|/usr/local/PROJECT/src/BuildPROJECTsrc.sh| and specify the source, build, library, and install directories for your configuration.  Execute the shell script to configure your build tree and you are immediately prepared to rebuild and reinstall as you please.
+
+\section{Acknowledgements}
+
+There are several people to be thanked here for their contributions.  The first is Brad King at Kitware for his continual \textbf{free} customer support for our configuration and build system, his in-depth explanations of CMake's complicated and sophisticated code and behavior, and his gracious allowance of direct contact for customer support and development discussions.  Also, the other main developers David Cole and Bill Hoffman at Kitware should be thanked for providing some indirect help at times.  Professor Alan Irwin at the University of Victoria deserves thanks for developing the first CMake Ada configuration toolchain, and for combined discussions with Brad King about CMake/Ada integration and their combined behavior, and the eventual official support of Ada in CMake.  Joseph Phillips is given thanks for coordinating and contributing on the effort of the PROJECT CVS$\rightarrow$SVN migration and the PROJECT RPM packaging infrastructure.  Last but not least, Dr. Albert Sheffer deserves thanks for providing answers to questions about the Galloway configuration and build system, and for his boundless patience in providing support on PROJECT infrastructure for so many years.
+
+\end{document}
