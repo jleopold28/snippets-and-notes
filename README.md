@@ -1,19 +1,25 @@
 # Snippets and Notes
 
-Collection of various snippets and notes for future use by anyone.
+Collection of various snippets and notes for future use.
 
-## CMake Modules
+---
+
+### CMake Modules
 
 CMake modules and Ada toolchain.
 
-## Puppet 3.6
+### Human Relationship Dynamics
 
-Application-centric Puppet 3.6 infrastructure retained as notes.
+Human Relationship Dynamics model and simulation in C++.
 
-## Rake Enhance
+### Puppet 3.6
 
-Small methods for enhancing Rakefile capabilities.
+Application-centric Puppet (deployed with version 3.6) infrastructure retained as notes.
 
-## RPM Specs
+### Rake Enhance
+
+Small Ruby methods for enhancing Rakefile capabilities.
+
+### RPM Specs
 
 Collection of RPM spec files for EL6.
