@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<TestMatrix>
+ <Creator>kmartin36</Creator>
+ <Name>Matrix_Test_2cdb6798c3cb1f81</Name>
+ <Type>ErrorEnumeratedStringPassing</Type>
+ <Description>Testing Run Manager</Description>
+ <ForceRun>true</ForceRun>
+ <Dimensions>
+  <RandomNumberDimension>
+   <RandomNumberConfig>
+    <RandomNumberInput>-1</RandomNumberInput>
+   </RandomNumberConfig>
+   <RandomNumberConfig>
+    <RandomNumberInput>120</RandomNumberInput>
+   </RandomNumberConfig>
+  </RandomNumberDimension>
+  <PercentErrorsDimension>
+   <PercentErrorsConfig>
+    <PercentErrors>0</PercentErrors>
+   </PercentErrorsConfig>
+  </PercentErrorsDimension>
+  <ErrorTimeDimension>
+   <ErrorTimeConfig>
+    <ErrorTime>5</ErrorTime>
+   </ErrorTimeConfig>
+  </ErrorTimeDimension>
+  <SleepDimension>
+   <SleepConfig>
+    <ShortestSleep>10</ShortestSleep>
+    <LongestSleep>10</LongestSleep>
+   </SleepConfig>
+  </SleepDimension>
+  <DummyDimension>
+   <DummyConfig>
+    <DummyString>Standard</DummyString>
+   </DummyConfig>
+  </DummyDimension>
+ </Dimensions>
+</TestMatrix>

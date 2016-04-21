@@ -23,3 +23,7 @@ Small Ruby methods for enhancing Rakefile capabilities.
 ### RPM Specs
 
 Collection of RPM spec files for EL6.
+
+### SOEA
+
+Single Objective Evolutionary Algorithm in C++.

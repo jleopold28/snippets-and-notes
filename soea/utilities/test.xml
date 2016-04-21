@@ -1,0 +1,28 @@
+<TestMatrix>
+  <Creator>ms</Creator>
+  <Name>soea_test</Name>
+  <Type>soea</Type>
+  <Description>a test xml file for soea</Description>
+  <ForceRun>true</ForceRun>
+  <Dimensions>
+    <FlarePatternsDim>
+      <FlarePatternCfg>
+        <PatternName>Genome_3_92</PatternName>
+        <PatternComments/>
+        <SignatureCondition>false</SignatureCondition>
+        <Expendables>expendables</Expendables>
+        <FlarePattern>Time:0|LeftRearDispenser:M1000|LeftFrontDispenser:NULL|RightFrontDispenser:NULL|RightRearDispenser:NULL
+Time:50|LeftRearDispenser:M1000|LeftFrontDispenser:NULL|RightFrontDispenser:NULL|RightRearDispenser:NULL
+Time:150|LeftRearDispenser:NULL|LeftFrontDispenser:M2000|RightFrontDispenser:NULL|RightRearDispenser:NULL
+Time:220|LeftRearDispenser:NULL|LeftFrontDispenser:NULL|RightFrontDispenser:M3000|RightRearDispenser:NULL
+Time:340|LeftRearDispenser:NULL|LeftFrontDispenser:NULL|RightFrontDispenser:NULL|RightRearDispenser:M4000
+Time:380|LeftRearDispenser:M5000|LeftFrontDispenser:NULL|RightFrontDispenser:M6000|RightRearDispenser:NULL
+Time:400|LeftRearDispenser:NULL|LeftFrontDispenser:M6000|RightFrontDispenser:NULL|RightRearDispenser:M5000
+Time:490|LeftRearDispenser:M3000|LeftFrontDispenser:NULL|RightFrontDispenser:NULL|RightRearDispenser:M2000
+Time:600|LeftRearDispenser:NULL|LeftFrontDispenser:M1000|RightFrontDispenser:M2000|RightRearDispenser:NULL
+Time:670|LeftRearDispenser:M3000|LeftFrontDispenser:M3000|RightFrontDispenser:NULL|RightRearDispenser:NULL
+Time:750|LeftRearDispenser:NULL|LeftFrontDispenser:NULL|RightFrontDispenser:M2000|RightRearDispenser:M2000</FlarePattern>
+      </FlarePatternCfg>
+    </FlarePatternsDim>
+  </Dimensions>
+</TestMatrix>
