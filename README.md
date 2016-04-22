@@ -8,6 +8,10 @@ Collection of various snippets and notes for future use.
 
 CMake modules and Ada toolchain.
 
+### Dirac Notation
+
+Ruby toy for doing Dirac notation mathematics in Hilbert space, such as for simple Quantum Physics.
+
 ### Human Relationship Dynamics
 
 Human Relationship Dynamics model and simulation in C++.
