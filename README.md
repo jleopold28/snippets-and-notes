@@ -24,6 +24,10 @@ Human Relationship Dynamics model and simulation in C++.
 
 Application-centric Puppet (deployed with version 3.6) infrastructure retained as notes.
 
+### Python
+
+Various python snipppets.
+
 ### Rake Enhance
 
 Small Ruby methods for enhancing Rakefile capabilities.
@@ -31,6 +35,10 @@ Small Ruby methods for enhancing Rakefile capabilities.
 ### RPM Specs
 
 Collection of RPM spec files for EL6.
+
+### Ruby
+
+Various ruby snippets.
 
 ### SOEA
 
