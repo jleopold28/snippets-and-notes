@@ -1,0 +1,30 @@
+# e.g. ansible-playbook -i hosts --extra-vars "env=qa dir_env=production module=foo client=cloud1.domain" site.yml
+# e.g. ansible-playbook -i hosts --extra-vars "env=st dir_env=production module=bar client=datacenter_st" site.yml
+---
+- name: update puppet code
+  hosts: compile_servers_{{ env }}
+  strategy: free
+  remote_user: root
+  gather_facts: no
+  tasks:
+    - name: update directory environment control repo
+      command: /opt/puppetlabs/bin/r10k -v debug deploy environment {{ dir_env }}
+      when: dir_env is defined
+
+    - name: update module in directory environment
+      command: /opt/puppetlabs/bin/r10k -v debug deploy module {{ module }}
+      when: module is defined
+
+- name: execute puppet agent
+  hosts: "{{ client }}"
+  strategy: free
+  remote_user: root
+  gather_facts: no
+  tasks:
+    - name: execute puppet agent
+      command: /opt/puppetlabs/bin/puppet agent -t --color=false
+      register: agent_exec
+      until: agent_exec.rc == 0 or agent_exec.rc == 2
+      retries: 3
+      delay: 5
+      failed_when: agent_exec.rc != 0 and agent_exec.rc != 2

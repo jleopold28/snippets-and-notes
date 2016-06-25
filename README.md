@@ -4,6 +4,10 @@ Collection of various snippets and notes for future use.
 
 ---
 
+### Ansible Puppet
+
+Proof of concept for replacing MCollective with Ansible for interactions with r10k and Puppet.
+
 ### CMake Modules
 
 CMake modules and Ada toolchain.
