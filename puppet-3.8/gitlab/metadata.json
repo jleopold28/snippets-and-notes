@@ -1,0 +1,25 @@
+{
+  "name": "gitlab",
+  "version": "1.0.0",
+  "author": "Matt Schuchard",
+  "summary": "Installs and configures an on premises Gitlab server.",
+  "license": "MIT",
+  "source": "https://github.company.com/org/gitlab.git",
+  "project_page": "https://github.company.com/org/gitlab",
+  "issues_url": "https://github.company.com/org/gitlab/issues",
+  "requirements": [
+    {
+      "name": "pe",
+      "version_requirement": ">= 3.8.1"
+    },
+    {
+      "name": "puppet",
+      "version_requirement": ">= 3.8.1"
+    }
+  ],
+  "description": "Installs and configures an on premises Gitlab server.",
+  "dependencies": [
+    { "name": "puppetlabs/stdlib" },
+    { "name": "puppetlabs/lvm" }
+  ]
+}

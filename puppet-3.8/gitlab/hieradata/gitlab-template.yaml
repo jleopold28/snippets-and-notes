@@ -1,0 +1,8 @@
+# gitlab
+---
+classes:
+  - gitlab
+
+gitlab::preinstall_config::repo_size: 10.0G
+
+gitlab::postinstall_config::env: qa

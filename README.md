@@ -24,6 +24,10 @@ Human Relationship Dynamics model and simulation in C++.
 
 Application-centric Puppet (deployed with version 3.6) infrastructure retained as notes.
 
+### Puppet 3.8
+
+Example of on premises gitlab server installed and configured with Puppet 3.8 with future parser.
+
 ### Python
 
 Various python snipppets.
