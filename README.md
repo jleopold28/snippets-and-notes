@@ -4,9 +4,9 @@ Collection of various snippets and notes for future use.
 
 ---
 
-### Ansible Puppet
+### Ansible 2.0
 
-Proof of concept for replacing MCollective with Ansible for interactions with r10k and Puppet.
+Collection of simple playbooks for use with Ansible 2.0.
 
 ### CMake Modules
 

@@ -1,0 +1,7 @@
+#Version: 1.0.0
+---
+- debug: msg='foo was not identified as a valid resource type.'
+- script: name=roles/deploy/files/foobar.ksh
+- unarchive: src=roles/deploy/files/foobar.zip dest=/tmp
+- command: /bin/chmod -R root:root /tmp/foobar
+- yum: name=foo-1.0-1.x86_64 state=present
