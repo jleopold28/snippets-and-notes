@@ -1,0 +1,9 @@
+---
+- name: restart serviceone
+  service: name=serviceone state=restarted
+- name: restart servicetwo
+  service: name=servicetwo state=restarted
+- name: restart servicethree
+  service: name=servicethree state=restarted
+- name: restart servicefour
+  service: name=servicefour state=restarted

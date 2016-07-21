@@ -1,0 +1,12 @@
+---
+- name: transfer puppet agent rpm for install
+  copy: src=roles/puppetagent/files/puppet-agent-1.3.6-1.el6.x86_64.rpm dest=/staging/puppet-agent-1.3.6-1.el6.x86_64.rpm
+
+- name: yum install puppet-agent
+  yum: name=/staging/puppet-agent-1.3.6-1.el6.x86_64.rpm state=present
+
+- name: remove puppet agent rpm after install
+  file: path=/staging/puppet-agent-1.3.6-1.el6.x86_64.rpm state=absent
+
+- name: deploy puppet.conf
+  copy: src=roles/puppetagent/files/puppet.conf_prod dest=/etc/puppetlabs/puppet/puppet.conf

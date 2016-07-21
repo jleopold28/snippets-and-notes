@@ -1,0 +1,16 @@
+---
+- name: subscribe to spacewalk channel
+  shell: spacewalk-channel -a -c channel-name -u {{ username }} -p {{ password }}
+
+- name: yum install puppet-agent
+  yum: name="puppet-agent-{{ puppet_version }}" state=present
+
+- name: deploy puppet.conf
+  copy: src=roles/puppetagent/files/puppet.conf_nonprod dest=/etc/puppetlabs/puppet/puppet.conf
+
+- name: puppet.conf settings override for org server kits
+  ini_file: dest=/etc/puppetlabs/puppet/puppet.conf
+            section=agent
+            option='    server'
+            value='puppet-compile-qa.domain'
+  when: host_group == 'org'

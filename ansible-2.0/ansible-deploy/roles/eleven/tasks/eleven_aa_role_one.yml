@@ -1,0 +1,26 @@
+---
+- yum: name=package-34.0.0.3-1 state=present
+
+- shell: umask 000; /data_dlvry {{item}} executable=/bin/ksh
+  environment:
+    TMP: /tmp
+  with_items:
+    - 1234
+    - 2345
+- shell: /bin/ls /tmp/log*
+  register: logs
+- file: path={{item}} owner=appuser01 group=datauser
+  with_items: logs.stdout_lines
+
+- yum: name=package-1.8-1 state=present
+
+- fetch: src=/rpt/*_{{item}}_* dest=/opt/rl/ flat=yes
+  with_items:
+  - server_id
+  - custom
+
+- yum: name=package-34.5.1.1.33-1 state=present
+
+- shell: umask 000; /bin/PostInstall executable=/bin/ksh
+
+- service: name=httpd_server state=restarted

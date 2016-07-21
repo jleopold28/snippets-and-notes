@@ -1,0 +1,57 @@
+---
+- yum: name=package-1.2-1 state=present
+
+- copy: src=roles/nine/files/jar.jar dest=/jar.jar owner=root group=root mode=0777
+
+- yum: name=package-1.4-1 state=present
+
+- file: path=/{{item}} state=directory owner=appuser2 group=appuser2 mode=0777
+  with_items:
+    - dir
+    - dir/dir_one
+    - dir/dir_two
+
+- file: path=/error.txt state=file owner=appuser2 group=appuser2 mode=0777 content="Errors\nErrors"
+
+- template: src=roles/nine/templates/{{item}}.j2 dest=/tmp/{{item}}.ldap mode=0777
+  with_items:
+    - one
+    - two
+    - three
+- script: src=roles/nine/files/ldap.sh
+- command: /bin/ack
+
+- user: name=appuser uid=1234 group=users password='prodassword' home=/home/appuser createhome=true shell=/usr/bin/ksh comment='super cool'
+  when: facter_lcp == 'prod'
+- user: name=appuser uid=1234 group=users password='nonprodassword' home=/home/appuser createhome=true shell=/usr/bin/ksh comment='super cool'
+  when: facter_lcp != 'prod'
+
+- copy: src=roles/nine/files/profile dest=/home/appuser/.profile owner=appuser group=users mode=0644
+
+- command: /bin/222 arg arg
+- command: /bin/444 arg arg arg
+- command: /bin/666 arg arg
+
+- yum: name=package-1.1-1 state=present
+
+- file: path=/persistent state=absent force=true
+
+- copy: src=roles/nine/files/foo dest=/foo owner=root group=root mode=0644
+
+- yum: name=package-24.5.15.2.0-3 state=present
+
+- command: /bin/rpm --erase --allmatches --nodeps --noscripts --notriggers badpackage-24.4.1.0.0.9-1.x86_64
+
+- yum: name=package-24.5.14.2.10-8 state=present
+
+- script: src=roles/nine/files/script.ksh
+
+- command: /usr/bin/curl -s http://localhost:port/path/trigger
+
+- file: path=/services.lock state=touch
+- service: name={{item}} state=restarted
+  with_items:
+    - serviceone
+    - servicetwo
+    - servicethree
+- file: path=/services.lock state=absent

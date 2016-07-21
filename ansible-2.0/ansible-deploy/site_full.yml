@@ -1,0 +1,62 @@
+---
+- name: apply common configuration to all servers
+  hosts: all
+  strategy: free
+  remote_user: root
+  gather_facts: yes
+
+  tasks:
+    - name: sort by server role
+      group_by: key={{facter_role}}
+
+- name: configure and deploy the aa application server
+  hosts: aa_role_one
+  strategy: free
+  remote_user: root
+
+  roles:
+    - zero
+    - one
+    - two
+    - three
+    - four
+    - five
+    - six
+    - seven
+    - eight
+    - nine
+
+- name: configure and deploy the bb application server
+  hosts: bb_role_two
+  strategy: free
+  remote_user: root
+
+  roles:
+    - zero
+    - one
+    - two
+    - three
+    - four
+    - five
+    - six
+    - seven
+    - eight
+    - nine
+    - ten
+    - eleven
+    - twelve
+
+- name: configure and deploy the data server
+  hosts: role_two
+  strategy: free
+  remote_user: root
+
+  roles:
+
+- name: configure and deploy the support servers
+  hosts: role_three
+  strategy: free
+  remote_user: root
+
+  roles:
+    - twelve

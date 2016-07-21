@@ -1,0 +1,12 @@
+---
+- name: create lv_puppet logical volume
+  lvol: lv=lv_puppet state=present vg=vg01 size=384
+
+- name: create lv_puppet filesystem
+  filesystem: dev=/dev/vg01/lv_puppet fstype=ext4 resizefs=yes
+
+- name: create /opt/puppetlabs directory
+  file: path=/opt/puppetlabs state=directory
+
+- name: mount /opt/puppetlabs
+  mount: name=/opt/puppetlabs state=mounted src=/dev/vg01/lv_puppet fstype=ext4 opts=defaults dump=1 passno=2

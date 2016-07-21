@@ -1,0 +1,29 @@
+---
+- name: check if /opt/puppetlabs is a mountpoint
+  command: mountpoint /opt/puppetlabs/
+  register: puppet_mount
+  failed_when: puppet_mount.rc > 1
+
+- name: create lv_puppet and mount /opt/puppetlabs if missing
+  include: lvm.yml
+  when: puppet_mount.rc == 1
+
+- name: uninstall free puppet if present
+  yum: name=puppet state=absent exclude=puppet-agent
+
+- name: install and configure puppet agent in non-production
+  include: nonprod.yml
+  when: host_group == 'qa' or
+        host_group == 'org'
+
+- name: install and configure puppet agent in production
+  include: prod.yml
+  when: host_group == 'prod'
+
+- name: execute puppet agent to attach server server to puppetmaster
+  command: /opt/puppetlabs/bin/puppet agent -t --color=false
+  register: agent_exec
+  until: agent_exec.rc == 0 or agent_exec.rc == 2
+  retries: 3
+  delay: 5
+  failed_when: agent_exec.rc != 0 and agent_exec.rc != 2

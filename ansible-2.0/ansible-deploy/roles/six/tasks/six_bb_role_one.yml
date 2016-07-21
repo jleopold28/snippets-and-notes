@@ -1,0 +1,22 @@
+---
+- shell: umask 000; /data_dlvry {{item}} executable=/bin/ksh
+  environment:
+    TMP: /tmp
+  with_items:
+    - 1234
+    - 2345
+    - 3456
+- shell: /bin/ls /tmp/log*
+  register: logs
+- file: path={{item}} owner=appuser01 group=datauser
+  with_items: logs.stdout_lines
+
+- yum: name=package-21.0.0.1-9.el6 state=present
+- yum: name=package-42.1.1.117.22-1 state=present
+
+- shell: /config_setup.ksh executable=/bin/ksh
+
+- script: roles/six/files/{{item}}
+  with_items:
+    - scriptone
+    - scripttwo

@@ -1,0 +1,33 @@
+---
+- yum: name=package-20.13.5.5.1-1.el6 state=present
+
+- unarchive: src=roles/twelve/files/data-1.0.zip dest=/data owner=datauser group=datauser
+
+- yum: name=package-1.1.2.3-1 state=present
+
+- file: path=/home/{{item}} state=directory mode=0700
+  with_items:
+    - datauser
+    - datauser/.ssh
+- copy: src=roles/twelve/files/id_rsa_prod dest=/home/datauser/.ssh/id_rsa owner=datauser group=root mode=0600 backup=yes
+  when: facter_lcp == 'prod'
+- copy: src=roles/twelve/files/id_rsa_qa dest=/home/datauser/.ssh/id_rsa owner=datauser group=root mode=0600 backup=yes
+  when: facter_lcp != 'prod'
+
+- yum: name=package-6.1.0.5-1 state=present
+
+- copy: src=roles/twelve/files/preinstall dest=/preinstall owner=root group=root
+
+- file: path=/HTTPServer/keys state=directory owner=root group=root mode=0755
+- file: path=/HTTPServer/keys/{{item}} owner=root group=sys mode=0644
+  with_items:
+    - http.{{facter_server_number}}.key
+    - http.key
+
+- file: path={{item}} state=absent force=true
+  with_items:
+    - /path/to/dir
+    - /path/to/dir_two
+
+- yum: name=package-14.2.5.12-1 state=present
+  notify: restart httpd_server

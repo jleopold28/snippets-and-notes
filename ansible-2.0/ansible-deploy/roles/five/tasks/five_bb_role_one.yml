@@ -1,0 +1,24 @@
+---
+- script: roles/five/files/{{item}}.ksh
+  with_items:
+    - scriptone
+    - scripttwo
+
+- yum: name=package-2.2.11-1 state=present
+  notify: restart {{item}}
+  with_items:
+  - serviceone
+  - servicetwo
+  - servicethree
+  - servicefour
+
+- shell: umask 000; /datadlvry {{item}} executable=/bin/ksh
+  environment:
+    TMP: /tmp
+  with_items:
+    - 1234
+    - 2345
+- shell: /bin/ls /tmp/log*
+  register: logs
+- file: path={{item}} owner=appuser01 group=datauser
+  with_items: logs.stdout_lines

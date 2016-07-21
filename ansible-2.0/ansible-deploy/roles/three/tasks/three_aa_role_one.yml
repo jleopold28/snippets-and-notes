@@ -1,0 +1,21 @@
+---
+- yum: name=package-1.0-1 state=present
+
+- file: path=/appuser/{{item}} state=directory owner=appuser group=users
+  with_items:
+    - aa
+    - aa/AA
+
+- file: path=/appuser/filesync.ksh state=file owner=appuser group=users mode=0700
+
+- shell: /appuser/filesync.ksh executable=/bin/ksh sudo_user=appuser
+  when: facter_env == 'prod'
+- shell: /appuser/filesync.ksh executable=/bin/ksh sudo_user=appuser
+  register: command_result
+  failed_when: "'FAILURE' in command_result.stderr"
+  when: facter_lcp != 'prod'
+
+- file: path=/appuser/files_{{item}} state=directory mode=0777 recurse=true
+  with_items:
+    - one
+    - two

@@ -1,0 +1,9 @@
+---
+- name: deploy to servers
+  hosts: test
+  strategy: free
+  remote_user: root
+  # only turn this on if truly needed because otherwise risk memory allocation error and also it slows stuff down super hard
+  gather_facts: no
+  roles:
+    - puppetagent

@@ -1,0 +1,2 @@
+---
+- yum: name=package-3.9.3.4-1.el6 state=present

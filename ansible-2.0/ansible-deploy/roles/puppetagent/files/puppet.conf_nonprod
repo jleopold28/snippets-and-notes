@@ -1,0 +1,17 @@
+[main]
+    vardir = /var/opt/lib/pe-puppet
+    logdir = /var/log/puppetlabs/puppet
+    rundir = /var/run/puppetlabs
+    basemodulepath = /etc/puppetlabs/code/modules:/opt/puppetlabs/share/puppet/modules
+    user  = pe-puppet
+    group = pe-puppet
+    archive_files = true
+
+[agent]
+    report = true
+    classfile = $vardir/classes.txt
+    localconfig = $vardir/localconfig
+    graph = true
+    pluginsync = true
+    server    = puppet-compile-np.domain
+    environment = server_deploy

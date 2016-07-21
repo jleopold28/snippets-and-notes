@@ -1,0 +1,3 @@
+---
+- include: nine_{{facter_role}}.yml
+  when: version == 1

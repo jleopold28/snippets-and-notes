@@ -1,0 +1,11 @@
+dn: foo, ou=svr{{ facter_server_number }}, o=domain, c=abcd
+appID: foo
+objectClass: bar
+objectClass: foo
+osUserID: bar
+{% if facter_lcp is equalto 'prod' %}
+osPassword: prodpassword
+{% else %}
+osPassword: nonprodpassword
+{% endif %}
+osHost: thehost

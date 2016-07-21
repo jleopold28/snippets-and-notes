@@ -1,0 +1,39 @@
+---
+- script: roles/two/files/{{item}}
+  with_items:
+    - scriptone
+    - scripttwo
+    - scriptthree
+
+- copy: src=roles/two/files/foo dest=/tmp/foo owner=user group=user mode=0755
+- command: /bin/sed -i 's/bridge/bridge-qa/g' /tmp/foo
+  when: facter_lcp != 'prod'
+- command: /bin/aap /tmp/foo
+
+- file: dest=/tmp/sc state=touch content="STR\nASM\nSOP\nASM\nASM"
+- command: /bin/cap 4567 /tmp/sc 0
+
+- user: name=appuser01 uid=9 group=users password='nonprodpassword' createhome=/home/appuser01 shell=/usr/bin/ksh comment='super cool'
+  when: facter_lcp == 'pr'
+- user: name=appuser01 uid=9 group=users password='prodpassword' createhome=/home/appuser01 shell=/usr/bin/ksh comment='super cool'
+  when: facter_lcp != 'pr'
+
+- shell: umask 000; /datadlvry {{item}} executable=/bin/ksh
+  environment:
+    TMP: /tmp
+  with_items:
+    - 'dataone'
+    - 'datatwo'
+
+- shell: /bin/ls /tmp/log*
+  register: logs
+- file: path={{item}} owner=appuser01 group=datauser
+  with_items: logs.stdout_lines
+
+- yum: name=package-1.0-1 state=present
+
+- command: /usr/bin/yumdownloader --destdir /tmp/badpackage-2.0-15.x86_64
+- command: /bin/rpm -U --force /tmp/badpackage-2.0-15.x86_64.rpm
+
+- yum: name=package-1.1.4.1-1 state=present
+  notify: restart appservice

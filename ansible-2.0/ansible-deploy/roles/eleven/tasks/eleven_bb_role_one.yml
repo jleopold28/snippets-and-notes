@@ -1,0 +1,19 @@
+---
+- yum: name=package-34.0.0.3-1 state=present
+
+- shell: umask 000; /datadlvry {{item}} executable=/bin/ksh
+  environment:
+    TMP: /tmp
+  with_items:
+    - 1234
+    - 2345
+- shell: /bin/ls /tmp/log*
+  register: logs
+- file: path={{item}} owner=appuser01 group=datauser
+  with_items: logs.stdout_lines
+
+- yum: name=package-34.5.1.1.33-1 state=present
+
+- shell: /rsa_config.ksh executable=/bin/ksh chdir=/opt/bin sudo_user=appuser
+
+- shell: umask 000; /bin/PostInstall executable=/bin/ksh
