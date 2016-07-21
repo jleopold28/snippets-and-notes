@@ -44,6 +44,10 @@ Collection of RPM spec files for EL6.
 
 Various ruby snippets.
 
+### Serverspec
+
+Pared down demonstration of advanced serverspec techniques.
+
 ### SOEA
 
 Single Objective Evolutionary Algorithm in C++.

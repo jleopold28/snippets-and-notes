@@ -1,0 +1,52 @@
+# TODO: parallel/concurrent
+require 'rake'
+require 'rspec/core/rake_task'
+require 'yaml'
+
+# load the server numbers from the yaml
+servers = YAML.load_file('servers.yaml')
+server_ids = servers.keys
+
+# function to generate rake task for individual servers
+def generate_rake_task(hostname, server_id, role)
+  desc "Run serverspec to #{hostname}.svr#{server_id}"
+  RSpec::Core::RakeTask.new("#{hostname}.svr#{server_id}".to_sym) do |task|
+    ENV['TARGET_HOST'] = "#{hostname}.svr#{server_id}.domain"
+    ENV['SERVER_ID'] = server_id
+    task.pattern = 'spec/{all,' + role + '}/{application,system}.rb'
+    task.fail_on_error = false
+    task.verbose = false
+  end
+end
+
+desc 'Run serverspec to all servers'
+task default: %w(role_one role_two role_three)
+
+desc 'Run serverspec to all role_one'
+task role_one: server_ids.collect { |server_id| "hostname1.svr#{server_id}" }
+
+desc 'Run serverspec to all role_two'
+task role_two: server_ids.collect { |server_id| "hostname2.svr#{server_id}" }
+
+desc 'Run serverspec to all role_three'
+task role_three: server_ids.collect { |server_id| "hostname3.svr#{server_id}" } + server_ids.collect { |server_id| "hostname4.svr#{server_id}" }
+
+# iterate through servers and generate tasks for each server
+server_ids.each do |server_id|
+  desc "Run serverspec to individual server svr#{server_id}"
+  task server_id => %W(hostname1.st#{server_id} hostname2.st#{server_id} hostname3.st#{server_id} hostname4.st#{server_id})
+
+  generate_rake_task('hostname1', server_id, "#{servers[server_id]}_role_one")
+  generate_rake_task('hostname2', server_id, 'role_two')
+  generate_rake_task('hostname3', server_id, 'role_three')
+  generate_rake_task('hostname4', server_id, 'role_three')
+
+  desc "gather specialapp information from svr#{server_id}"
+  RSpec::Core::RakeTask.new("specialapp:#{server_id}".to_sym) do |task|
+    ENV['TARGET_HOST'] = "hostname1.svr#{server_id}.domain"
+    ENV['server_id'] = server_id
+    task.pattern = 'spec/bb_role_one/gather_specialapp_data.rb'
+    task.fail_on_error = false
+    task.verbose = false
+  end
+end

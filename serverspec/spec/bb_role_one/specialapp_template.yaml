@@ -1,0 +1,46 @@
+---
+packages:
+  package-one:
+    version: one
+  package-two:
+    version: two
+  package-three:
+    version: three
+
+dupe_packages:
+  - package-four
+  - package-five
+  - package-six
+
+war_files:
+  war-one:
+    file: '/path/to/war-one'
+    size: 11_111
+  war-two:
+    file: '/path/to/war-two'
+    size: 2_222_222
+
+dirs:
+  dir-one:
+    dir: '/path/to/dir-one'
+  dir-two:
+    dir: '/path/to/dir-two'
+
+lib_dirs:
+  lib-one:
+    dir: '/path/to/lib-one'
+    num: 867
+  lib-two:
+    dir: '/path/to/lib-two'
+    num: 53
+  lib=three:
+    dir: '/path/to/lib-three'
+    num: 09
+
+absent_dirs:
+  app-one:
+    dir: '/path/to/dir'
+    lib: '/path/to/lib'
+  app-two:
+    dir: '/path/to/dir'
+    lib: '/path/to/lib'
