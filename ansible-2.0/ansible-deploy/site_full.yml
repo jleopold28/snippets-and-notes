@@ -15,15 +15,10 @@
   remote_user: root
 
   roles:
-    - zero
-    - one
     - two
     - three
-    - four
     - five
     - six
-    - seven
-    - eight
     - nine
 
 - name: configure and deploy the bb application server
@@ -32,17 +27,11 @@
   remote_user: root
 
   roles:
-    - zero
-    - one
     - two
     - three
-    - four
     - five
     - six
-    - seven
-    - eight
     - nine
-    - ten
     - eleven
     - twelve
 

@@ -1,3 +1,0 @@
----
-- include: four_{{facter_role}}.yml
-  when: version == 1

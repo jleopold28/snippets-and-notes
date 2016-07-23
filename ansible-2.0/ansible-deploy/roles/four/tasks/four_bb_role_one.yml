@@ -1,3 +1,0 @@
----
-- yum: name=package-1.1.2.2-1 state=present
-- yum: name=package-23.0.0.0-1.el6 state=present

@@ -1,3 +1,0 @@
----
-- yum: name=package-1.5.1-1 state=present
-- yum: name=package-1.29-0 state=present
