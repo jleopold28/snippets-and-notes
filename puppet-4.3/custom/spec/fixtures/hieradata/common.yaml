@@ -1,0 +1,50 @@
+---
+#required for custom::lvm test
+physical_volumes:
+  - sdb
+  - sdc
+  - sdd
+  - sde
+  - sdf
+
+#emulate hieradata for lvm_hash although invoked by psych lookup in rspec
+test_lvm_hash:
+  abc_0001:
+    device: lv_abc_0001
+    size: 1.00G
+    dir: raw
+    user: raw
+    group: raw
+    perm: raw
+  var:
+    device: lv_var
+    size: 768.00M
+    dir: /var
+    user: 0
+    group: 0
+    perm: '755'
+  extended_swap:
+    device: lv_extended_swap
+    size: 2.00G
+    dir: swap
+    user: swap
+    group: swap
+    perm: swap
+  puppet:
+    device: lv_puppet
+    size: 0
+    dir: /opt/puppetlabs
+    user: 0
+    group: 0
+    perm: '755'
+
+#emulate hieradata for pkg_hash although invoked by psych lookup in rspec
+test_pkg_hash:
+  ruby:
+    ensure: '1.9.3' #older
+  python:
+    ensure: '2.7.5' #current
+  perl:
+    ensure: '5.18' #newer
+  gcc:
+    ensure: '4.8.8' #newer

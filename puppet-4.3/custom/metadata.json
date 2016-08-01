@@ -1,0 +1,31 @@
+{
+  "name": "custom",
+  "version": "1.0.0",
+  "author": "Matt Schuchard",
+  "summary": "Custom support module.",
+  "license": "MIT",
+  "source": "https://github.company.com/org/custom",
+  "project_page": "https://github.company.com/org/custom",
+  "issues_url": "https://github.company.com/org/issues",
+  "requirements": [
+    {
+      "name": "pe",
+      "version_requirement": ">= 3.8.2 < 2016.3.0"
+    },
+    {
+      "name": "puppet",
+      "version_requirement": ">= 3.8.2 < 5.0.0"
+    }
+  ],
+  "description": "Custom support module.",
+  "dependencies": [
+    {
+      "name": "puppetlabs/stdlib",
+      "git": "git@https://github.company.com/org/stdlib.git"
+    },
+    {
+      "name": "puppetlabs/lvm",
+      "git": "git@https://github.company.com/org/lvm.git"
+    }
+  ]
+}

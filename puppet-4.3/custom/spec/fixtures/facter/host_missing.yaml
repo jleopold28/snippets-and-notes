@@ -1,0 +1,9 @@
+#host_missing.yaml
+---
+foobar.com:
+  deploy_lang: en_CA
+  env: prod
+  nation: ca
+  other_env: prod
+  area: atlantis
+  region: atlantis

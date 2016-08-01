@@ -1,0 +1,9 @@
+#deploy_lang_missing.yaml
+---
+domain:
+  deploy_lang: no_LANG
+  env: prod
+  nation: us
+  other_env: prod
+  area: '8675309'
+  region: '8675309'

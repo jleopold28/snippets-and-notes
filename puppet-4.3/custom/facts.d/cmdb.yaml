@@ -1,0 +1,36 @@
+---
+svr0000.domain:
+  deploy_lang: en_CA
+  env: qa
+  nation: ca
+  other_env: qa
+  area: atlantis
+  region: atlantis
+svr1111.domain:
+  deploy_lang: en_US
+  env: dev
+  nation: us
+  other_env: qa
+  area: atlantis
+  region: atlantis
+svr2222.domain:
+  deploy_lang: en_ES
+  env: qa
+  nation: us
+  other_env: qa
+  area: atlantis
+  region: atlantis
+svr3333.domain:
+  deploy_lang: fr_CA
+  env: staging
+  nation: ca
+  other_env: qa
+  area: atlantis
+  region: atlantis
+svr4444.domain:
+  deploy_lang: es_US
+  env: prod
+  nation: us
+  other_env: prod
+  area: atlantis
+  region: atlantis

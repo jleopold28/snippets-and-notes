@@ -1,0 +1,9 @@
+#faux_cmdb.yaml
+---
+domain:
+  deploy_lang: en_US
+  env: qa
+  nation: us
+  other_env: qa
+  area: atlantis
+  region: atlantis
