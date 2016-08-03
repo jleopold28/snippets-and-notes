@@ -1,0 +1,8 @@
+# deploy/app/hiera.yaml
+---
+version: 4
+datadir: hieradata
+hierarchy:
+  - name: 'Role'
+    backend: yaml
+    path: "%{::role}"

@@ -1,0 +1,7 @@
+#id2_role_one
+---
+app::classes:
+  - app::install
+  - app::service
+
+app::version: '1_1_0'

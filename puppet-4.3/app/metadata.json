@@ -1,0 +1,31 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "author": "Matt Schuchard",
+  "summary": "App deployment module.",
+  "license": "MIT",
+  "source": "https://github.company.com/org/app",
+  "project_page": "https://github.company.com/org/app",
+  "issues_url": "https://github.company.com/org/app/issues",
+  "requirements": [
+    {
+      "name": "pe",
+      "version_requirement": ">= 3.8.2 < 2016.3.0"
+    },
+    {
+      "name": "puppet",
+      "version_requirement": ">= 3.8.2 < 5.0.0"
+    }
+  ],
+  "description": "App deployment module.",
+  "dependencies": [
+    {
+      "name": "puppetlabs/stdlib",
+      "git": "git@https://github.company.com/org/stdlib.git"
+    },
+    {
+      "name": "org/custom",
+      "git": "git@https://github.company.com/org/custom.git"
+    }
+  ]
+}

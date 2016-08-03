@@ -1,0 +1,203 @@
+node {
+  // variables for deployment
+  servers = 'hostname1.svr1234'
+  version = '1_0_1'
+  downgrade = false
+  redeploy = false
+  golden_server = '2345'
+
+  // print some info out for later debugging from the console
+  print "servers are: $servers"
+  print "version is: $version"
+  print "downgrade is: $downgrade"
+  print "redeploy is: $redeploy"
+  print "server to gather validation information from is: $golden_server"
+
+  // checkout application code
+  stage 'Checkout'
+  checkout([$class: 'GitSCM',
+    branches: [[name: '*/master']],
+    doGenerateSubmoduleConfigurations: false,
+    extensions: [[$class: 'RelativeTargetDirectory',
+      relativeTargetDir: 'app']],
+    submoduleCfg: [],
+    userRemoteConfigs: [[url: 'git@github.company.com:org/app.git']]])
+
+  // execute file checks and unit tests
+  stage 'Validate code'
+  try {
+    dir('app') { sh '/opt/puppetlabs/puppet/bin/rake puppetcheck' }
+  }
+  catch(error) {
+    //slack notify
+    throw error
+  }
+
+  // update global hieradata clientcert.yamls in control repo
+  stage 'Update hieradata'
+  checkout([$class: 'GitSCM',
+    branches: [[name: '*/qa']],
+    doGenerateSubmoduleConfigurations: false,
+    extensions: [[$class: 'RelativeTargetDirectory',
+      relativeTargetDir: 'qa']],
+    submoduleCfg: [],
+    userRemoteConfigs: [[url: 'git@github.company.com:org/qa.git']]])
+
+  dir('deploy_puppet') {
+    // create updated hieradata files for each server
+    for (currentserver in servers.tokenize()) {
+      hieradata = 'hieradata/nodes/' + currentserver + '.domain.yaml'
+      // create hieradata file if it does not exist
+      if(!fileExists(hieradata)) {
+        print "creating hieradata file ${currentserver}.domain.yaml"
+        sh "echo -e '# $hieradata\n---\nclasses:' > $hieradata"
+      }
+      // only update hieradata if this is not a redeploy
+      if (!redeploy) {
+        print "editing $hieradata"
+        // check if application is already in hieradata
+        def app_present = readFile(hieradata) =~ 'app::version:'
+        if (app_present) {
+          // nonserializable variable must be nulled immediately when finished
+          app_present = null
+          print 'app was already present in hieradata'
+          sh "sed -r -i \"s/app::version:.*/app::version: '$version'/\" $hieradata"
+          sh "sed -r -i 's/app::downgrade:.*/app::downgrade: $downgrade/' $hieradata"
+        }
+        else {
+          // nonserializable variable must be nulled immediately when finished
+          app_present = null
+          print 'app was not already present in hieradata'
+          sh "sed -i '/classes:/a \\ \\ - app' $hieradata"
+          sh "echo -e \"app::version: '$version'\napp::downgrade: $downgrade\" >> $hieradata"
+        }
+      }
+      updated_hieradata = readFile hieradata
+      print updated_hieradata
+    }
+    // commit and push changes to hieradata
+    if (!redeploy) {
+      sh 'git add hieradata/nodes'
+      try {
+        sh "git commit -m 'updating hieradata to deploy app $version'"
+        sh 'git push origin HEAD:qa'
+      }
+      catch(error) {
+        //post to slack
+        throw error
+      }
+    }
+  }
+
+  // update code on puppetmaster-np
+  stage 'Deploy code'
+  try {
+    sh '/opt/puppetlabs/bin/mco r10k deploy_control_repo qa --config /var/lib/jenkins/mco-config/.mcollective'
+    sh '/opt/puppetlabs/bin/mco r10k deploy_module app --config /var/lib/jenkins/mco-config/.mcollective'
+  }
+  catch(error) {
+    print 'Failure with MCollective. Backing up to Ansible.'
+    checkout([$class: 'GitSCM',
+      branches: [[name: '*/master']],
+      doGenerateSubmoduleConfigurations: false,
+      extensions: [[$class: 'RelativeTargetDirectory',
+        relativeTargetDir: 'ansible-puppet']],
+      submoduleCfg: [],
+      userRemoteConfigs: [[url: 'git@github.company.com:org/ansible-puppet.git']]])
+
+    try {
+      dir(ansible-puppet) {
+        sh """eval `ssh-agent -s`
+              ssh-add /var/lib/jenkins/.ssh/key
+              ansible-playbook -i hosts --extra-vars \"env=qa dir_env=qa module=app\" site.yml
+              ssh-agent -k"""
+      }
+    }
+    catch(ansible_error) {
+      //post to slack
+      throw ansible_error
+    }
+  }
+
+  // deploy the application
+  stage 'Deploy App'
+  serverlist = ''
+  // check if server adheres to nomenclature
+  for (currentserver in servers.tokenize()) {
+    if (currentserver.contains('hostname')) {
+      serverlist += "-I ${currentserver}.domain "
+    }
+    else {
+      print "the server ${currentserver}.domain is not configured for deployments."
+    }
+  }
+  assert serverlist.contains('-I'), 'No servers specified for deployment.'
+
+  // allows the mcollective process to throw any exit codes it wants
+  mcooutput = 'mco_output.txt'
+  try {
+    mcorc = sh "/opt/puppetlabs/bin/mco puppet runonce --no-splay $serverlist --config /var/lib/jenkins/mco-config/.mcollective > $mcooutput"
+    output = readFile mcooutput
+    print output
+    // checks the output file to see if anything failed
+    assert mcorc == 0, "mco puppet command returned a non zero exit code: $mcorc"
+    assert ! output.contains('No response from'), 'One or more servers failed to initiate a puppet run.'
+  }
+  catch(error) {
+    print 'Failure with MCollective. Backing up to Ansible.'
+    checkout([$class: 'GitSCM',
+      branches: [[name: '*/master']],
+      doGenerateSubmoduleConfigurations: false,
+      extensions: [[$class: 'RelativeTargetDirectory',
+        relativeTargetDir: 'ansible-puppet']],
+      submoduleCfg: [],
+      userRemoteConfigs: [[url: 'git@github.company.com:org/ansible-puppet.git']]])
+
+    tmpserverlist = ''
+    for (currentserver in servers.tokenize()) {
+      tmpserverlist += "${currentserver}.domain:"
+    }
+    serverlist = tmpserverlist.substring(0, tmpserverlist.length() - 1)
+
+    try {
+      dir(ansible-puppet) {
+        sh """eval `ssh-agent -s`
+              ssh-add /var/lib/jenkins/.ssh/key
+              ansible-playbook -i hosts --extra-vars \"client=server\" site.yml
+              ssh-agent -k"""
+      }
+    }
+    catch(ansible_error) {
+      //post to slack
+      throw ansible_error
+    }
+  }
+
+  // validate application deployments and server configurations with serverspec
+  stage 'Validate App deployment'
+  checkout([$class: 'GitSCM',
+    branches: [[name: '*/master']],
+    doGenerateSubmoduleConfigurations: false,
+    extensions: [[$class: 'RelativeTargetDirectory',
+      relativeTargetDir: 'serverspec']],
+    submoduleCfg: [],
+    userRemoteConfigs: [[url: 'git@github.company.com:org/serverspec.git']]])
+
+  dir('serverspec') {
+    print "gathering App configuration from $golden_server"
+    sh """eval `ssh-agent -s`
+          ssh-add /var/lib/jenkins/.ssh/key
+          /opt/puppetlabs/puppet/bin/rake app:$golden_server
+          ssh-agent -k"""
+
+    print 'setting up ssh for qa server entry and executing serverspec'
+    for (currentserver in servers.tokenize()) {
+      sh "sed -i '/svr$currentserver/d' /var/lib/jenkins/.ssh/known_hosts"
+      sh """eval `ssh-agent -s`
+            ssh-add /var/lib/jenkins/.ssh/key
+            /opt/puppetlabs/puppet/bin/rake $currentserver
+            ssh-agent -k
+            exit 0"""
+    }
+  }
+}
