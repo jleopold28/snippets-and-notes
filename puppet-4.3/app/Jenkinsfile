@@ -3,14 +3,12 @@ node {
   servers = 'hostname1.svr1234'
   version = '1_0_1'
   downgrade = false
-  redeploy = false
   golden_server = '2345'
 
   // print some info out for later debugging from the console
   print "servers are: $servers"
   print "version is: $version"
   print "downgrade is: $downgrade"
-  print "redeploy is: $redeploy"
   print "server to gather validation information from is: $golden_server"
 
   // checkout application code
@@ -43,7 +41,7 @@ node {
     submoduleCfg: [],
     userRemoteConfigs: [[url: 'git@github.company.com:org/qa.git']]])
 
-  dir('deploy_puppet') {
+  dir('qa') {
     // create updated hieradata files for each server
     for (currentserver in servers.tokenize()) {
       hieradata = 'hieradata/nodes/' + currentserver + '.domain.yaml'
@@ -52,32 +50,34 @@ node {
         print "creating hieradata file ${currentserver}.domain.yaml"
         sh "echo -e '# $hieradata\n---\nclasses:' > $hieradata"
       }
+
       // only update hieradata if this is not a redeploy
-      if (!redeploy) {
+      // could do 'def redeploy = readFile(hieradata) =~ "app::version: '$version'"', but would then need to do several redeploy = null immedaitely after use to prevent nonserializable variable error
+      if (!(readFile(hieradata) =~ "app::version: '$version'")) {
         print "editing $hieradata"
+
         // check if application is already in hieradata
-        def app_present = readFile(hieradata) =~ 'app::version:'
-        if (app_present) {
-          // nonserializable variable must be nulled immediately when finished
-          app_present = null
+        if (readFile(hieradata) =~ 'app::version:') {
           print 'app was already present in hieradata'
           sh "sed -r -i \"s/app::version:.*/app::version: '$version'/\" $hieradata"
           sh "sed -r -i 's/app::downgrade:.*/app::downgrade: $downgrade/' $hieradata"
         }
         else {
-          // nonserializable variable must be nulled immediately when finished
-          app_present = null
           print 'app was not already present in hieradata'
           sh "sed -i '/classes:/a \\ \\ - app' $hieradata"
           sh "echo -e \"app::version: '$version'\napp::downgrade: $downgrade\" >> $hieradata"
         }
       }
+
       updated_hieradata = readFile hieradata
       print updated_hieradata
     }
+
     // commit and push changes to hieradata
-    if (!redeploy) {
+    if (!(readFile(hieradata) =~ "app::version: '$version'")) {
+      print 'Updating hieradata in git for app.'
       sh 'git add hieradata/nodes'
+
       try {
         sh "git commit -m 'updating hieradata to deploy app $version'"
         sh 'git push origin HEAD:qa'
