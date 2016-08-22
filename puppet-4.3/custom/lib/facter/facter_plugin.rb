@@ -4,6 +4,7 @@ require 'yaml'
 
 # facter plugin class from which custom facts can instantiate
 class FacterPlugin
+  # TODO: remove attr_reader for spec test and use rspec method for that
   attr_reader :cmdb_entry
 
   # initialize the object by loading in the cmdb.yaml and checking that it is valid

@@ -1,0 +1,8 @@
+#id_role_three
+---
+app::classes:
+  - app::service
+  - app::user
+  - app::config
+
+app::version: '1_1_0'

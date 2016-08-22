@@ -63,4 +63,41 @@ class app::config() {
     ensure => absent,
     force  => true,
   }
+
+  file { '/user-data-1.0.zip':
+    ensure => file,
+    source => "puppet:///modules/${module_name}/user-data-1.0.zip",
+  }
+  exec { '/usr/bin/unzip /user-data-1.0.zip -d /home/user; /bin/chown -R user:user /home/user/{data_one,data_two}':
+    subscribe   => File['/user-data-1.0.zip'],
+    refreshonly => true,
+  }
+
+  file { '/pre_install':
+    ensure => file,
+    owner  => root,
+    group  => root,
+    source => "puppet:///modules/${module_name}/pre_install",
+  }
+
+  file { '/HTTPServer/keys':
+    ensure => directory,
+    owner  => root,
+    group  => root,
+    mode   => '0755',
+  }
+  file { ["/HTTPServer/keys/http.${facts['server_id']}.pfx", '/HTTPServer/keys/http.key']:
+    ensure  => file,
+    owner   => root,
+    group   => sys,
+    mode    => '0644',
+    require => File['/HTTPServer/keys']
+  }
+
+  file { ['/tomcat/servicetest', '/tomcat/apptest']:
+    ensure  => absent,
+    recurse => true,
+    force   => true,
+    require => File["/HTTPServer/keys/http.${facts['server_id']}.pfx", '/HTTPServer/keys/http.key'],
+  }
 }

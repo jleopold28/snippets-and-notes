@@ -42,6 +42,11 @@ node {
     userRemoteConfigs: [[url: 'git@github.company.com:org/qa.git']]])
 
   dir('qa') {
+    // edit git tag in Puppetfile if present
+    //print 'updating git tag in Puppetfile'
+    //puppetfile_version = version.replaceAll('_', '.')
+    //sh "sed -i \"/git@github.company.com:org\\/control_repo.git/!b;n;c\\ \\ \\ \\ tag: 'v$puppetfile_version'\" Puppetfile"
+
     // create updated hieradata files for each server
     for (currentserver in servers.tokenize()) {
       hieradata = 'hieradata/nodes/' + currentserver + '.domain.yaml'
@@ -76,7 +81,7 @@ node {
     // commit and push changes to hieradata
     if (!(readFile(hieradata) =~ "app::version: '$version'")) {
       print 'Updating hieradata in git for app.'
-      sh 'git add hieradata/nodes'
+      sh 'git add hieradata/nodes Puppetfile'
 
       try {
         sh "git commit -m 'updating hieradata to deploy app $version'"
