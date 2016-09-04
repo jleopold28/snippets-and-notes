@@ -1,5 +1,5 @@
 [main]
-    vardir = /var/opt/lib/pe-puppet
+    vardir = /var/opt/puppetlabs/puppet/cache
     logdir = /var/log/puppetlabs/puppet
     rundir = /var/run/puppetlabs
     basemodulepath = /etc/puppetlabs/code/modules:/opt/puppetlabs/share/puppet/modules

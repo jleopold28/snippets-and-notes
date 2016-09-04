@@ -46,7 +46,7 @@ describe 'The custom facts are loaded correctly' do
 
     it { expect(cmdb_load.default_lang).to eql('en_US') }
     it { expect(cmdb_load.env).to eql('prod') }
-    it { expect(cmdb_load.nation_code).to eql('us') }
+    it { expect(cmdb_load.nation_code).to eql('bb') }
     it { expect(cmdb_load.other_environment).to eql('qa') }
     it { expect(cmdb_load.area).to eql('atlantis') }
     it { expect(cmdb_load.region).to eql('atlantis') }
@@ -57,15 +57,15 @@ describe 'The custom facts are loaded correctly' do
     it { expect(cmdb_load.server_number).to raise_error(SystemExit) }
   end
 
-  context 'with a prod us role_one server' do
-    # nation_code is us for specific domains
+  context 'with a prod bb role_one server' do
+    # nation_code is bb for specific domains
     # env is prod for specific domains
     # role is role_one
     # server_number returns correct regexp from domain
   end
 
-  context 'with a prod ca role_one server' do
-    # nation_code is ca for other domains
+  context 'with a prod aa role_one server' do
+    # nation_code is aa for other domains
     # env is prod for specific domains
     # role is role_one
     # other_environment returns env if host entry nil
@@ -76,7 +76,7 @@ describe 'The custom facts are loaded correctly' do
     # aborts if deploy_lang and nation_code do not match
   end
 
-  context 'with a qa ca role_three server that has a messed up ipaddress' do
+  context 'with a qa aa role_three server that has a messed up ipaddress' do
     # role is role_three
     # aborts if subnet does not fit regexp
   end

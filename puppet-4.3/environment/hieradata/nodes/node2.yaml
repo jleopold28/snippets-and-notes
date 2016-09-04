@@ -1,0 +1,4 @@
+# hieradata/nodes/node1.yaml
+---
+classes:
+  - app

@@ -38,8 +38,8 @@ class FacterPlugin
     nation_code = ''
 
     case Facter.value(:domain)
-    when /^svr([1-358][0-9]{3}|0[1-9][0-9]{2})\.domain$/ then nation_code = 'us'
-    when /^svr6[0-9]{3}\.domain$/ then nation_code = 'ca'
+    when /^svr([1-358][0-9]{3}|0[1-9][0-9]{2})\.domain$/ then nation_code = 'bb'
+    when /^svr6[0-9]{3}\.domain$/ then nation_code = 'aa'
     else nation_code = @cmdb_entry['nation']
     end
 

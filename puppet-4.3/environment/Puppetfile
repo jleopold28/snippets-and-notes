@@ -1,0 +1,13 @@
+# base modules
+mod 'stdlib',
+    git: 'git@github.company.com:org/stdlib.git'
+
+mod 'lvm',
+    git: 'git@github.company.com:org/lvm.git'
+
+mod 'custom',
+    git: 'git@github.company.com:org/custom.git'
+
+# full applications
+mod 'app',
+    git: 'git@github.company.com:org/app.git'

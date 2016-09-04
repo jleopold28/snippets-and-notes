@@ -1,0 +1,23 @@
+# /etc/puppetlabs/code/environments/environment/hiera.yaml
+---
+version: 4
+datadir: hieradata
+hierarchy:
+  - name: 'node'
+    backend: yaml
+    path: "nodes/%{::clientcert}"
+
+  - name: 'Area'
+    backend: yaml
+    path: "area/%{::area}"
+
+  - name: 'Region'
+    backend: yaml
+    path: "region/%{::region}"
+
+  - name: 'Role'
+    backend: yaml
+    path: "role/%{::role}"
+
+  - name: 'common'
+    backend: yaml
