@@ -7,3 +7,7 @@ Example app deployment infrastructure.
 ### Custom
 
 Module providing a multitude of custom functionality for Puppet.
+
+### Environment
+
+Example directory environment.
