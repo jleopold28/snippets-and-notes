@@ -6,7 +6,7 @@ Collection of various snippets and notes for future use.
 
 ### Ansible 2.0
 
-Collection of simple playbooks for use with Ansible 2.0.
+Collection of simple playbooks using Ansible 2.0.
 
 ### CMake Modules
 
@@ -20,25 +20,13 @@ Ruby toy for doing Dirac notation mathematics in Hilbert space, such as for simp
 
 Human Relationship Dynamics model and simulation in C++.
 
-### Puppet 3.6
+### Puppet
 
-Application-centric Puppet (deployed with version 3.6) infrastructure retained as notes.
-
-### Puppet 3.8
-
-Example of on premises gitlab server installed and configured with Puppet 3.8 with future parser.
-
-### Puppet 4.3
-
-Various implementations of Puppet using version 4.3.
+Collection of Puppet modules and directory environments.
 
 ### Python
 
 Various python snipppets.
-
-### Rake Enhance
-
-Small Ruby methods for enhancing Rakefile capabilities.
 
 ### RPM Specs
 
