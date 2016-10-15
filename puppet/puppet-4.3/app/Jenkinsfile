@@ -79,7 +79,8 @@ node {
     }
 
     // commit and push changes to hieradata
-    if (!(readFile(hieradata) =~ "app::version: '$version'")) {
+    git_status_stdout = sh(returnStdout: true, script: "git status --porcelain $hieradata").trim()
+    if (git_status_stdout != '') {
       print 'Updating hieradata in git for app.'
       sh 'git add hieradata/nodes Puppetfile'
 
@@ -141,11 +142,11 @@ node {
   // allows the mcollective process to throw any exit codes it wants
   mcooutput = 'mco_output.txt'
   try {
-    mcorc = sh "/opt/puppetlabs/bin/mco puppet runonce --no-splay $serverlist --config /var/lib/jenkins/mco-config/.mcollective > $mcooutput"
+    mcorc = sh(returnStdout: true, script: "/opt/puppetlabs/bin/mco puppet runonce --no-splay $serverlist --config /var/lib/jenkins/mco-config/.mcollective > $mcooutput; echo \$?").trim()
     output = readFile mcooutput
     print output
     // checks the output file to see if anything failed
-    assert mcorc == 0, "mco puppet command returned a non zero exit code: $mcorc"
+    assert mcorc == '0', "mco puppet command returned a non zero exit code: $mcorc"
     assert ! output.contains('No response from'), 'One or more servers failed to initiate a puppet run.'
   }
   catch(error) {
