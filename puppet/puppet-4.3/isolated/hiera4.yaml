@@ -1,0 +1,19 @@
+# /etc/puppetlabs/code/environments/isolated/hiera.yaml
+---
+version: 4
+datadir: hieradata
+hierarchy:
+  - name: 'FQDN'
+    backend: yaml
+    path: "nodes/%{::clientcert}"
+
+  - name: 'Environment'
+    backend: yaml
+    path: "env/%{::env}"
+
+  - name: 'Role'
+    backend: yaml
+    path: "role/%{::role}"
+
+  - name: 'common'
+    backend: yaml

@@ -1,0 +1,65 @@
+node {
+  // variables for isolated
+  server_id = '1234 5678'
+
+  // print some info out for later debugging from the console
+  print "server_ids are: $server_id"
+
+  // checkout isolated code
+  stage 'Checkout'
+  checkout([$class: 'GitSCM',
+    branches: [[name: '*/isolated']],
+    doGenerateSubmoduleConfigurations: false,
+    submoduleCfg: [],
+    userRemoteConfigs: [[url: 'git@github.company.com:org/isolated.git']]])
+
+  checkout([$class: 'GitSCM',
+    branches: [[name: '*/master']],
+    doGenerateSubmoduleConfigurations: false,
+    extensions: [[$class: 'RelativeTargetDirectory',
+      relativeTargetDir: 'modules/stdlib']],
+    submoduleCfg: [],
+    userRemoteConfigs: [[url: 'git@github.company.com:org/stdlib.git']]])
+
+  checkout([$class: 'GitSCM',
+    branches: [[name: '*/master']],
+    doGenerateSubmoduleConfigurations: false,
+    extensions: [[$class: 'RelativeTargetDirectory',
+      relativeTargetDir: 'modules/lvm']],
+    submoduleCfg: [],
+    userRemoteConfigs: [[url: 'git@github.company.com:org/lvm.git']]])
+
+  checkout([$class: 'GitSCM',
+    branches: [[name: '*/master']],
+    doGenerateSubmoduleConfigurations: false,
+    extensions: [[$class: 'RelativeTargetDirectory',
+      relativeTargetDir: 'modules/custom']],
+    submoduleCfg: [],
+    userRemoteConfigs: [[url: 'git@github.company.com:org/custom.git']]])
+
+  // execute file checks and unit tests
+  stage 'Validate code'
+  sh '/opt/puppetlabs/puppet/bin/rake puppetcheck:file'
+
+  // validate with serverspec
+  stage 'Validate servers'
+  checkout([$class: 'GitSCM',
+    branches: [[name: '*/master']],
+    doGenerateSubmoduleConfigurations: false,
+    extensions: [[$class: 'RelativeTargetDirectory',
+      relativeTargetDir: 'serverspec']],
+    submoduleCfg: [],
+    userRemoteConfigs: [[url: 'git@github.company.com:org/serverspec.git']]])
+
+  dir('serverspec') {
+    print 'setting up ssh for server entry and executing serverspec'
+    for (server in server_id.tokenize()) {
+      sh "sed -i '/sv$server/d' /var/lib/jenkins/.ssh/known_hosts"
+      sh """eval `ssh-agent -s`
+          ssh-add /var/lib/jenkins/.ssh/key
+          /opt/puppetlabs/puppet/bin/rake $server
+          ssh-agent -k
+          exit 0"""
+    }
+  }
+}

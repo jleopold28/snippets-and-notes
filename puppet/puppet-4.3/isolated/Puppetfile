@@ -1,0 +1,14 @@
+# base modules
+mod 'stdlib',
+    git: 'git@github.company.com:org/stdlib.git'
+
+mod 'lvm',
+    git: 'git@github.company.com:org/lvm.git'
+
+mod 'custom',
+    git: 'git@github.company.com:org/custom.git'
+
+# dir env modules
+mod 'one', local: true
+mod 'two', local: true
+mod 'three', local: true
