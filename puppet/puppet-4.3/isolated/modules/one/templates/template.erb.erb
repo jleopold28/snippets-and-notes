@@ -1,0 +1,38 @@
+#!/bin/zsh
+export DEPLOY_LANG="<%= @deploy_lang %>"
+export SERVER_ENV="SERVER"
+<% if @hostname =~ /^server0[2-5]\.sv([1-3579][0-9]{3}|0[6-9][0-9]{2}).*/ -%>
+export LCP="QA"
+<% else -%>
+export LCP="<%= @lcp.upcase %>"
+<% end -%>
+export BUILD_ENVIRONMENT="<%= @build_environment.upcase %>"
+export SERVER_TYPE="SERVER"
+<% if @hostname =~ /.*sv5[0-9]{3}.*/ -%>
+export NATION_CD="BB"
+<% elsif @hostname =~ /^server0[2-5]\.sv([1-379][0-9]{3}|0[6-9][0-9]{2}).*/ -%>
+export NATION_CD="AA"
+<% else -%>
+export NATION_CD="<%= @nation_code.upcase %>"
+<% end -%>
+<% if @lsbmajdistrelease < '7' -%>
+export TIME_`/bin/cat /etc/sysconfig/clock`
+<% else -%>
+export TIME_ZONE=`/bin/timedatectl | /bin/grep Timezone | /bin/awk '{print $2}'`
+<% end -%>
+<% if @env == 'prod' -%>
+export AVE="nfs --server=a --dir=/c"
+<% else -%>
+export AVE="nfs --server=b --dir=/d"
+<% end -%>
+export LANGS="language"
+<% if @role =~ /^(aa|bb)_one$/ -%>
+export STRUCT_TYPE="LOCAL"
+export SUB_TYPE="ONE"
+<% elsif @role =~ /^two$/ -%>
+export STRUCT_TYPE="GLOBAL"
+export SUB_TYPE="TWO"
+<% elsif @role =~ /^three$/ -%>
+export STRUCT_TYPE="OUTER"
+export SUB_TYPE="THREE"
+<% end -%>
