@@ -20,7 +20,7 @@ class one::user {
     ensure    => present,
     uid       => 2222,
     allowdupe => true,
-    groups    => thegroup,
+    groups    => the_group,
     password  => $one::user::user2_password,
     home      => '/home/user2',
     shell     => '/usr/bin/ksh',

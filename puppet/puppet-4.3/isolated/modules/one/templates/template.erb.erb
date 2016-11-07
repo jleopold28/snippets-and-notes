@@ -6,7 +6,7 @@ export LCP="QA"
 <% else -%>
 export LCP="<%= @lcp.upcase %>"
 <% end -%>
-export BUILD_ENVIRONMENT="<%= @build_environment.upcase %>"
+export OTHER_ENVIRONMENT="<%= @other_environment.upcase %>"
 export SERVER_TYPE="SERVER"
 <% if @hostname =~ /.*sv5[0-9]{3}.*/ -%>
 export NATION_CD="BB"
