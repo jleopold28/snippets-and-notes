@@ -44,14 +44,16 @@
 
 # Seccomp
 
--
+- [Use to generate seccomp profile](https://github.com/docker-slim/docker-slim)
+- `docker run --security-opt seccomp=default.json`: run docker container with specified seccomp profile; helpful for testing to disable apparmor (`apparmor=unconfined`) and add all capabilities (`--cap-add ALL`) so you can isolate seccomp behavior
+- seccomp profiles are whitelists where everything else is disabled by default
+- `docker run --security-opt seccomp=unconfined`: run a container with no seccomp profile
+- `strace -c -f -S name 'binary' 2>&1 1>/dev/null | tail -n +3 | head -n -2 | awk '{print $(NF)}'`: see a list of syscalls needed for binary (execute on docker host)
+- [Gotchas](https://github.com/docker/labs/tree/master/security/seccomp#gotchas)
+- [seccomp man page](http://man7.org/linux/man-pages/man2/seccomp.2.html)
 
 # User Namespaces
 
 - `docker run --user uid:gid`: run docker container with specific user:group
 - `dockerd --userns-remap=default`: enable user namespace support when docker daemon is stopped; remapping viewable in `/etc/sub[ug]id`; verify with `docker info`
 - `docker run --privileged`: currently incompatible with user namespaces (1.12)
-
-cp dockercon-workshop/apparmor/wordpress/docker-compose.yaml
-cp dockercon-workshop/apparmor/wordpress/wparmor
-cp labs/security/cgroups/cpu-stress/docker-compose.yml
