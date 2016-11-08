@@ -7,7 +7,7 @@ provider "aws" {
 resource "aws_instance" "personal" {
   ami                    = "${lookup(var.amis, var.region)}"
   instance_type          = "t2.micro"
-  key_name               = "mschuchard-us-east"
+  key_name               = "${aws_key_pair.personal.key_name}"
   vpc_security_group_ids = ["sg-9c0199e6"]
 }
 
