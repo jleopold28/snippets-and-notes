@@ -16,6 +16,6 @@ resource "aws_eip" "ip" {
 }
 
 resource "aws_key_pair" "personal" {
-  key_name = "mschuchard-us-east"
+  key_name   = "mschuchard-us-east"
   public_key = "${var.public_key}"
 }

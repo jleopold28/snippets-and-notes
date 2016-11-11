@@ -1,0 +1,66 @@
+# requires pe_build plugin
+# requires pe master tarball and agent AIO rpm in this directory
+
+Vagrant.configure('2') do |config|
+  config.pe_build.version = '2016.4.2'
+  config.vm.box = 'centos/7'
+  config.pe_build.download_root = "file://#{Dir.pwd}"
+
+  # Create a forwarded port mapping which allows access to a specific port
+  # within the machine from a port on the host machine. In the example below,
+  # accessing "localhost:8080" will access port 80 on the guest machine.
+  # config.vm.network "forwarded_port", guest: 80, host: 8080
+
+  # Share an additional folder to the guest VM. The first argument is
+  # the path on the host to the actual folder. The second argument is
+  # the path on the guest to mount the folder. And the optional third
+  # argument is a set of non-required options.
+  # config.vm.synced_folder "../data", "/vagrant_data"
+
+  config.vm.define 'master' do |pm|
+    pm.vm.network 'private_network', ip: '192.168.123.10'
+    pm.vm.hostname = 'puppet'
+
+    pm.vm.provider 'virtualbox' do |vb|
+      vb.cpus = '2'
+      vb.memory = '4096'
+    end
+
+    pm.vm.provision 'shell', path: 'base.sh'
+
+    pm.vm.provision :pe_bootstrap do |pe|
+      pe.role = :master
+      pe.answer_file = 'answers.txt'
+    end
+  end
+
+  config.vm.define 'node1' do |node1|
+    node1.vm.network 'private_network', ip: '192.168.123.11'
+    node1.vm.hostname = 'node1'
+
+    node1.vm.provider 'virtualbox' do |vb|
+      vb.memory = '1024'
+    end
+
+    node1.vm.provision 'shell', path: 'base.sh'
+
+    node1.vm.provision :pe_agent do |pe|
+      pe.master_vm = 'master'
+    end
+  end
+
+  config.vm.define 'node2' do |node2|
+    node2.vm.network 'private_network', ip: '192.168.123.12'
+    node2.vm.hostname = 'node2'
+
+    node2.vm.provider 'virtualbox' do |vb|
+      vb.memory = '1024'
+    end
+
+    node2.vm.provision 'shell', path: 'base.sh'
+
+    node2.vm.provision :pe_agent do |pe|
+      pe.master_vm = 'master'
+    end
+  end
+end
