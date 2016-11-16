@@ -1,5 +1,8 @@
 #!/bin/sh
-yum install git -y
+yum install -y git
+
+/opt/puppetlabs/puppet/bin/gem install --no-rdoc --no-ri puppet-check
+ln -s /opt/puppetlabs/puppet/bin/puppet-check /usr/local/bin/.
 
 echo "service { 'pe-puppetserver': ensure => running }
 
