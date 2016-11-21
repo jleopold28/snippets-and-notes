@@ -1,3 +1,6 @@
+# TODO: get packaging, adding, and post-adding up working
+# vagrant package --base master --output master.box
+
 # Dependency and config checks
 Vagrant.require_version '>= 1.8.6'
 
@@ -16,16 +19,10 @@ Vagrant.configure('2') do |config|
   config.vm.box = 'centos/7'
   config.pe_build.download_root = "file://#{Dir.pwd}"
 
-  # Share an additional folder to the guest VM. The first argument is
-  # the path on the host to the actual folder. The second argument is
-  # the path on the guest to mount the folder. And the optional third
-  # argument is a set of non-required options.
-  # config.vm.synced_folder "../data", "/vagrant_data"
-
-  # TODO: console currently unreachable at 8443 for some reason
   config.vm.define 'master' do |pm|
     pm.vm.network 'private_network', ip: '192.168.123.10'
     pm.vm.hostname = 'puppet'
+    # pm.vm.synced_folder 'master', '/etc/puppetlabs', create: true
 
     pm.vm.provider 'virtualbox' do |vb|
       vb.cpus = '2'

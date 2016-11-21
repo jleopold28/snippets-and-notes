@@ -1,0 +1,14 @@
+Vagrant.require_version '>= 1.8.6'
+
+Vagrant.configure('2') do |config|
+  config.vm.define 'master' do |pm|
+    # pm.vm.synced_folder 'master', '/etc/puppetlabs', create: true
+    pm.vm.box = 'master'
+  end
+
+  (1..3).each do |i|
+    config.vm.define "node#{i}" do |node|
+      node.vm.box = "node#{i}"
+    end
+  end
+end
