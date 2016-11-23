@@ -2,9 +2,9 @@
 export DEPLOY_LANG="<%= @deploy_lang %>"
 export SERVER_ENV="SERVER"
 <% if @hostname =~ /^server0[2-5]\.sv([1-3579][0-9]{3}|0[6-9][0-9]{2}).*/ -%>
-export LCP="QA"
+export ENV="QA"
 <% else -%>
-export LCP="<%= @lcp.upcase %>"
+export ENV="<%= @env.upcase %>"
 <% end -%>
 export OTHER_ENVIRONMENT="<%= @other_environment.upcase %>"
 export SERVER_TYPE="SERVER"

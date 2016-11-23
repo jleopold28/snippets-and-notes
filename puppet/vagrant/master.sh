@@ -1,4 +1,6 @@
 #!/bin/sh
+mkdir -p /vagrant/.pe_build/post-install
+
 echo "service { 'pe-puppetserver': ensure => running }
 
 file { '/etc/puppetlabs/puppet/autosign.conf':
@@ -12,7 +14,7 @@ file { '/etc/puppetlabs/puppet/autosign.conf':
 
 package { 'git': ensure => latest }
 
-['puppet-check', 'rake'].each |\$bin| {
+['puppet-check', 'rake', 'rspec-puppet-init', 'serverspec-init'].each |\$bin| {
   file { \"/usr/local/bin/\${bin}\":
     ensure => link,
     target => \"/opt/puppetlabs/puppet/bin/\${bin}\",
