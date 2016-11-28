@@ -1,12 +1,10 @@
 # vboxmanage list vms
 # vagrant package --base vagrant_master_* --output master.box
-# vagrant box add --name master master.box
 
 # Dependency and config checks
 Vagrant.require_version '>= 1.8.6'
 
 raise 'Missing PE Master tarball.' if Dir.glob('puppet-enterprise-*-el-7-x86_64.tar.gz').empty?
-raise 'Missing puppet-agent AIO rpm.' if Dir.glob('puppet-agent-*.el7.x86_64.rpm').empty?
 
 unless Vagrant.has_plugin?('vagrant-pe_build')
   system 'vagrant plugin install vagrant-pe_build'
@@ -28,12 +26,11 @@ Vagrant.configure('2') do |config|
 
     pm.vm.provider 'virtualbox' do |vb|
       vb.cpus = '2'
-      vb.memory = '4096'
+      vb.memory = '2048'
     end
 
     pm.vm.provision 'shell', path: 'base.sh'
     pm.vm.provision 'shell', path: 'master.sh'
-
     pm.vm.provision :pe_bootstrap do |pe|
       pe.role = :master
       pe.answer_file = 'answers.txt'
@@ -46,15 +43,13 @@ Vagrant.configure('2') do |config|
       node.vm.hostname = "node#{i}"
 
       node.vm.provider 'virtualbox' do |vb|
-        vb.memory = '1024'
+        vb.memory = '512'
       end
 
       node.vm.provision 'shell', path: 'base.sh'
-
       node.vm.provision :pe_agent do |pe|
         pe.master_vm = 'master'
       end
-
       node.vm.provision 'shell', inline: 'systemctl disable puppet; systemctl stop puppet'
     end
   end
