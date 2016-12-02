@@ -11,7 +11,7 @@ file { '/etc/puppetlabs/puppet/autosign.conf':
 
 package { 'git': ensure => latest }
 
-['puppet-check', 'rake', 'rspec-puppet-init', 'serverspec-init'].each |$bin| {
+['puppet-check', 'rake', 'rspec-puppet-init', 'serverspec-init', 'puppet-lint'].each |$bin| {
   file { "/usr/local/bin/${bin}":
     ensure => link,
     target => "/opt/puppetlabs/puppet/bin/${bin}",
@@ -20,4 +20,9 @@ package { 'git': ensure => latest }
 
 ['puppet-check', 'reek', 'rspec-puppet', 'serverspec'].each |$gem| {
   exec { "/opt/puppetlabs/puppet/bin/gem install --no-rdoc --no-ri ${gem}": }
+}
+
+file { ['/etc/puppetlabs/code', '/etc/puppetlabs/r10k']:
+  owner   => 'vagrant',
+  recurse => true,
 }
