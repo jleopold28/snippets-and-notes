@@ -1,0 +1,32 @@
+# Dependency and config checks
+Vagrant.require_version '>= 1.8.6'
+
+unless Vagrant.has_plugin?('landrush')
+  system 'vagrant plugin install landrush'
+  puts 'Rerun vagrant command to recognize installed plugin.'
+  exit 0
+end
+
+# Configure boxes
+Vagrant.configure('2') do |config|
+  config.vm.define 'master' do |master|
+    master.vm.box = 'fedora/24-cloud-base'
+    master.vm.network 'private_network', ip: '192.168.123.10'
+    master.vm.hostname = 'master.vagrant.test'
+    config.landrush.enabled = true
+
+    master.vm.provision 'shell', path: 'vagrant.sh'
+    master.vm.provision 'shell', inline: 'dnf install -y rubygems; gem install --no-rdoc --no-ri serverspec rake'
+  end
+
+  (1..4).each do |i|
+    config.vm.define "host#{i}" do |host|
+      host.vm.box = 'centos/7'
+      host.vm.network 'private_network', ip: "192.168.123.1#{i}"
+      host.vm.hostname = "hostname#{i}.svr1122.vagrant.test"
+      config.landrush.enabled = true
+
+      host.vm.provision 'shell', path: 'vagrant.sh'
+    end
+  end
+end
