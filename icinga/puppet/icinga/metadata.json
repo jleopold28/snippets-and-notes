@@ -1,0 +1,42 @@
+{
+  "name": "icinga",
+  "version": "1.0.0",
+  "author": "Matt Schuchard",
+  "summary": "Icinga provisioning module.",
+  "license": "MIT",
+  "source": "https://www.github.com/mschuchard/snippets-and-notes",
+  "project_page": "https://github.company.com/mschuchard/snippets-and-notes",
+  "issues_url": "https://github.company.com/mschuchard/snippets-and-notes/issues",
+  "operatingsystem_support": [
+    {
+      "operatingsystem": "RedHat"
+    },
+    {
+      "operatingsystem": "CentOS"
+    },
+    {
+      "operatingsystem": "OracleLinux"
+    },
+    {
+      "operatingsystem": "Scientific"
+    }
+  ],
+  "requirements": [
+    {
+      "name": "pe",
+      "version_requirement": ">= 3.8.2 < 2017.1.0"
+    },
+    {
+      "name": "puppet",
+      "version_requirement": ">= 3.8.2 < 5.0.0"
+    }
+  ],
+  "description": "Icinga provisioning module.",
+  "dependencies": [
+    {
+      "name": "puppetlabs/stdlib",
+      "version_requirement": ">= 4.0.0 < 5.0.0",
+      "forge": "puppetlabs-stdlib"
+    }
+  ]
+}
