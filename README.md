@@ -16,9 +16,21 @@ CMake modules and Ada toolchain.
 
 Ruby toy for doing Dirac notation mathematics in Hilbert space, such as for simple Quantum Physics.
 
+### Docker
+
+Various notes on Docker labs.
+
 ### Human Relationship Dynamics
 
 Human Relationship Dynamics model and simulation in C++.
+
+### Icinga
+
+Collection of Icinga-related proofs of concept.
+
+### Mesosphere
+
+Lab material generated during Mesosphere advanced course.
 
 ### Puppet
 
@@ -43,3 +55,7 @@ Pared down demonstration of advanced serverspec techniques.
 ### SOEA
 
 Single Objective Evolutionary Algorithm in C++.
+
+### Terraform
+
+Collection of Terraform-related proofs of concept.
