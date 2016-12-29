@@ -1,3 +1,5 @@
 **/.vagrant
 **/fixtures
 **/*.tar.gz
+**/*.log
+c++/learncpp/build

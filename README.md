@@ -8,6 +8,10 @@ Collection of various snippets and notes for future use.
 
 Collection of simple playbooks using Ansible 2.0.
 
+### C++
+
+C++ exercises.
+
 ### CMake Modules
 
 CMake modules and Ada toolchain.
