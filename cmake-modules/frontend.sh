@@ -17,7 +17,7 @@ CMAKEDEV=FALSE
 #User options for components included in the build
 USEOPENGL=TRUE #OpenGL
 USEOPENGLRENDER=TRUE #OpenGLRender (must also be OPENGL)
-USEOPENGLFLARE=TRUE #OpenGLFlareRender (must also be OPENGL)
+USEOPENGLFLR=TRUE #OpenGLFlrRender (must also be OPENGL)
 USEOPENGLSMOKE=FALSE #OpenGLSmoke (must also be OPENGL)
 USESGIP=FALSE #Proprietary external OpenGL rendering code (must also be OPENGLRENDER)
 USECUDA=TRUE #CUDA
@@ -27,11 +27,11 @@ USEOCEAN=TRUE #Ocean
 USEMODTRAN5=TRUE #Modtran5 vs. Modtran4 (only matters for PROPRIETARY)
 USESENSE=TRUE #non-PROJECTUNIFIEDISAMS Sense
 USESIL=FALSE #SIL (non-E2E SIL currently unsupported; leave FALSE)
-USEFLITES=FALSE #FLITES Proprietary Software (must also be CUDA)
+USEFLTS=FALSE #FLTS Proprietary Software (must also be CUDA)
 USESAIL=FALSE #SAIL IPC Software
 PROPRIETARY=TRUE #Proprietary Software Included (Modtran and Flame)
 PROJECTUNIFIEDISAMS=TRUE #ISAMS components included (must also be PROPRIETARY)
-CLASSIFIED=FALSE #Classified PROJECT components included
+CLASSED=FALSE #Classed PROJECT components included
 ######################################################
 
 ######################################################
@@ -58,8 +58,8 @@ else
 fi
 
 mkdir -p ../bld${CONFIGNAME}
-if [ "$USEFLITES" == "TRUE" ]; then
-  mkdir -p ../lib/flites
+if [ "$USEFLTS" == "TRUE" ]; then
+  mkdir -p ../lib/flts
 else
   mkdir -p ../lib
 fi
@@ -78,7 +78,7 @@ set(ELVERSION ${ELVERSION} CACHE BOOL \"Enterprise Linux Major Version\" FORCE)
 set(CMAKEDEV ${CMAKEDEV} CACHE BOOL \"CMake 2.8.x Official Dev Version\" FORCE)
 set(USEOPENGL ${USEOPENGL} CACHE BOOL \"OpenGL Included\" FORCE)
 set(USEOPENGLRENDER ${USEOPENGLRENDER} CACHE BOOL \"OpenGLRenderer Included\" FORCE)
-set(USEOPENGLFLARE ${USEOPENGLFLARE} CACHE BOOL \"OpenGLFlareRenderer Included\" FORCE)
+set(USEOPENGLFLR ${USEOPENGLFLR} CACHE BOOL \"OpenGLFlrRenderer Included\" FORCE)
 set(USEOPENGLSMOKE ${USEOPENGLSMOKE} CACHE BOOL \"OpenGLSmokeRenderer Included\" FORCE)
 set(USESGIP ${USESGIP} CACHE BOOL \"External OpenGLTerrainRenderer Included\" FORCE)
 set(USECUDA ${USECUDA} CACHE BOOL \"CUDA Included\" FORCE)
@@ -88,11 +88,11 @@ set(USEOCEAN ${USEOCEAN} CACHE BOOL \"Ocean Included\" FORCE)
 set(USEMODTRAN5 ${USEMODTRAN5} CACHE BOOL \"Modtran5 Included\" FORCE)
 set(USESENSE ${USESENSE} CACHE BOOL \"Sense Included\" FORCE)
 set(USESIL ${USESIL} CACHE BOOL \"SIL Included\" FORCE)
-set(USEFLITES ${USEFLITES} CACHE BOOL \"FLITES Included\" FORCE)
+set(USEFLTS ${USEFLTS} CACHE BOOL \"FLTS Included\" FORCE)
 set(USESAIL ${USESAIL} CACHE BOOL \"SAIL Included\" FORCE)
 set(PROPRIETARY ${PROPRIETARY} CACHE BOOL \"Proprietary Included\" FORCE)
 set(PROJECTUNIFIEDISAMS ${PROJECTUNIFIEDISAMS} CACHE BOOL \"ISAMS Included\" FORCE)
-set(CLASSIFIED ${CLASSIFIED} CACHE BOOL \"Classified Components Included\" FORCE)" > PROJECTConfigure.cmake
+set(CLASSED ${CLASSIFIED} CACHE BOOL \"Classed Components Included\" FORCE)" > PROJECTConfigure.cmake
 
 ${CMAKEEXEC} -C PROJECTConfigure.cmake ../${SRCDIR}
 if [ "$NOBUILD" == "FALSE" ]; then
