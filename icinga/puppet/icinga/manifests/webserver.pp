@@ -1,7 +1,11 @@
 # class to install and configure the icinga webserver
 class icinga::webserver {
   # install packages for webserver
-  package { ['httpd', 'icingaweb2', 'icingacli']: ensure => installed }
+  package { 'httpd': ensure => installed }
+  package { ['icingaweb2', 'icingacli']:
+    ensure  => installed,
+    require => Yumrepo['Icinga2', 'EPEL'],
+  }
 
   # set php date.timezone
   file_line { 'php date.timezone UTC':

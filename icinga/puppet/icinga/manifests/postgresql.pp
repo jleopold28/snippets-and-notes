@@ -1,12 +1,18 @@
 # class to install and config postgresql backend
 class icinga::postgresql {
-  # setup repo sub; TODO: yum hates redoing this
-  package { 'https://download.postgresql.org/pub/repos/yum/9.4/redhat/rhel-7-x86_64/pgdg-centos94-9.4-3.noarch.rpm': ensure => installed }
+  # setup repo sub
+  yumrepo { 'Postgresql':
+    baseurl  => 'https://download.postgresql.org/pub/repos/yum/9.4/redhat/rhel-7-x86_64',
+    descr    => 'Postgresql repository',
+    enabled  => 1,
+    gpgcheck => 1,
+    gpgkey   => 'https://download.postgresql.org/pub/repos/yum/RPM-GPG-KEY-PGDG',
+  }
 
   # install postgresql
   package { ['postgresql94-server', 'postgresql94', 'php-pgsql']:
     ensure  => installed,
-    require => Package['https://download.postgresql.org/pub/repos/yum/9.4/redhat/rhel-7-x86_64/pgdg-centos94-9.4-3.noarch.rpm', 'epel-release'],
+    require => Yumrepo['Postgresql', 'EPEL'],
   }
 
   # initialize database
