@@ -19,7 +19,7 @@ package { 'git': ensure => latest }
 }
 
 ['puppet-check', 'reek', 'rspec-puppet', 'serverspec'].each |$gem| {
-  exec { "/opt/puppetlabs/puppet/bin/gem install --no-rdoc --no-ri ${gem}": }
+  exec { "/opt/puppetlabs/puppet/bin/gem install --no-document ${gem}": }
 }
 
 file { ['/etc/puppetlabs/code', '/etc/puppetlabs/r10k']:

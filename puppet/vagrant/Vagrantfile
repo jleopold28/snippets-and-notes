@@ -8,7 +8,7 @@ raise 'Missing PE Master tarball.' if Dir.glob('puppet-enterprise-*-el-7-x86_64.
 
 # TODO: breaks on 1.9
 unless Vagrant.has_plugin?('vagrant-pe_build')
-  system 'vagrant plugin install vagrant-pe_build'
+  system 'sudo vagrant plugin install vagrant-pe_build'
   puts 'Rerun vagrant command to recognize installed plugin.'
   exit 0
 end
@@ -16,7 +16,7 @@ end
 # Configure boxes
 Vagrant.configure('2') do |config|
   config.pe_build.version = '2016.4.2'
-  # TODO: issues on 1.8.6
+  # TODO: issues on 1.8.6 on mac osx
   config.vm.box = 'centos/7'
   config.pe_build.download_root = "file://#{Dir.pwd}"
   config.ssh.insert_key = false
