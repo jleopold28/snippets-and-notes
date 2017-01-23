@@ -1,0 +1,8 @@
+[web]
+node[2:3].vagrant.test
+
+[db]
+node4.vagrant.test
+
+[software]
+node5.vagrant.test

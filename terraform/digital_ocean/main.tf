@@ -12,6 +12,10 @@ resource "digitalocean_droplet" "droplet" {
   ssh_keys   = ["${digitalocean_ssh_key.key.id}"]
   tags       = ["${digitalocean_tag.tag.name}"]
   volume_ids = ["${digitalocean_volume.volume.id}"]
+
+  provisioner "remote-exec" {
+    script = "puppet.sh"
+  }
 }
 
 # Establish floating ip

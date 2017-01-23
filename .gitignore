@@ -3,3 +3,4 @@
 **/*.tar.gz
 **/*.log
 c++/learncpp/build
+**/*tfstate*

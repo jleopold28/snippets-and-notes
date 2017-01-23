@@ -1,0 +1,45 @@
+---
+- name: install db
+  hosts: db
+  strategy: free
+  remote_user: vagrant
+  gather_facts: no
+  tasks:
+    - name: install mariadb
+      command: "/usr/local/bin/puppet apply -e \"package { 'mariadb': ensure => present }\""
+      become: true
+      register: agent_exec
+      until: agent_exec.rc == 0 or agent_exec.rc == 2
+      retries: 3
+      delay: 5
+      failed_when: agent_exec.rc != 0 and agent_exec.rc != 2
+
+- name: install software
+  hosts: software
+  strategy: free
+  remote_user: vagrant
+  gather_facts: no
+  tasks:
+    - name: install php
+      command: "/usr/local/bin/puppet apply -e \"package { 'php': ensure => present }\""
+      become: true
+      register: agent_exec
+      until: agent_exec.rc == 0 or agent_exec.rc == 2
+      retries: 3
+      delay: 5
+      failed_when: agent_exec.rc != 0 and agent_exec.rc != 2
+
+- name: install web
+  hosts: web
+  strategy: free
+  remote_user: vagrant
+  gather_facts: no
+  tasks:
+    - name: install apache
+      command: "/usr/local/bin/puppet apply -e \"package { 'httpd': ensure => present }\""
+      become: true
+      register: agent_exec
+      until: agent_exec.rc == 0 or agent_exec.rc == 2
+      retries: 3
+      delay: 5
+      failed_when: agent_exec.rc != 0 and agent_exec.rc != 2

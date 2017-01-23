@@ -1,0 +1,13 @@
+# also needs ssh keys dropped in; can remove puppet install stuff for ansible-only lab
+Vagrant.configure('2') do |config|
+  config.landrush.enabled = true
+  config.vm.box = 'centos/7'
+
+  config.vm.provision 'shell', inline: 'yum install rubygems -y; gem install --no-ri --no-rdoc puppet'
+
+  (2..5).each do |i|
+    config.vm.define "node#{i}" do |node|
+      node.vm.hostname = "node#{i}.vagrant.test"
+    end
+  end
+end

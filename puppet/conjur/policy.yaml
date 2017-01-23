@@ -1,0 +1,7 @@
+- !group &ops ops
+
+- !variable
+  id: mysql-password
+  owner: *ops
+  annotations:
+    app: Wordpress
