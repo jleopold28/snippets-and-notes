@@ -1,0 +1,7 @@
+require 'json'
+
+# retrieve and parse json response to ticket generate request
+json = JSON.parse(`curl -k -s -u root:icinga -H 'Accept: application/json' -X POST 'https://<%= @master_fqdn %>:5665/v1/actions/generate-ticket' -d '{ "cn": "<%= @fqdn %>" }'`)
+
+# finish node setup with previously generated ticket and certs
+system("/sbin/icinga2 node setup --ticket #{json['results'][0]['ticket']} --endpoint <%= @master_fqdn %> --zone <%= @fqdn %> --master_host <%= @master_fqdn %> --trustedcert /etc/icinga2/pki/<%= @master_fqdn %>.crt --accept-commands --accept-config")

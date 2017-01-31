@@ -1,5 +1,9 @@
 # class to install and configure icinga on clients
-class icinga::client(String $icinga_version) {
+class icinga::client(
+  String $icinga_version,
+  String $master_fqdn
+)
+{
   # setup repo subs
   case $facts['os']['name'] {
     'RedHat', 'CentOS': {
@@ -78,5 +82,39 @@ class icinga::client(String $icinga_version) {
   exec { "/sbin/icinga2 pki new-cert --cn ${facts['fqdn']} --key /etc/icinga2/pki/${facts['fqdn']}.key --cert /etc/icinga2/pki/${facts['fqdn']}.crt":
     require => File['/etc/icinga2/pki'],
     creates => ["/etc/icinga2/pki/${facts['fqdn']}.key", "/etc/icinga2/pki/${facts['fqdn']}.key"],
+  }
+
+  # save the cert
+  exec { "/sbin/icinga2 pki save-cert --key /etc/icinga2/pki/${facts['fqdn']}.key --cert /etc/icinga2/pki/${facts['fqdn']}.crt --trustedcert /etc/icinga2/pki/${master_fqdn}.crt --host ${master_fqdn}":
+    require => [Exec["/sbin/icinga2 pki new-cert --cn ${facts['fqdn']} --key /etc/icinga2/pki/${facts['fqdn']}.key --cert /etc/icinga2/pki/${facts['fqdn']}.crt"], File["/etc/icinga2/pki/${master_fqdn}"]],
+    creates => "/etc/icinga2/pki/${master_fqdn}",
+  }
+
+  # copy over and execute ruby script to request ticket and finish client setup
+  file { '/tmp/node_setup.rb':
+    ensure  => file,
+    content => template('icinga/node_setup.erb'),
+  }
+
+  exec { 'ruby /tmp/node_setup.rb':
+    path        => ['/opt/puppetlabs/puppet/bin', '/usr/bin'],
+    require     => File['/tmp/node_setup.rb'],
+    subscribe   => Exec["/sbin/icinga2 pki save-cert --key /etc/icinga2/pki/${facts['fqdn']}.key --cert /etc/icinga2/pki/${facts['fqdn']}.crt --trustedcert /etc/icinga2/pki/${master_fqdn}.crt --host ${master_fqdn}"],
+    refreshonly => true,
+  }
+
+  # disable recursive conf.d inclusion
+  file_line { 'comment out include_recursive conf.d':
+    ensure => present,
+    path   => '/etc/icinga2/icinga2.conf',
+    line   => '//include_recursive "conf.d"',
+    match  => 'include_recursive "conf.d"',
+  }
+
+  # restart icinga after changes
+  service { 'icinga2':
+    ensure    => running,
+    enable    => true,
+    subscribe => [Package['icinga2'], Exec['ruby /tmp/node_setup.rb']],
   }
 }

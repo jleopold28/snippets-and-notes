@@ -43,6 +43,16 @@ class icinga::base(String $icinga_version) {
   # enable ca and csr auto-signing
   exec { '/sbin/icinga2 node setup --master': creates => '/etc/icinga2/conf.d/api-users.conf' }
 
+  # populate icinga confs directory
+  file { '/etc/icinga2/conf.d':
+    ensure  => directory,
+    owner   => 'icinga',
+    group   => 'icinga',
+    recurse => remote,
+    source  => 'puppet:///modules/icinga/confs',
+    require => Package['icinga2'],
+  }
+
   # run icinga service
   service { 'icinga2':
     ensure    => running,

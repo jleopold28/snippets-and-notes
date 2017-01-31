@@ -11,7 +11,8 @@ describe 'icinga' do
   context 'when deployed on a centos client' do
     let(:params) { { master: false } }
     let(:facts) { { os: { 'name' => 'centos' },
-                    fqdn: 'localhost.localdomain' }
+                    fqdn: 'localhost.localdomain',
+                    master_fqdn: 'master.localdomain' }
     }
 
     it { is_expected.to contain_class('icinga') }

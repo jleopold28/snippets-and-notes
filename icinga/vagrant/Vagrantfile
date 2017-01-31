@@ -1,3 +1,12 @@
+# Dependency and config checks
+Vagrant.require_version '>= 1.8.6'
+
+unless Vagrant.has_plugin?('landrush')
+  system 'sudo vagrant plugin install landrush'
+  puts 'Rerun vagrant command to recognize installed plugin.'
+  exit 0
+end
+
 Vagrant.configure('2') do |config|
   config.landrush.enabled = true
 
@@ -21,18 +30,20 @@ Vagrant.configure('2') do |config|
     master.vm.provision 'shell', inline: 'gem uninstall puppet facter hiera json_pure -aIx; yum erase rubygems -y; yum autoremove -y'
   end
 
-  # centos client
-  config.vm.define 'client-centos' do |client_centos|
-    client_centos.vm.box = 'centos/7'
-    client_centos.vm.network 'private_network', ip: '192.168.33.11'
-    client_centos.vm.hostname = 'client-centos.vagrant.test'
+  # TODO: two centos satellites
+
+  # opensuse client
+  config.vm.define 'client-opensuse' do |client_opensuse|
+    client_opensuse.vm.box = 'opensuse/openSUSE-13.2-x86_64'
+    client_opensuse.vm.network 'private_network', ip: '192.168.33.11'
+    client_opensuse.vm.hostname = 'client-opensuse.vagrant.test'
 
     # install puppet
-    client_centos.vm.provision 'shell', inline: 'yum install rubygems -y; gem install --no-ri --no-rdoc puppet'
+    client_opensuse.vm.provision 'shell', inline: 'zypper install rubygems -y; gem install --no-ri --no-rdoc puppet'
     # execute puppet
-    client_centos.vm.provision 'shell', inline: '/usr/local/bin/puppet module install --modulepath=/vagrant puppetlabs-stdlib; /usr/local/bin/puppet apply --modulepath=/vagrant /vagrant/site.pp'
+    client_opensuse.vm.provision 'shell', inline: '/usr/local/bin/puppet module install --modulepath=/vagrant puppetlabs-stdlib; /usr/local/bin/puppet apply --modulepath=/vagrant /vagrant/site.pp'
     # remove puppet
-    client_centos.vm.provision 'shell', inline: 'gem uninstall puppet facter hiera json_pure -aIx; yum erase rubygems -y; yum autoremove -y'
+    client_opensuse.vm.provision 'shell', inline: 'gem uninstall puppet facter hiera json_pure -aIx; zypper erase rubygems -uy'
   end
 
   # fedora client
@@ -42,7 +53,7 @@ Vagrant.configure('2') do |config|
     client_fedora.vm.hostname = 'client-fedora.vagrant.test'
 
     # install puppet
-    client_fedora.vm.provision 'shell', inline: 'dnf install rubygems -y; gem install --no-documentation puppet'
+    client_fedora.vm.provision 'shell', inline: 'dnf install rubygems -y; gem install --no-document puppet'
     # execute puppet
     client_fedora.vm.provision 'shell', inline: '/usr/local/bin/puppet module install --modulepath=/vagrant puppetlabs-stdlib; /usr/local/bin/puppet apply --modulepath=/vagrant /vagrant/site.pp'
     # remove puppet
@@ -70,7 +81,7 @@ Vagrant.configure('2') do |config|
     client_ubuntu.vm.hostname = 'client-ubuntu.vagrant.test'
 
     # install puppet
-    client_ubuntu.vm.provision 'shell', inline: 'apt-get install rubygems -y; gem install --no-ri --no-rdoc puppet'
+    client_ubuntu.vm.provision 'shell', inline: 'apt-get install rubygems -y; gem install --no-document puppet'
     # execute puppet
     client_ubuntu.vm.provision 'shell', inline: '/usr/local/bin/puppet module install --modulepath=/vagrant puppetlabs-stdlib; /usr/local/bin/puppet apply --modulepath=/vagrant /vagrant/site.pp'
     # remove puppet
