@@ -4,3 +4,4 @@
 **/*.log
 c++/learncpp/build
 **/*tfstate*
+puppet/vagrant/.pe_build
