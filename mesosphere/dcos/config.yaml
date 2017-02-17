@@ -1,0 +1,28 @@
+agent_list:
+# public ip
+- private ip
+# public ip
+- private ip
+bootstrap_url: file:///opt/dcos_install_tmp
+customer_key: key
+cluster_name: name
+master_discovery: static
+master_list:
+# public ip
+- private ip
+public_agent_list:
+# - public ip
+- private ip
+resolvers:
+- internal dns
+- google?
+exhibitor_storage_backend: static
+process_timeout: 360
+ssh_port: 22
+ssh_user: centos
+ssh_key_path: student.pem
+security: disabled
+
+# bootstrap
+# public ip
+# private ip

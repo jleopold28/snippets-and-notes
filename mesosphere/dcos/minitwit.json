@@ -1,0 +1,57 @@
+{
+  "id": "/minitwit",
+  "instances": 3,
+  "cpus": 1,
+  "mem": 512,
+  "container": {
+    "type": "DOCKER",
+    "docker": {
+      "image": "karlkfi/minitwit",
+      "forcePullImage": false,
+      "privileged": false,
+      "portMappings": [
+        {
+          "name": "http-api",
+          "hostPort": 0,
+          "containerPort": 80,
+          "servicePort": 10044,
+          "protocol": "tcp"
+        }
+      ],
+      "network": "BRIDGE"
+    }
+  },
+  "acceptedResourceRoles": [
+    "slave_public"
+  ],
+  "requirePorts": true,
+  "healthChecks": [
+    {
+      "protocol": "HTTP",
+      "path": "/",
+      "portIndex": 0,
+      "gracePeriodSeconds": 15,
+      "intervalSeconds": 3,
+      "timeoutSeconds": 2,
+      "maxConsecutiveFailures": 2,
+      "portName": "http-api"
+    }
+  ],
+  "readinessChecks": [
+    {
+      "protocol": "HTTP",
+      "path": "/",
+      "portName": "http-api",
+      "intervalSeconds": 15,
+      "timeoutSeconds": 5,
+      "httpStatusCodesForReady": [200, 302],
+      "preserveLastResponse": true
+    }
+  ],
+  "labels":{
+    "HAPROXY_DEPLOYMENT_GROUP":"minitwit",
+    "HAPROXY_DEPLOYMENT_ALT_PORT":"10005",
+    "HAPROXY_GROUP":"external",
+    "HAPROXY_0_VHOST": "52.54.208.232"
+  }
+}

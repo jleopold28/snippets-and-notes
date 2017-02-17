@@ -1,0 +1,36 @@
+{
+  "service": {
+    "name": "mysql"
+  },
+  "mysql": {
+    "cpus": 0.5,
+    "mem": 1024
+  },
+  "database": {
+    "name": "wordpress",
+    "username": "wordpress",
+    "password": "wordpress",
+    "root_password": "wordpress"
+  },
+  "storage": {
+    "host_volume": "/tmp",
+    "persistence": {
+      "enable": false,
+      "volume_size": 256,
+      "external": {
+        "enable": false,
+        "volume_name": "mysql",
+        "provider": "dvdi",
+        "driver": "rexray"
+      }
+    }
+  },
+  "networking": {
+    "port": 3306,
+    "host_mode": true,
+    "external_access": {
+      "enable": false,
+      "external_access_port": 13306
+    }
+  }
+}

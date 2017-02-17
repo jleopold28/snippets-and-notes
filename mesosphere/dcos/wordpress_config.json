@@ -1,0 +1,19 @@
+{
+  "service": {
+    "name": "wordpress",
+    "cpus": 1,
+    "mem": 1024
+  },
+  "database": {
+    "host": "mysql.marathon.mesos:3306",
+    "name": "wordpress",
+    "user": "wordpress",
+    "password": "wordpress"
+  },
+  "networking": {
+    "https-redirect": false
+  },
+  "storage": {
+    "host-volume": "/tmp"
+  }
+}
