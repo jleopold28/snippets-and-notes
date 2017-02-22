@@ -36,7 +36,7 @@ struct Card {
 int rdmNum(int max) {
   std::random_device rd;
   std::mt19937 mersenne(rd());
-  return mersenne() % max;
+  return mersenne() % (max + 1);
 }
 
 // card functions

@@ -51,7 +51,7 @@ public:
   static int rdmNum(int min, int max) {
     static std::random_device rd;
     std::mt19937 mersenne(rd());
-    return (mersenne() % max) + min;
+    return (mersenne() % (max + 1)) + min;
   }
 
   static Monster generateMonster() {
