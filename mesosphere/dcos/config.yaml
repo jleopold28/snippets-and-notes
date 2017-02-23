@@ -19,7 +19,7 @@ resolvers:
 exhibitor_storage_backend: static
 process_timeout: 360
 ssh_port: 22
-ssh_user: centos
+ssh_user: vagrant
 ssh_key_path: student.pem
 security: disabled
 

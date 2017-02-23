@@ -1,0 +1,49 @@
+# Dependency and config checks
+Vagrant.require_version '>= 1.8.6'
+
+raise 'Missing DCOS install script.' unless File.file?('dcos_generate_config.ee.sh')
+
+unless Vagrant.has_plugin?('landrush')
+  system 'sudo vagrant plugin install landrush'
+  puts 'Rerun vagrant command to recognize installed plugin.'
+  exit 0
+end
+
+Vagrant.configure('2') do |config|
+  config.vm.box = 'centos/7'
+  config.landrush.enabled = true
+  config.vm.provision 'shell', path: 'vagrant_provision.sh'
+
+  config.vm.define 'master' do |master|
+    master.vm.network 'private_network', ip: '192.168.123.10'
+    master.vm.hostname = 'master.vagrant.test'
+
+    master.vm.provider 'virtualbox' do |vb|
+      vb.memory = '1024'
+    end
+  end
+
+  config.vm.define 'public-agent' do |public_agent|
+    public_agent.vm.network 'private_network', ip: '192.168.123.13'
+    public_agent.vm.hostname = 'public.vagrant.test'
+
+    public_agent.vm.provider 'virtualbox' do |vb|
+      vb.memory = '1024'
+    end
+  end
+
+  (1..2).each do |i|
+    config.vm.define 'private-agent' do |private_agent|
+      private_agent.vm.network 'private_network', ip: "192.168.123.1#{i}"
+      private_agent.vm.hostname = "private#{i}.vagrant.test"
+
+      private_agent.vm.provider 'virtualbox' do |vb|
+        vb.memory = '1024'
+      end
+    end
+  end
+
+  config.vm.define 'bootstrap' do |bootstrap|
+    bootstrap.vm.hostname = 'bootstrap.vagrant.test'
+  end
+end
