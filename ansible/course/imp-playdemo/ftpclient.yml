@@ -1,0 +1,12 @@
+---
+- name: ftp client installed
+  hosts: localhost
+  remote_user: devops
+  become: yes
+  become_method: sudo
+  become_user: root
+  tasks:
+  - name: latest ftp client installed
+    yum:
+      name: lftp
+      state: latest

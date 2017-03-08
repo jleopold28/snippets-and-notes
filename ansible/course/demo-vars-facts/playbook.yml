@@ -1,0 +1,13 @@
+---
+- hosts: lamp
+  tasks:
+  - name: Installs packages on {{ansible_fqdn}}
+    yum:
+      name:
+      - "{{ansible_local.custom.packages.db_packages}}"
+      - "{{ansible_local.custom.packages.web_package}}"
+      state: latest
+    register: result
+  - name: Displays the result of the command
+    debug:
+      var: result

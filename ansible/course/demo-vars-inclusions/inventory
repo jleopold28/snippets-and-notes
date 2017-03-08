@@ -1,0 +1,5 @@
+[fileservers]
+servera.lab.example.com
+
+[dbservers]
+serverb.lab.example.com

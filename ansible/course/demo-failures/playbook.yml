@@ -1,0 +1,46 @@
+---
+- hosts: mailservers
+  vars:
+    maildir_path: /home/john/Maildir
+    maildir: /home/student/Maildir
+    mail_package: postfix
+    mail_service: postfix
+
+  tasks:
+  - block:
+    - name: Create {{maildir_path}}
+      copy:
+        src: "{{maildir}}"
+        dest: "{{maildir_path}}"
+        mode: 0755
+      register: command_output
+
+    rescue:
+    - name: Install mail packages
+      yum:
+        name: "{{item}}"
+        state: latest
+      with_items:
+      - "{{mail_package}}"
+      - dovecot
+      changed_when: "'not find' in command_out.msg"
+      notify: restart_dovecot
+
+    always:
+    - name: Start mail services
+      service:
+        name: "{{item}}"
+        state: started
+      with_items:
+      - "{{mail_service}}"
+      - dovecot
+      register: command_result
+
+  - debug:
+      var: command_result
+
+  handlers:
+  - name: restart_dovecot
+    service:
+      name: dovecot
+      state: restarted

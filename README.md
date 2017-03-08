@@ -4,9 +4,9 @@ Collection of various snippets and notes for future use.
 
 ---
 
-### Ansible 2.0
+### Ansible
 
-Collection of simple playbooks using Ansible 2.0.
+Collection of simple playbooks using Ansible >= 2.0.
 
 ### C++
 
@@ -34,7 +34,7 @@ Collection of Icinga-related proofs of concept.
 
 ### Mesosphere
 
-Lab material generated during Mesosphere advanced course.
+Lab material generated during Mesosphere advanced course and DCOS course.
 
 ### Puppet
 

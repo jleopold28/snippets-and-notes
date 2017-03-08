@@ -1,0 +1,26 @@
+---
+- hosts: all
+  vars:
+    db_packages:
+    - mariadb-server
+    - MySQL-python
+    db_config_url: http://www.materials.example.com/task_control
+    db_config_src_path_small: "{{db_config_url}}/my.cnf.small"
+    db_config_src_path_large: "{{db_config_url}}/my.cnf.large"
+    db_config_path: /etc/my.cnf
+    db_service: mariadb
+
+  tasks:
+  - include: prepare_db.yml
+    when: inventory_hostname in groups['databases']
+
+  handlers:
+  - name: start_db
+    service:
+      name: "{{db_service}}"
+      state: started
+
+  - name: restart_db
+    service:
+      name: "{{db_service}}"
+      state: restarted
