@@ -36,13 +36,17 @@ Collection of Icinga-related proofs of concept.
 
 Lab material generated during Mesosphere advanced course and DCOS course.
 
+### Packer
+
+Collection of Packer-related proofs of concept.
+
 ### Puppet
 
 Collection of Puppet modules and directory environments.
 
 ### Python
 
-Various python snipppets.
+Various Python snipppets.
 
 ### RPM Specs
 
@@ -50,11 +54,11 @@ Collection of RPM spec files for EL6.
 
 ### Ruby
 
-Various ruby snippets.
+Various Ruby snippets.
 
 ### Serverspec
 
-Pared down demonstration of advanced serverspec techniques.
+Pared down demonstration of advanced Serverspec techniques.
 
 ### SOEA
 
