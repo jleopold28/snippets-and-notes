@@ -24,6 +24,10 @@ Ruby toy for doing Dirac notation mathematics in Hilbert space, such as for simp
 
 Various notes on Docker labs.
 
+### Go
+
+Collection of Go exercises.
+
 ### Human Relationship Dynamics
 
 Human Relationship Dynamics model and simulation in C++.
