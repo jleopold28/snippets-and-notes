@@ -71,3 +71,7 @@ Single Objective Evolutionary Algorithm in C++.
 ### Terraform
 
 Collection of Terraform-related proofs of concept.
+
+### Vagrant
+
+Collection of Vagrant patches and templates.
