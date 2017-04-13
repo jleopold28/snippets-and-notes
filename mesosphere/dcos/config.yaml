@@ -1,28 +1,25 @@
 agent_list:
 # public ip
-- private ip
+- 192.168.123.11
 # public ip
-- private ip
+- 192.168.123.12
 bootstrap_url: file:///opt/dcos_install_tmp
 customer_key: key
-cluster_name: name
+cluster_name: my_cluster
 master_discovery: static
 master_list:
 # public ip
-- private ip
+- 192.168.123.10
 public_agent_list:
 # - public ip
-- private ip
+- 192.168.123.13
 resolvers:
-- internal dns
-- google?
+- 10.0.2.2
+dns_search:
+- vagrant.test
 exhibitor_storage_backend: static
 process_timeout: 360
 ssh_port: 22
 ssh_user: vagrant
-ssh_key_path: student.pem
+ssh_key_path: /home/vagrant/.ssh/id_rsa
 security: disabled
-
-# bootstrap
-# public ip
-# private ip

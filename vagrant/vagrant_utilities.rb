@@ -1,9 +1,11 @@
 # Vagrant version checking
+raise 'Vagrant requires Cygwin or bash if on Windows.' if RUBY_PLATFORM =~ /mswin|msys|mingw|bccwin|wince|em[xc]/
+
 Vagrant.require_version '>= 1.7.4'
 
 case Vagrant::VERSION
 when '1.9.1'
-  warn '1.9.1 has issues with Redhat networking.'
+  warn '1.9.1 has potential issues with Redhat networking.'
 when '1.9.0'
   warn '1.9.0 will error on plugin checks. You will need to manually install plugins and remove the relevant code for checking them from the Vagrantfile.'
 when '1.8.7'
@@ -17,10 +19,11 @@ end
 # install specified plugins
 def plugins_install(plugins)
   installed = false
+  sudo = RUBY_PLATFORM =~ /cygwin/ ? '' : 'sudo'
 
   plugins.each do |plugin|
     next if Vagrant.has_plugin?(plugin)
-    system 'sudo vagrant plugin install vagrant-pe_build'
+    system "#{sudo} vagrant plugin install #{plugin}"
     puts "Rerun vagrant command to recognize installed plugin #{plugin}."
     installed = true
   end
