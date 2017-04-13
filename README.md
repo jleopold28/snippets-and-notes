@@ -12,6 +12,10 @@ Collection of simple playbooks using Ansible >= 2.0.
 
 C++ exercises.
 
+### Chef
+
+Chef lab notes.
+
 ### CMake Modules
 
 CMake modules and Ada toolchain.
