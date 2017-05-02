@@ -1,5 +1,6 @@
 provider "aws" {
-  region = "us-east-1"
+  shared_credentials_file = "/home/matt/.aws/credentials"
+  region                  = "us-east-1"
 }
 
 resource "aws_vpc" "main" {

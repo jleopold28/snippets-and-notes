@@ -23,5 +23,5 @@ chef-server-ctl user-create vagrant me too vagrant@localhost.com 'vagrant' --fil
 chef-server-ctl org-create sealand 'Sealand' --association_user vagrant --filename /home/vagrant/.ssh/chef-org.pem
 chef-manage-ctl reconfigure
 # bootstrap client
-knife bootstrap 192.168.210.11 -N client.local -x vagrant -P vagrant --sudo
+knife bootstrap 192.168.210.11 -x vagrant -P vagrant --sudo
 knife client show client.local

@@ -1,0 +1,8 @@
+{
+  "id": "admin",
+  "comment": "admin user",
+  "uid": 2005,
+  "gid": 0,
+  "home": "/home/admin",
+  "password": "123456"
+}

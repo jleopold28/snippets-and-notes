@@ -12,7 +12,7 @@ module Puppet::Parser::Functions
     # return 1 if not installed
     return 1 unless lookupvar('rpms').key?(args[0])
     # grab the installed version from facter
-    str2 = lookupvar('rpms')[args[0]]
+    str2 = closure_scope['facts']['rpms'][args[0]]
     return 0 if str1 == str2
 
     front_strip_re = /^[^A-Za-z0-9~]+/
