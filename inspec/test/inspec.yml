@@ -1,0 +1,13 @@
+name: test
+title: InSpec Profile for Test
+maintainer: me
+copyright: me
+copyright_email: root@localhost
+license: All Rights Reserved
+summary: An InSpec Compliance Profile
+version: 1.0.0
+supports:
+- os-family: linux
+depends:
+- name: Profile
+  path: ../path/to/profile

@@ -40,6 +40,10 @@ Human Relationship Dynamics model and simulation in C++.
 
 Collection of Icinga-related proofs of concept.
 
+### InSpec
+
+Example InSpec profile.
+
 ### Mesosphere
 
 Lab material generated during Mesosphere advanced course and DCOS course.

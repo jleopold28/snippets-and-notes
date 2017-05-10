@@ -1,0 +1,8 @@
+require 'erb'
+
+task default: 'generate'
+
+task :generate do
+  template = ERB.new(File.new('attributes/attributes.yaml.erb').read(nil, '%'))
+  File.open('attributes/attributes.yaml', 'w') { |file| template.result(binding) }
+end

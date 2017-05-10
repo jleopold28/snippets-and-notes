@@ -1,0 +1,23 @@
+---
+driver:
+  name: vagrant
+
+provisioner:
+  name: chef_zero
+
+verifier:
+  name: inspec
+
+platforms:
+- name: centos-6.7
+
+suites:
+- name: compliance
+  run_list:
+    - recipe[test::default]
+  verifier:
+    inspec_tests:
+      - /Path/to/local/folder
+      - https://github.com/<username>/<profilename>
+      - supermarket://<owner>/<profile-name>
+      - compliance://base/ssh

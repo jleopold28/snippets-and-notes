@@ -25,3 +25,10 @@ def auto_default(tasks = [:spec, 'foo:bar'])
   desc 'Default task'
   task default: tasks
 end
+
+# generates template using argument as variable inside template
+task :generate, %i[variable] do |task, args|
+  require 'erb'
+  @variable = args[:variable]
+  File.write("#{@variable}.rb", ERB.new(File.read('foo.erb')).result(binding))
+end
