@@ -18,7 +18,7 @@ resource "aws_eip" "ip" {
 }
 
 module "consul" {
-  source   = "github.com/hashicorp/consul/terraform/aws"
+  source = "github.com/hashicorp/consul/terraform/aws"
 
   key_name = ""
   key_path = ""

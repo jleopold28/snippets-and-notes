@@ -11,7 +11,8 @@ variable "region" {
 }
 
 variable "amis" {
-  type    = "map"
+  type = "map"
+
   default = {
     us-east-1 = "ami-c481fad3"
     us-west-2 = "ami-06b94666"

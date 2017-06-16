@@ -49,7 +49,7 @@ resource "aws_key_pair" "key" {
 }
 
 data "aws_ami" "amazon" {
-  most_recent      = true
+  most_recent = true
 
   filter {
     name   = "owner-alias"

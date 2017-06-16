@@ -26,7 +26,7 @@ resource "digitalocean_floating_ip" "float" {
 
 # Create a domain
 resource "digitalocean_domain" "domain" {
-  name = "sealand.shadow-soft.com"
+  name       = "sealand.shadow-soft.com"
   ip_address = "${digitalocean_droplet.droplet.ipv4_address}"
 }
 
