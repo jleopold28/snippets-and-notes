@@ -1,0 +1,3 @@
+class hosts::collect {
+  Host <<||>>
+}

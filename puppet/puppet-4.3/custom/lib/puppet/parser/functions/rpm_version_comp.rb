@@ -4,9 +4,7 @@
 # 0 if ==
 # 1 if >
 module Puppet::Parser::Functions
-  newfunction(:rpm_version_comp, type: :rvalue) do |args|
-    raise(Puppet::ParseError, 'rpm_version_comp expects two arguments') if args.length != 2
-
+  newfunction(:rpm_version_comp, type: :rvalue, arity: 2) do |args|
     # compare arbitrary package version to installed version (primarily rpmvercmp from puppet rpm provider in version 4.5.0)
     str1 = args[1]
     # return 1 if not installed
