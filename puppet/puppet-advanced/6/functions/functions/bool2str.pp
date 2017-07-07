@@ -1,3 +1,3 @@
 function bool2str(Boolean $bool) {
-  "${bool}"
+  String($bool)
 }

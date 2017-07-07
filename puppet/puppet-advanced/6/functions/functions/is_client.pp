@@ -1,11 +1,7 @@
 function is_client {
-  if $facts['hostname'] =~ /^node/ {
-    true
-  }
-  elsif $facts['hostname'] == 'puppet' {
-    false
-  }
-  else {
-    'unknown'
+  case $facts['hostname'] {
+    /^node/  : { true }
+    'puppet' : { false }
+    default  : { 'unknown' }
   }
 }
