@@ -11,7 +11,6 @@ file { '/etc/puppetlabs/puppet/autosign.conf':
 
 package { ['git', 'cmake', 'gcc']: ensure => latest }
 
-# TODO: octocatalog-diff needs ruby-devel or gcc or something
 ['puppet-check', 'rake', 'rspec-puppet-init', 'serverspec-init', 'puppet-lint', 'octocatalog-diff'].each |$bin| {
   file { "/usr/local/bin/${bin}":
     ensure => link,

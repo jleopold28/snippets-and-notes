@@ -9,6 +9,7 @@ echo "192.168.123.10 puppet.localhost puppet.local master
 
 echo "alias puppet='sudo env \"PATH=\$PATH\" puppet'" >> /home/vagrant/.bashrc
 echo "alias facter='sudo env \"PATH=\$PATH\" facter'" >> /home/vagrant/.bashrc
+echo "alias octocatalog-diff='sudo env \"PATH=\$PATH\" octocatalog-diff'" >> /home/vagrant/.bashrc
 
 echo "-----BEGIN RSA PRIVATE KEY-----
 MIIJKQIBAAKCAgEAxrTKizfqXiA0NrzixhV7GFi6xHxC77L649BzQaBu+lodFb+6
