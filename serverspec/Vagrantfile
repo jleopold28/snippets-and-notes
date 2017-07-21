@@ -1,11 +1,7 @@
 # Dependency and config checks
-Vagrant.require_version '>= 1.8.6'
+require_relative '../vagrant/vagrant_utilities'
 
-unless Vagrant.has_plugin?('landrush')
-  system 'sudo vagrant plugin install landrush'
-  puts 'Rerun vagrant command to recognize installed plugin.'
-  exit 0
-end
+plugins_install(%w[landrush])
 
 # Configure boxes
 Vagrant.configure('2') do |config|

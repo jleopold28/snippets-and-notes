@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 require 'yaml'
 
 hash = YAML.load_file('file.yaml')

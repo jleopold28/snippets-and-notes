@@ -1,4 +1,4 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 require 'csv'
 require 'yaml'
 
@@ -14,6 +14,4 @@ CSV.foreach('file.csv') do |col_one, _, col_three, col_four, col_five, _, col_se
   hash[domain]['key_two'] = 30
 end
 
-File.open('main.yml', 'w') do |file|
-  file.write(Psych.dump(hash, indentation: 2))
-end
+File.write('main.yml', Psych.dump(hash, indentation: 2))
