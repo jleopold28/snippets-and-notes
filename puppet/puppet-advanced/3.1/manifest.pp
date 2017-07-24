@@ -29,7 +29,7 @@ $user_hash = { 'alice' => { ensure => 'present',
                             gid    => 1001,
                           },
                'bob'   => { ensure => 'present',
-                            uid    => 1001,
+                            uid    => 1002,
                             gid    => 1001,
                           },
              }

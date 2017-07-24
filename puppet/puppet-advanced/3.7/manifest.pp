@@ -4,6 +4,8 @@ package {
   ['glibc', 'git']:
 }
 
+###
+
 file {
   default:
     ensure => file,
@@ -11,9 +13,7 @@ file {
     group  => 'root',
     mode   => '0644',
   ;
-  '/etc/userfoo':
-  ;
-  '/etc/groupfoo':
+  ['/etc/userfoo', '/etc/groupfoo']:
   ;
   '/etc/userbar': owner => 'vagrant'
   ;
@@ -33,9 +33,7 @@ $file_defaults = {
 file {
   default: * => $file_defaults
   ;
-  '/etc/userfoo':
-  ;
-  '/etc/groupfoo':
+  ['/etc/userfoo', '/etc/groupfoo']:
   ;
   '/etc/userbar': owner => 'vagrant'
   ;
@@ -54,4 +52,4 @@ Resource[Package] {
 ###
 
 File['/etc/userfoo'] { content => 'userfoo' }
-File['/etc/group'] { content => 'groupfoo' }
+File['/etc/groupfoo'] { content => 'groupfoo' }
