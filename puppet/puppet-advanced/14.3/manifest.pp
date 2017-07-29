@@ -16,7 +16,7 @@ $three = ['one', 'two', 'three', 'four', 'five'].filter |Integer $index, String 
 
 notify { $three: }
 
-$hash = { facter => '3', hiera => undef, puppet =>'5', puppetenterprise => '2017.2' }.filter |String $key, $value| {
+$hash = { facter => '3', hiera => undef, puppet => '5', puppetenterprise => '2017.2' }.filter |String $key, $value| {
   $key !~ /puppet/ and $value != undef
 }
 

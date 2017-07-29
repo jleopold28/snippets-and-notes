@@ -1,5 +1,5 @@
 $space = ['a', 'b', 'c'].reduce('Hello') |String $memo, $element| {
-  "${memo}${element}"
+  "${memo} ${element}"
 }
 
 notify { $space: }

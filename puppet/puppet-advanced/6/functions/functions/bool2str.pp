@@ -1,3 +1,3 @@
-function bool2str(Boolean $bool) {
+function functions::bool2str(Boolean $bool) {
   String($bool)
 }

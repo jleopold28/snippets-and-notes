@@ -1,4 +1,4 @@
-function is_client {
+function functions::is_client {
   case $facts['hostname'] {
     /^node/  : { true }
     'puppet' : { false }
