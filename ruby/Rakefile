@@ -32,3 +32,16 @@ task :generate, %i[variable] do |task, args|
   @variable = args[:variable]
   File.write("#{@variable}.rb", ERB.new(File.read('foo.erb')).result(binding))
 end
+
+# check erb
+task :erb do
+  Dir.glob('templates/*.erb').each do |file|
+    begin
+      ERB.new(File.read(file), nil, '-').result
+    rescue NameError, TypeError
+    rescue ScriptError => err
+      print file
+      warn err
+    end
+  end
+end

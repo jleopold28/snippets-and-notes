@@ -6,3 +6,31 @@ task :generate do
   template = ERB.new(File.new('attributes/attributes.yaml.erb').read(nil, '%'))
   File.open('attributes/attributes.yaml', 'w') { |file| template.result(binding) }
 end
+
+task :check do
+  require 'inspec/cli'
+
+  Inspec::InspecCLI.new.check(__dir__)
+end
+
+task :exec do
+  require 'inspec/cli'
+
+  begin
+    stdout_file_write("#{__dir__}/file") { Inspec::InspecCLI.start(args) }
+  rescue NoMemoryError, ScriptError, SignalException, StandardError, SystemStackError =>
+error
+    warn error
+  rescue SystemExit
+    puts 'success'
+  end
+end
+
+def stdout_file_write(file)
+  old_stdout = $stdout
+  $stdout = File.open(file, 'w')
+  yield
+  File.close(file)
+ensure
+  $stdout = old_stdout
+end
