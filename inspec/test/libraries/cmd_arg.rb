@@ -18,7 +18,7 @@ class CMDArg < Inspec.resource(1)
   end
 
   # check if it exists
-  def exists?
+  def exist?
     File.executable?(@cmd)
   end
 
