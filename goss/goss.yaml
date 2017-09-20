@@ -1,0 +1,67 @@
+file:
+  /etc:
+    exists: true
+    mode: "0755"
+    size: 4096
+    owner: root
+    group: root
+    filetype: directory
+    contains: []
+package:
+  cron:
+    installed: true
+    versions:
+    - 3.0pl1-128ubuntu2
+port:
+  tcp:22:
+    listening: true
+    ip:
+    - 0.0.0.0
+  tcp6:22:
+    listening: true
+    ip:
+    - '::'
+service:
+  cron:
+    enabled: true
+    running: true
+  sshd:
+    enabled: true
+    running: true
+user:
+  sshd:
+    exists: true
+    uid: 110
+    gid: 65534
+    groups:
+    - nogroup
+    home: /var/run/sshd
+    shell: /usr/sbin/nologin
+  ubuntu:
+    exists: true
+    uid: 1000
+    gid: 1000
+    groups:
+    - adm
+    - audio
+    - cdrom
+    - dialout
+    - dip
+    - floppy
+    - lxd
+    - netdev
+    - plugdev
+    - sudo
+    - ubuntu
+    - video
+    home: /home/ubuntu
+    shell: /bin/bash
+group:
+  ubuntu:
+    exists: true
+    gid: 1000
+process:
+  cron:
+    running: true
+  sshd:
+    running: true

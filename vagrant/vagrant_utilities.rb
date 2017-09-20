@@ -4,6 +4,8 @@ raise 'Vagrant requires Cygwin or bash if on Windows.' if RUBY_PLATFORM =~ /mswi
 Vagrant.require_version '>= 1.7.4'
 
 case Vagrant::VERSION
+when '1.9.4'
+  raise '1.9.4 is incompatible with Windows.' if Vagrant::Util::Platform.windows?
 when '1.9.1'
   warn '1.9.1 has potential issues with Redhat networking.'
 when '1.9.0'

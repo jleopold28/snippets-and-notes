@@ -32,6 +32,10 @@ Various notes on Docker labs.
 
 Collection of Go exercises.
 
+### Goss
+
+Collection of GOSS snippets.
+
 ### Human Relationship Dynamics
 
 Human Relationship Dynamics model and simulation in C++.
