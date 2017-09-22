@@ -14,6 +14,7 @@ Vagrant.configure('2') do |config|
   config.vm.box = 'centos/7'
   config.pe_build.download_root = "file://#{Dir.pwd}"
   config.ssh.insert_key = false
+  config.vm.provision 'shell', path: '../../vagrant/fix_resolv.sh'
   # TODO: vb sync provider and sync code, puppet, r10k directories?
 
   config.vm.define 'master' do |pm|
