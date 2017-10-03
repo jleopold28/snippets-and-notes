@@ -72,6 +72,10 @@ Collection of RPM spec files for EL6.
 
 Various Ruby snippets.
 
+### Secure
+
+Ad-hoc encryption and Decryption with SSL and GPG
+
 ### Serverspec
 
 Pared down demonstration of advanced Serverspec techniques.

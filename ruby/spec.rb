@@ -7,3 +7,7 @@ end
 
 # private method
 expect { Class.new.send(:private_method, arg) }.to_not raise_error
+
+# set/get instance variable
+foo.instance_variable_set(:@foo, 12)
+foo.instance_variable_get(:@foo)

@@ -1,6 +1,6 @@
 Gem::Specification.new do |spec|
   spec.name          = 'secure'
-  spec.version       = '0.0.1'
+  spec.version       = '0.0.2'
   spec.authors       = ['Matt Schuchard']
   spec.description   = 'Ad-hoc encrypt and decrypt data via OpenSSL and GPG.'
   spec.summary       = 'Ad-hoc encrypt and decrypt data.'
