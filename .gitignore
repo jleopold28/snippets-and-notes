@@ -5,3 +5,4 @@
 c++/learncpp/build
 **/terraform.tfstate.backup
 puppet/vagrant/.pe_build
+secure/lib
