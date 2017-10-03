@@ -42,7 +42,7 @@ describe Secure do
   end
 
   context '.generate' do
-    it 'generates the key and nonce' do
+    it 'generates the key and nonce files from the cli' do
       Secure.generate
       expect(File.file?('key.txt')).to be true
       expect(File.file?('nonce.txt')).to be true
@@ -50,20 +50,28 @@ describe Secure do
   end
 
   context '.encrypt' do
-    it 'encrypts a file with the key and nonce' do
-      Secure.instance_variable_set(:@settings, file: "foo: bar\n", key: "%+�R`��Znv���[�Sz�(�C`��m�\n", nonce: "y�[�H���K��\n")
+    it 'outputs an encrypted file with the key and nonce from the cli' do
+      Secure.instance_variable_set(:@settings, ui: :cli, file: "foo: bar\n", key: "%+�R`��Znv���[�Sz�(�C`��m�\n", nonce: "y�[�H���K��\n")
       Secure.encrypt
       expect(File.file?('tag.txt')).to be true
       expect(File.file?('encrypted.txt')).to be true
     end
+    it 'outputs an array of encrypted content and tag with the key and nonce from the api' do
+      Secure.instance_variable_set(:@settings, ui: :api, file: "foo: bar\n", key: "%+�R`��Znv���[�Sz�(�C`��m�\n", nonce: "y�[�H���K��\n")
+      expect(Secure.encrypt).to be_a(Array)
+    end
   end
 
   context '.decrypt' do
-    it 'decrypts a file with the key, nonce, and tag' do
-      Secure.instance_variable_set(:@settings, file: File.read('encrypted.txt'), key: "%+�R`��Znv���[�Sz�(�C`��m�\n", nonce: "y�[�H���K��\n", tag: File.read('tag.txt'))
+    it 'outputs a decrypted file with the key, nonce, and tag from the cli' do
+      Secure.instance_variable_set(:@settings, ui: :cli, file: File.read('encrypted.txt'), key: "%+�R`��Znv���[�Sz�(�C`��m�\n", nonce: "y�[�H���K��\n", tag: File.read('tag.txt'))
       Secure.decrypt
       expect(File.file?('decrypted.txt')).to be true
       expect(File.read('decrypted.txt')).to eq("foo: bar\n")
+    end
+    it 'outputs decrypted content with the key, nonce, and tag from the api' do
+      Secure.instance_variable_set(:@settings, ui: :api, file: File.read('encrypted.txt'), key: "%+�R`��Znv���[�Sz�(�C`��m�\n", nonce: "y�[�H���K��\n", tag: File.read('tag.txt'))
+      expect(Secure.decrypt).to be_a(String)
     end
     it 'raises an error for an invalid tag size' do
       Secure.instance_variable_set(:@settings, file: File.read('encrypted.txt'), key: "%+�R`��Znv���[�Sz�(�C`��m�\n", nonce: "y�[�H���K��\n", tag: "�a����e�O_H|�\n")
