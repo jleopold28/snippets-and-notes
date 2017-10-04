@@ -1,0 +1,21 @@
+require_relative '../vagrant/vagrant_utilities'
+
+Vagrant.configure('2') do |config|
+  config.vm.box = 'fedora/25-cloud-base'
+  config.vm.network 'private_network', ip: '192.168.33.10'
+  config.vm.network 'forwarded_port', guest: 8080, host: 80
+
+  config.vm.provider 'virtualbox' do |vb|
+    vb.cpus = '2'
+    vb.memory = '2048'
+  end
+
+  config.vm.provision 'shell', path: '../vagrant/fix_resolv.sh'
+  config.vm.provision 'shell', path: 'vagrant_provision.sh'
+  # cannot use this because python2-dnf has a bug on fedora24
+  # config.vm.provision 'ansible_local' do |ansible|
+  #   ansible.playbook = 'provision.yml'
+  # end
+end
+
+# ssh -p 2222 vagrant@127.0.0.1 sudo java -jar /var/cache/jenkins/war/WEB-INF/jenkins-cli.jar -s http://127.0.0.1:8080 declarative-linter < declarative/Jenkinsfile

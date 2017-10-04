@@ -1,0 +1,33 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+  - name: create jenkins repo conf
+    copy:
+      src: jenkins.repo
+      dest: /etc/yum.repos.d/jenkins.repo
+
+  - name: add jenkins gpg key
+    rpm_key:
+      state: present
+      key: https://pkg.jenkins.io/redhat-stable/jenkins.io.key
+
+  - name: install java and jenkins
+    package:
+      name: "{{ item }}"
+      state: present
+    with_items:
+    - java-1.8.0-openjdk
+    - jenkins
+
+  - name: start jenkins
+    service:
+      name: jenkins
+      enabled: yes
+      state: started
+
+  - name: wait for jenkins to come up
+    command: sleep 3
+
+  - name: output password file for admin
+    command: cat {{ /var/lib/jenkins/secrets/initialAdminPassword | quote }}

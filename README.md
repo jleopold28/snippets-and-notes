@@ -48,6 +48,10 @@ Collection of Icinga-related proofs of concept.
 
 Example InSpec profile.
 
+### Jenkins
+
+Collection of Jenkins snippets and lab.
+
 ### Mesosphere
 
 Lab material generated during Mesosphere advanced course and DCOS course.

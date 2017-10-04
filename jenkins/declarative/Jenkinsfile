@@ -1,0 +1,83 @@
+pipeline {
+  agent any
+  // agent {
+    // node { label 'docker' }
+  // }
+  environment {
+    bar = 'baz'
+  }
+  stages {
+    stage('Info') {
+      when { expression { true == true } }
+
+      steps {
+        print 'Hello World'
+      }
+    }
+    stage('Code') {
+      when { expression { true == false } }
+
+      steps {
+        checkout([
+          $class: 'GitSCM',
+          branches: scm.branches,
+          doGenerateSubmoduleConfigurations: false, extensions: scm.extensions + [[$class: 'SubmoduleOption', disableSubmodules: false, recursiveSubmodules: true, reference: '', trackingSubmodules: false]],
+          submoduleCfg: [],
+          userRemoteConfigs: scm.userRemoteConfigs])
+      }
+    }
+    stage('Build') {
+      when { environment name: 'JOB_NAME', value: 'foo' }
+
+      steps {
+        print 'Building'
+      }
+    }
+    stage('Test') {
+      when {
+        anyOf {
+          branch 'master'
+          not { environment name: 'JOB_NAME', value: 'bar' }
+        }
+      }
+
+      agent {
+        docker {
+          reuseNode true
+          image 'ubuntu:16.04'
+        }
+      }
+
+      steps {
+        print 'Testing'
+      }
+    }
+    stage('Deploy') {
+      parallel {
+        stage('Deploy AWS') {
+          steps {
+            print 'Deploying AWS'
+          }
+        }
+        stage('Deploy Azure') {
+          steps {
+            print 'Deploying Azure'
+          }
+        }
+      }
+    }
+  }
+  post {
+    always { print 'Finished!' }
+    success {
+      slackSend(channel: '#nowhere', color: 'awesome sauce', message: 'good times')
+    }
+    unstable { print 'Uh oh.' }
+    failure {
+      mail(to: 'root@localhost', subject: 'Failure', body: 'Kaboom!')
+    }
+    changed {
+      hipchatSend(color: 'something', message: 'What happened?')
+    }
+  }
+}

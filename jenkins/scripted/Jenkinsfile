@@ -1,0 +1,16 @@
+node {
+  // checkout code
+  stage 'Checkout'
+  checkout([$class: 'GitSCM',
+    branches: [[name: '*/master']],
+    doGenerateSubmoduleConfigurations: false,
+    submoduleCfg: [],
+    userRemoteConfigs: [[url: 'git@github.com:mschuchard/puppet-check.git']]])
+
+  // execute unit tests within docker
+  stage 'Unit Tests'
+
+  // deploy application with ansible
+
+  // validate deployment with serverspec?
+}
