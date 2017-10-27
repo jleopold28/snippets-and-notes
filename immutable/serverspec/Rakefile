@@ -1,0 +1,13 @@
+require 'rake'
+require 'rspec/core/rake_task'
+
+task :check, %i[server] do |task, args|
+  server = args[:server]
+  desc "Run serverspec to #{server}"
+  RSpec::Core::RakeTask.new(server.to_sym) do |rspec_task|
+    ENV['TARGET_HOST'] = server
+    rspec_task.pattern = 'ss.rb'
+    rspec_task.fail_on_error = false
+    rspec_task.verbose = false
+  end
+end

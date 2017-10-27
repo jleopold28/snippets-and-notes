@@ -1,0 +1,163 @@
+// try/catch; post steps
+pipeline {
+  agent any
+  stages {
+    // Packer plugin too outdated to support Pipeline
+    parallel {
+      stage('Construct Amazon Linux AMI with Packer/Puppet') {
+        stage('Checkout Code') {
+          steps {
+            print 'git clone'
+          }
+        }
+        stage('Validate Code') {
+          steps {
+            dir('packer') { sh "packer validate aws.json" }
+            sh "puppet-check -s puppet/manifest.pp"
+          }
+        }
+        stage('Build AMI') {
+          steps {
+            dir('packer') { sh "packer build packer/aws.json" }
+          }
+        }
+      }
+      stage('Construct CentOS Azure VHD with Packer/Ansible') {
+        stage('Checkout Code') {
+          steps {
+            print 'git clone'
+          }
+        }
+        stage('Validate Code') {
+          steps {
+            dir('packer') { sh "packer validate azure.json" }
+            sh "ansible-playbook --syntax ansible/vhd.yml"
+          }
+        }
+        stage('Build VHD') {
+          steps {
+            // need to figure this out; azure is not great at this
+            dir('packer') { sh "packer build packer/azure.json" }
+          }
+        }
+      }
+      stage('Construct Ubuntu Droplet Image with Packer/Chef') {
+        stage('Checkout Code') {
+          steps {
+            print 'git clone'
+          }
+        }
+        stage('Validate Code') {
+          steps {
+            dir('packer') { sh "packer validate do.json" }
+            sh "puppet-check -s chef/di.rb"
+          }
+        }
+        stage('Build DI') {
+          steps {
+            // need to figure this out; chef is not great at local provisioning
+            dir('packer') { sh "packer build packer/do.json" }
+          }
+        }
+      }
+    }
+    // Terraform plugin does not support Pipeline super well
+    parallel {
+      stage('Deploy EC2 with AMI') {
+        stage('Checkout Code') {
+          steps {
+            print 'git clone'
+          }
+        }
+        stage('Validate Code') {
+          steps {
+            sh "terraform plan terraform/aws/main.tf"
+          }
+        }
+        stage('Create EC2 with AMI') {
+          steps {
+            sh "terraform apply terraform/aws/main.tf" }
+          }
+        }
+      }
+      stage('Deploy VM with Azure VHD') {
+        stage('Checkout Code') {
+          steps {
+            print 'git clone'
+          }
+        }
+        stage('Validate Code') {
+          steps {
+            sh "terraform plan terraform/azure/main.tf"
+          }
+        }
+        // unsure what the minimum required resources are here
+        stage('Create VM with VHD') {
+          steps {
+            sh "terraform apply terraform/azure/main.tf" }
+          }
+        }
+      }
+      stage('Deploy Droplet with Image') {
+        stage('Checkout Code') {
+          steps {
+            print 'git clone'
+          }
+        }
+        stage('Validate Code') {
+          steps {
+            sh "terraform plan terraform/do/main.tf"
+          }
+        }
+        stage('Create Droplet with DI') {
+          steps {
+            sh "terraform apply terraform/do/main.tf" }
+          }
+        }
+      }
+    }
+    parallel {
+      stage('Deploy Application to AWS') {
+        //
+      }
+      stage('Deploy Application to Azure') {
+        //
+      }
+      stage('Deploy Application to Digital Ocean') {
+        //
+      }
+    }
+    parallel {
+      stage('Serverspec Validate') {
+        stage('Checkout Code') {
+          steps {
+            print 'git clone'
+          }
+        }
+        stage('Validate') {
+          steps {
+            // how to feed it the servers
+            dir('serverspec') {
+              sh "rake check[aws]"
+              sh "rake check[azure]"
+              sh "rake check[do]"
+            }
+          }
+        }
+      }
+      stage('GOSS Validate') {
+        stage('Checkout Code') {
+          steps {
+            print 'git clone'
+          }
+        }
+        stage('Validate') {
+          steps {
+            sh "goss -g goss/goss.yaml serve &"
+            // needs to pull from endpoint now
+          }
+        }
+      }
+    }
+  }
+}

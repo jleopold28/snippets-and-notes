@@ -1,0 +1,12 @@
+package:
+{{if eq .Env.OS "ubuntu"}}
+  apache2:
+    installed: true
+{{else}}
+  httpd:
+    installed: true
+{{end}}
+  mariadb:
+    installed: true
+  php:
+    installed: true
