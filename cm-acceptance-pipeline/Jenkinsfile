@@ -1,0 +1,18 @@
+// parameterize
+// more than docker, +ansible, +goss (pull makes this easier)
+pipeline {
+  agent any
+  stages {
+    stage('Build Docker Image and execute Puppet Manifest') {
+      steps {
+        // git clone/pull
+        sh "sudo packer build docker.json"
+      }
+    }
+    stage('Execute Tests Against Image') {
+      steps {
+        sh "rspec test_spec.rb"
+      }
+    }
+  }
+}
