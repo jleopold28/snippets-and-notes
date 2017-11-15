@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-set(CMAKE_CXX_STANDARD 11 CACHE STRING "C++11 Standard" FORCE)
+set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++14 Standard" FORCE)
 
 enable_language(CXX)
 
@@ -47,3 +47,6 @@ add_subdirectory(12.1)
 add_subdirectory(12.x)
 add_subdirectory(13.x)
 add_subdirectory(14.x)
+add_subdirectory(15.5)
+add_subdirectory(15.7)
+add_subdirectory(15.x)

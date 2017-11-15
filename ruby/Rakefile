@@ -26,7 +26,7 @@ def auto_default(tasks = [:spec, 'foo:bar'])
   task default: tasks
 end
 
-# generates template using argument as variable inside template
+# generates template using argument as variable inside template: rake generate[var]
 task :generate, %i[variable] do |task, args|
   require 'erb'
   @variable = args[:variable]
