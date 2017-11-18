@@ -1,0 +1,18 @@
+---
+:hosts:
+  1.2.3.4:
+    :user: ubuntu
+    :certname: sealand.com
+  1.2.3.5:
+    :user: foo
+    :certname: atlanta.com
+  1.2.3.6:
+    :user: root
+    :certname: candyland.com
+  1.2.3.7:
+    :user: vagrant
+    :certname: neverwhere.com
+
+:key: 'cert.pem'
+
+:master: 'puppetmaster.com'
