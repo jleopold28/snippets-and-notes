@@ -1,0 +1,26 @@
+{
+  "name": "ntp",
+  "version": "1.0.0",
+  "author": "Matt Schuchard",
+  "summary": "Configures the ntp.conf file.",
+  "license": "MIT",
+  "source": "source",
+  "project_page": "project",
+  "issues_url": "issues",
+  "dependencies": [],
+  "operatingsystem_support": [
+    {
+      "operatingsystem": "Ubuntu",
+      "operatingsystemrelease": [
+        "14.04"
+      ]
+    },
+    {
+      "operatingsystem": "CentOS",
+      "operatingsystemrelease": [
+        "6",
+        "7"
+      ]
+    }
+  ]
+}
