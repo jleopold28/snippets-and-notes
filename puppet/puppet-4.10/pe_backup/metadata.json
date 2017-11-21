@@ -1,0 +1,33 @@
+{
+  "name": "pe-backup",
+  "version": "1.0.0",
+  "author": "Matt Schuchard",
+  "summary": "Performs automated Puppet Enterprise backups.",
+  "license": "MIT",
+  "source": "source",
+  "project_page": "project",
+  "issues_url": "issues",
+  "dependencies": [
+    {
+      "name": "puppetlabs/stdlib",
+      "version_requirement": ">= 4.0.0 < 5.0.0",
+      "forge": "puppetlabs-stdlib"
+    }
+  ],
+  "operatingsystem_support": [
+    {
+      "operatingsystem": "RedHat",
+      "operatingsystemrelease": [
+        "6",
+        "7"
+      ]
+    },
+    {
+      "operatingsystem": "CentOS",
+      "operatingsystemrelease": [
+        "6",
+        "7"
+      ]
+    }
+  ]
+}

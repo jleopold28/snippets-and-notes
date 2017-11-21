@@ -1,0 +1,11 @@
+# puppet forge modules
+mod 'puppetlabs-stdlib'
+
+mod 'puppetlabs-apache'
+mod 'puppetlabs-concat' # also stdlib
+
+mod 'puppetlabs-tomcat'
+mod 'puppet-archive' # also concat and stdlib
+
+mod 'profile', git: 'git@git.com:mschuchard/profile.git'
+mod 'role', git: 'git@git.com:mschuchard/role.git'

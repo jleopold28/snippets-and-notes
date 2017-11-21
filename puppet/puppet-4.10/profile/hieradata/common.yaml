@@ -1,0 +1,6 @@
+---
+profile::base::swap_file:
+  '/tmp/swapfile':
+    ensure: present
+    swapfile: '/tmp/swapfile'
+    swapfilesize: '2GB'
