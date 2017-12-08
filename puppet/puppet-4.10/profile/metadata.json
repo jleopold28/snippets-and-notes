@@ -1,0 +1,47 @@
+{
+  "name": "profile",
+  "version": "1.0.0",
+  "author": "Matt Schuchard",
+  "summary": "Establishes profiles.",
+  "license": "MIT",
+  "source": "source",
+  "project_page": "project",
+  "issues_url": "issues",
+  "dependencies": [
+    {
+      "name": "puppetlabs/tomcat",
+      "version_requirement": ">= 2.1.0 < 3.0.0",
+      "forge": "puppetlabs-tomcat"
+    },
+    {
+      "name": "puppetlabs/java",
+      "version_requirement": ">= 2.3.0 < 3.0.0",
+      "forge": "puppetlabs-java"
+    },
+    {
+      "name": "puppet/selinux",
+      "version_requirement": ">= 1.4.0 < 2.0.0",
+      "forge": "puppet-selinux"
+    },
+    {
+      "name": "puppetlabs/firewall",
+      "version_requirement": ">= 1.11.0 < 2.0.0",
+      "forge": "puppetlabs-firewall"
+    }
+  ],
+  "operatingsystem_support": [
+    {
+      "operatingsystem": "Ubuntu",
+      "operatingsystemrelease": [
+        "14.04"
+      ]
+    },
+    {
+      "operatingsystem": "CentOS",
+      "operatingsystemrelease": [
+        "6",
+        "7"
+      ]
+    }
+  ]
+}

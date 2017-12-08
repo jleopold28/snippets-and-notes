@@ -1,0 +1,24 @@
+# functional/unit testing
+require 'puppet-check/tasks'
+
+PuppetCheck.settings[:style_check] = true
+
+# acceptance testing
+require 'rake'
+require 'rspec/core/rake_task'
+
+servers = {
+  'master'         => '1.2.3.4',
+  'sealand.com'    => '1.2.3.4',
+  'atlanta.com'    => '1.2.3.4',
+  'candyland.com'  => '1.2.3.4',
+  'neverwhere.com' => '1.2.3.4'
+}
+
+servers.each do |hostname, ip|
+  RSpec::Core::RakeTask.new(hostname.to_sym) do |task|
+    ENV['TARGET_HOST'] = ip
+    task.pattern = 'serverspec/theapp_spec.rb'
+    task.verbose = false
+  end
+end

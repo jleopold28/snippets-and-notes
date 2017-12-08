@@ -4,3 +4,10 @@ profile::base::swap_file:
     ensure: present
     swapfile: '/tmp/swapfile'
     swapfilesize: '2GB'
+
+profile::theapp::tomcat_dir: '/opt/tomcat'
+profile::theapp::tomcat_version: '8.0.47'
+profile::theapp::tomcat_url: 'https://www-us.apache.org/dist/tomcat'
+profile::theapp::war: 'theapp.war'
+profile::theapp::port: '7070'
+profile::theapp::java_devel: false

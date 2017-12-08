@@ -11,3 +11,7 @@ Example of on premises gitlab server installed and configured with Puppet 3.8 wi
 ### Puppet 4.3
 
 Various implementations of Puppet using version 4.3.
+
+### Puppet 4.10
+
+Light snippets for Puppet using version 4.10.

@@ -1,0 +1,6 @@
+source ENV['GEM_SOURCE'] || 'https://rubygems.org'
+
+gem 'puppet-check', '~> 1.4.0'
+gem 'rake'
+gem 'rspec-puppet', '~> 2.0'
+gem 'serverspec', '~> 2.0'

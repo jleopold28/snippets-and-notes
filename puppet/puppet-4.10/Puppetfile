@@ -7,5 +7,7 @@ mod 'puppetlabs-concat' # also stdlib
 mod 'puppetlabs-tomcat'
 mod 'puppet-archive' # also concat and stdlib
 
-mod 'profile', git: 'git@git.com:mschuchard/profile.git'
+mod 'profile',
+    git: 'git@git.com:mschuchard/profile.git',
+    branch: :control_branch
 mod 'role', git: 'git@git.com:mschuchard/role.git'
