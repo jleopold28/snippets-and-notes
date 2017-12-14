@@ -1,0 +1,27 @@
+require 'rspec/core/rake_task'
+require 'rubocop/rake_task'
+require 'reek/rake/task'
+require_relative 'lib/zauber-automato/tasks'
+
+task default: [:rubocop, :reek, :unit, :system]
+
+RuboCop::RakeTask.new(:rubocop) do |task|
+  task.formatters = ['simple']
+  task.fail_on_error = false
+end
+
+Reek::Rake::Task.new do |task|
+  task.fail_on_error = false
+end
+
+RSpec::Core::RakeTask.new(:unit) do |task|
+  task.pattern = '{spec/zauber-automato.rb, spec/zauber-automato/**/*_spec.rb}'
+end
+
+task :system do
+  Rake::Task['spec/fixtures'.to_sym].invoke
+  %w(yml rb pp).each do |ext|
+    puts File.read("fixtures.#{ext}")
+    File.delete("fixtures.#{ext}")
+  end
+end

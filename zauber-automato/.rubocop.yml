@@ -1,0 +1,10 @@
+---
+AllCops:
+  Include:
+    - 'lib/**/*.rb'
+    - 'spec/**/*.rb'
+  Exclude:
+    - 'spec/fixtures/**/*.rb'
+
+Metrics:
+  Enabled: false

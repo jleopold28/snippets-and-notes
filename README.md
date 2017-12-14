@@ -95,3 +95,7 @@ Collection of Terraform-related proofs of concept.
 ### Vagrant
 
 Collection of Vagrant patches and templates.
+
+### Zauber Autômato
+
+Automatic TDD software for configuration management, orchestration, and automation.
