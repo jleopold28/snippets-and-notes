@@ -10,7 +10,7 @@ plugins_install(%w[vagrant-pe_build])
 
 # Configure boxes
 Vagrant.configure('2') do |config|
-  config.pe_build.version = '2016.4.7'
+  config.pe_build.version = '2016.4.9'
   config.vm.box = 'centos/7'
   config.pe_build.download_root = "file://#{Dir.pwd}"
   config.ssh.insert_key = false

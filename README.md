@@ -6,7 +6,7 @@ Collection of various snippets and notes for future use.
 
 ### Ansible
 
-Collection of simple playbooks using Ansible >= 2.0.
+Collection of simple playbooks and roles using Ansible >= 2.0.
 
 ### C++
 

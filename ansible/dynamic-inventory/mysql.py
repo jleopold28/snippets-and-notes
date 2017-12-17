@@ -147,7 +147,13 @@ class MySQLInventory(object):
             hostname = host.pop('host', None)
 
             # Process group and host into inventory dict
-            self.process_group(host['host_group'], hostname)
+            # Multiple groups that are comma delimited
+            if re.search(',', host['host_group']):
+                for group in host['host_group'].split(','):
+                    self.process_group(group, hostname)
+            # Single group
+            else:
+                self.process_group(host['host_group'], hostname)
             self.cache[hostname] = host
             self.inventory = self.inventory
 
