@@ -1,9 +1,9 @@
 **/.vagrant
 **/fixtures
-**/*.tar.gz
 **/*.log
 c++/learncpp/build
 **/terraform.tfstate.backup
-puppet/vagrant/.pe_build
 secure/lib
 sentinel/ss-sentinel/build
+**/.terraform
+**/terraform.d
