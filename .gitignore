@@ -7,3 +7,4 @@ secure/lib
 sentinel/ss-sentinel/build
 **/.terraform
 **/terraform.d
+**/__pycache__
