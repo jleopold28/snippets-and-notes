@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
 
-def plot_decision_regions(train_vec, target_vec, classifier, resolution=0.02):
+def plot_decision_regions(train_vec, target_vec, classifier, test_elem_id=None, resolution=0.02):
     """plot decision boundaries for classifier"""
 
     # setup marker generator and color map
@@ -36,3 +36,8 @@ def plot_decision_regions(train_vec, target_vec, classifier, resolution=0.02):
                     c=cmap(elem_id),
                     marker=markers[elem_id],
                     label=class_label)
+    # highlight test data
+    if test_elem_id:
+        train_test = train_vec[test_elem_id, :]
+        plt.scatter(train_test[:, 0], train_test[:, 1], c='', alpha=1.0,
+                    linewidths=1, marker='o', s=55, label='test set')
