@@ -57,7 +57,7 @@ node {
       }
 
       // only update hieradata if this is not a redeploy
-      // could do 'def redeploy = readFile(hieradata) =~ "app::version: '$version'"', but would then need to do several redeploy = null immedaitely after use to prevent nonserializable variable error
+      // could do 'def redeploy = readFile(hieradata) =~ "app::version: '$version'"', but would then need to do several redeploy = null immediately after use to prevent nonserializable variable error
       if (!(readFile(hieradata) =~ "app::version: '$version'")) {
         print "editing $hieradata"
 
