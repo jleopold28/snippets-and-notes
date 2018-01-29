@@ -1,56 +1,71 @@
 import pandas as pd
 
 
-def linear_model(df, weights):
-    """weighted linear model"""
-    # setup output dataframe
-    output_df = pd.DataFrame(data={})
-    output_df['Name'] = df['Name']
-    output_df['Title'] = df['Title']
-    output_df['Class'] = df['Class']
+class CTDTOptimizer(object):
+    """tool to optimize positions in ctdt
 
-    # calculate phys weight
-    # 6 (average among six weights) * 2 (only half contributes) * 3 (three individual stats)
-    weight_phys = (weights['dribble'] + weights['shot'] +
-                   weights['pass'] + weights['tackle'] +
-                   weights['block'] + weights['intercept']) / (6 * 2 * 3)
+       typically we construct with a weight dictionary providing model params
 
-    # calculate new weighted column
-    output_df['Weighted'] = (weights['dribble'] * df['Dribble'] +
-                             weights['shot'] * df['Shot'] +
-                             weights['pass'] * df['Pass'] +
-                             weights['tackle'] * df['Tackle'] +
-                             weights['block'] * df['Block'] +
-                             weights['intercept'] * df['Intercept'] +
-                             weight_phys * df['Physical'])
+       then we display rankings for a position"""
+    # constructor
+    def __init__(self, weights):
+        # grab dataframe from maintained spreadsheet
+        self.df = pd.read_excel('https://docs.google.com/spreadsheets/u/1/d/'
+                                '1E9rwAbRXrU2wjjMe6521z2HxMQnPKdVY8RfVzxzCzyE'
+                                '/export?format=xlsx&id='
+                                '1E9rwAbRXrU2wjjMe6521z2HxMQnPKdVY8RfVzxzCzyE',
+                                sheet_name=None)['FW']
+        self.weights = weights
+        # create a new dataframe for cleaner output
+        self.new_df = self.__create_dataframe()
 
-    # calculate new normalized column
-    output_df['Normalized'] = output_df['Weighted'] / df['Total']
+    # public
+    def display_position_ranked(self, position, sort='Normalized'):
+        """display the rankings for a position"""
+        # calculate the rank for a position and add to new dataframe
+        self.__calculate_rank(weights=self.weights[position])
+        # output new dataframe
+        print(self.new_df.sort_values(by=[sort], ascending=False))
 
-    # return the modified dataframe
-    return output_df
+    # private
+    def __create_dataframe(self):
+        """create a new dataframe to output"""
+        new_df = pd.DataFrame(data={})
+        new_df['Name'] = self.df['Name']
+        new_df['Title'] = self.df['Title']
+        new_df['Class'] = self.df['Class']
+
+        # return the modified dataframe
+        return new_df
+
+    def __calculate_rank(self, weights):
+        """calculate the rank for a position"""
+        # determine new weighted ranking column
+        self.new_df['Weighted'] = self.__calculate_weighted(weights=weights)
+
+        # calculate new normalized column
+        self.new_df['Normalized'] = self.new_df['Weighted'] / self.df['Total']
+
+    def __calculate_weighted(self, weights):
+        """calculates the weighted ranking for a position"""
+        # determine the phys weight for ranking calculation
+        weight_phys = self.__calculate_weight_phys(weights=weights)
+
+        # calculate weighted ranking metric
+        return (weights['dribble'] * self.df['Dribble'] +
+                weights['shot'] * self.df['Shot'] +
+                weights['pass'] * self.df['Pass'] +
+                weights['tackle'] * self.df['Tackle'] +
+                weights['block'] * self.df['Block'] +
+                weights['intercept'] * self.df['Intercept'] +
+                weight_phys * self.df['Physical'])
+
+    def __calculate_weight_phys(self, weights):
+        """calculates the weight for physical stats"""
+        # 6 (average among six weights) * 2 (only half contributes) * 3 (three individual stats)
+        return (weights['dribble'] + weights['shot'] +
+                weights['pass'] + weights['tackle'] +
+                weights['block'] + weights['intercept']) / (6 * 2 * 3)
 
 
-# import data sheet
-DF = pd.read_excel('https://docs.google.com/spreadsheets/u/1/d/1E9rwAbRXrU2wjjMe6521z2HxMQnPKdVY8RfVzxzCzyE/export?format=xlsx&id=1E9rwAbRXrU2wjjMe6521z2HxMQnPKdVY8RfVzxzCzyE')
-
-# setup parameter dict
-WEIGHTS = {
-    'fw': {
-        'dribble': 0.9,
-        'shot': 1.0,
-        'pass': 0.8,
-        'tackle': 0.5,
-        'block': 0.0,
-        'intercept': 0.3
-    },
-    'am': {},
-    'dm': {},
-    'df': {},
-    'gk': {}
-}
-
-# calculate for each position
-print(linear_model(df=DF, weights=WEIGHTS['fw']).sort_values(by=['Normalized'], ascending=False))
-
-# TODO: models and code (tabs) for other positions, why did combining weight_phys into one weight / 3 and * total phys change the numbers?; phys stats, skills, stamina
+# TODO: models and code for other positions (hardcoded to 'FW' in construct for now; goalkeeper is different weight keys), why did combining weight_phys into one weight / 3 and * total phys change the numbers?, tox, init dicts for each position and then pass around position var, privatize attrs; skills, stamina, team skills
