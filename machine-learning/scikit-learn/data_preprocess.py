@@ -122,7 +122,7 @@ for index in range(DATA_TRAIN.shape[1]):
                             30,
                             FEAT_LABELS[INDICES[index]],
                             IMPORTANCES[INDICES[index]]))
-# plot bar graph of feature importances (normalized to sum to 1.0)
+# plot bar graph of feature importances (scaled to sum to 1.0)
 plt.title('Feature Importances')
 plt.bar(range(DATA_TRAIN.shape[1]),
         IMPORTANCES[INDICES],
@@ -136,6 +136,6 @@ plt.tight_layout()
 plt.show()
 # example on using transform to reduce dataset to features above 0.15
 DATA_SELECT = fs.SelectFromModel(FRST,
-                                 threshold=0.1,
+                                 threshold=0.15,
                                  prefit=True).transform(DATA_TRAIN)
 print(DATA_SELECT.shape)
