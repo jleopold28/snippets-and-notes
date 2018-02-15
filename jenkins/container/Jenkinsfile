@@ -1,0 +1,85 @@
+// <server_url>/job/<jobname>/pipeline-syntax/globals
+// <server_url>/job/<jobname>/pipeline-syntax/html
+// docker is plugin so should not need script{} but reminder here just in case
+pipeline {
+  agent any
+
+  parameters {
+    string(name: 'BRANCH', defaultValue: 'master', description: 'GIT SCM branch from repository to clone/pull.')
+    string(name: 'APP', description: 'The application for which to build and push an image.')
+  }
+
+  stages {
+    stage('Clone/Pull Application Code') {
+      steps {
+        checkout([
+          $class: 'GitSCM',
+          branches: [[name: "*/${params.BRANCH}"]],
+          doGenerateSubmoduleConfigurations: false,
+          extensions: [[$class: 'RelativeTargetDirectory',
+            relativeTargetDir: params.BRANCH]],
+          submoduleCfg: [],
+          userRemoteConfigs: [[url: "git@github_url:org/${params.APP}.git"]]])
+      }
+    }
+    stage('Build Docker Image') {
+      steps {
+        dir(params.BRANCH) {
+          try {
+            image = docker.build("${params.APP}/${params.BRANCH}")
+          }
+          catch(Exception error) {
+            print "Failure building Docker Image for ${params.APP} in branch ${params.BRANCH}:"
+            throw error
+          }
+          print "Docker Image for ${params.APP} in branch ${params.BRANCH} created successfully."
+        }
+      }
+    }
+    stage('Validate Docker Image') {
+      steps {
+        try {
+          image.inside {
+            // custom tests for now; dgoss later when I write support for it
+          }
+        }
+        catch(Exception error) {
+          print "Failure validating Docker Image for ${params.APP} in branch ${params.BRANCH}."
+          throw error
+        }
+        print "Docker Image for ${params.APP} in branch ${params.BRANCH} validated successfully."
+      }
+    }
+    stage('Store Docker Image') {
+      steps {
+        try {
+          docker.withRegistry('registry_url', 'registry-credentials') {
+            image.push("${params.APP}/${params.BRANCH}:${env.BUILD_NUMBER}")
+            image.push("${params.APP}/${params.BRANCH}:latest")
+          }
+        }
+        catch(Exception error) {
+          print "Failure building Docker Image for ${params.APP} in branch ${params.BRANCH}:"
+          throw error
+        }
+        print "Docker Image with tags ${params.APP}/${params.BRANCH}:${env.BUILD_NUMBER} and ${params.APP}/${params.BRANCH}:latest stored successfuly in registry."
+      }
+    }
+    post {
+      success {
+        print 'Job completed successfully.'
+      }
+      failure {
+        print 'Job failed.'
+
+        slackSend(channel: '#channel',
+          color: 'warning',
+          message: "Job failed for ${env.JOB_NAME}/${env.JOB_NAME} at ${env.JOB_URL}.")
+
+        mail(to: 'root@localhost',
+          subject: "Failure: ${env.BUILD_TAG}",
+          body: "Job failed for ${env.JOB_NAME}/${env.JOB_NAME} at ${env.JOB_URL}.")
+      }
+    }
+  }
+}
