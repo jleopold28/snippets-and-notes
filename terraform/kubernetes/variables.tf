@@ -61,3 +61,23 @@ EOF
 
   default = "80"
 }
+
+variable "cpu" {
+  type = "string"
+
+  description = <<EOF
+The required number of processors for the application.
+EOF
+
+  default = "0.5"
+}
+
+variable "memory" {
+  type = "string"
+
+  description = <<EOF
+The required amount of memory for the application.
+EOF
+
+  default = "128Mi"
+}

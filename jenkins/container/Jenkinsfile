@@ -42,6 +42,9 @@ pipeline {
           image.inside {
             // custom tests for now; dgoss later when I write support for it
           }
+          // image.run? {
+            // dgoss() // or do it this way but dgoss also runs container
+          // }
         }
         catch(Exception error) {
           print "Failure validating Docker Image for ${params.APP} in branch ${params.BRANCH}."
