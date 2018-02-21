@@ -1,12 +1,17 @@
 // <server_url>/job/<jobname>/pipeline-syntax/globals
 // <server_url>/job/<jobname>/pipeline-syntax/html
 // docker is plugin so should not need script{} but reminder here just in case
+// need list of standards for making it more secure
+// need list of standards for ensuring fewer vulnerabilities
+// is hardening images a real thing or not? leverage dgoss
+// periodic purging of old images from registry (where would we do this?; retain only n number of recent versions; n is based on lifecycle env?)
 pipeline {
   agent any
 
   parameters {
     string(name: 'BRANCH', defaultValue: 'master', description: 'GIT SCM branch from repository to clone/pull.')
     string(name: 'APP', description: 'The application for which to build and push an image.')
+    booleanParam(name: 'ARTIFACTORY', defaultValue: true, description: 'Use Artifactory as the Docker Registry.')
   }
 
   stages {
@@ -53,19 +58,43 @@ pipeline {
         print "Docker Image for ${params.APP} in branch ${params.BRANCH} validated successfully."
       }
     }
-    stage('Store Docker Image') {
+    stage('Store Docker Image in Artifactory') {
+      // also digest capture; end goal is to ensure immutability and lack of image tampering
+      // if prod store, then the version should really be based on git tag
+      when { expression { param.ARTIFACTORY == true } }
+      steps {
+        try {
+          // initialize artifactory instance
+          server = Artifactory.server '<ArtifactoryServerID>'
+          // initialize artifactory docker server instance
+          artDocker = Artifactory.docker(server: server)
+          // store image in artifactory
+          artDocker.push("<artifactoryDockerRegistry>/${params.APP}-${params.BRANCH}:${env.BUILD_NUMBER}", '<targetRepo>')
+          artDocker.push("<artifactoryDockerRegistry>/${params.APP}-${params.BRANCH}:latest", '<targetRepo>')
+        }
+        catch(Exception error) {
+          print "Failure storing Docker Image for ${params.APP} in branch ${params.BRANCH} in Artifactory:"
+          throw error
+        }
+        print "Docker Image with tags ${params.APP}/${params.BRANCH}:${env.BUILD_NUMBER} and ${params.APP}/${params.BRANCH}:latest// also digest capture; end goal is to ensure immutability and lack of image tampering stored successfuly in Artifactory."
+      }
+    }
+    stage('Store Docker Image in Private Registry') {
+      // also digest capture; end goal is to ensure immutability and lack of image tampering
+      // if prod store, then the version should really be based on git tag
+      when { expression { param.ARTIFACTORY == false } }
       steps {
         try {
           docker.withRegistry('registry_url', 'registry-credentials') {
-            image.push("${params.APP}/${params.BRANCH}:${env.BUILD_NUMBER}")
-            image.push("${params.APP}/${params.BRANCH}:latest")
+            image.push("repo/${params.APP}-${params.BRANCH}:${env.BUILD_NUMBER}")
+            image.push("repo/${params.APP}-${params.BRANCH}:latest")
           }
         }
         catch(Exception error) {
-          print "Failure building Docker Image for ${params.APP} in branch ${params.BRANCH}:"
+          print "Failure storing Docker Image for ${params.APP} in branch ${params.BRANCH} in a custom registry:"
           throw error
         }
-        print "Docker Image with tags ${params.APP}/${params.BRANCH}:${env.BUILD_NUMBER} and ${params.APP}/${params.BRANCH}:latest stored successfuly in registry."
+        print "Docker Image with tags ${params.APP}-${params.BRANCH}:${env.BUILD_NUMBER} and ${params.APP}-${params.BRANCH}:latest stored successfuly in registry."
       }
     }
     post {
