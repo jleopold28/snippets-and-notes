@@ -1,10 +1,13 @@
+// jenkins.io/doc/pipeline/steps
 // <server_url>/job/<jobname>/pipeline-syntax/globals
 // <server_url>/job/<jobname>/pipeline-syntax/html
-// docker is plugin so should not need script{} but reminder here just in case
 // need list of standards for making it more secure
 // need list of standards for ensuring fewer vulnerabilities
 // is hardening images a real thing or not? leverage dgoss
-// periodic purging of old images from registry (where would we do this?; retain only n number of recent versions; n is based on lifecycle env?)
+// periodic purging of old images from registry: artifactory-->local repository-->basic-->docker settings-->max unique tags
+// periodic scanning of registry images with xray
+// use artifactory intrinsic for promoting docker image to higher lifecycle registry?
+// if prod store, then the version should really be based on git tag
 pipeline {
   agent any
 
@@ -14,11 +17,12 @@ pipeline {
     string(name: 'REGISTRY', defaultValue: 'https://artifactory.company.com', description: 'The Docker Registry URL.')
   }
 
-  tag_prefix = "${param.REGISTRY}/${params.APP}-${params.BRANCH}"
-
   stages {
     stage('Clone/Pull Application Code') {
       steps {
+        // set vars
+        repo_imagename = "${param.REGISTRY}/${params.APP}"
+        // grab code
         checkout([
           $class: 'GitSCM',
           branches: [[name: "*/${params.BRANCH}"]],
@@ -32,96 +36,119 @@ pipeline {
     stage('Build Docker Image') {
       steps {
         dir(params.BRANCH) {
-          try {
-            image = docker.build("${tag_prefix}:latest")
+          script {
+            try {
+              // build docker image and store result to image object
+              image = docker.build("${repo_imagename}:latest")
+            }
+            catch(Exception error) {
+              print "Failure building Docker Image for ${params.APP} in branch ${params.BRANCH}:"
+              throw error
+            }
+            print "Docker Image for ${params.APP} in branch ${params.BRANCH} created successfully."
           }
-          catch(Exception error) {
-            print "Failure building Docker Image for ${params.APP} in branch ${params.BRANCH}:"
-            throw error
-          }
-          print "Docker Image for ${params.APP} in branch ${params.BRANCH} created successfully."
         }
       }
     }
     stage('Validate Docker Image') {
       steps {
-        try {
-          image.inside {
-            // custom tests for now; dgoss later when I write support for it
+        script {
+          try {
+            // superfluous tests for now
+            image.inside {
+              sh 'echo helloworld'
+            }
+            // robust tests with dgoss later
+            // image.withRun {
+              // goss.validate_docker()
+            // }
           }
-          // image.run? {
-            // dgoss() // or do it this way but dgoss also runs container
-          // }
-        }
-        catch(Exception error) {
-          print "Failure validating Docker Image for ${params.APP} in branch ${params.BRANCH}."
-          throw error
+          catch(Exception error) {
+            print "Failure validating Docker Image for ${params.APP} in branch ${params.BRANCH}."
+            throw error
+          }
         }
         print "Docker Image for ${params.APP} in branch ${params.BRANCH} validated successfully."
       }
     }
     stage('Store Docker Image in Artifactory') {
-      // if prod store, then the version should really be based on git tag
+      // only do this stage if we are using artifactory
       when { expression { param.REGISTRY =~ /artifactory/ } }
       steps {
-        try {
-          server = Artifactory.server(param.REGISTRY)
-          //server = Artifactory.newServer(url: 'artifactory-url', username: 'username', password: 'password')
-          //server = Artifactory.newServer(url: 'artifactory-url', credentialsId: 'ccrreeddeennttiiaall')
-          artDocker = Artifactory.docker(server: server)
-          artDocker.push("${tag_prefix}:latest", '<targetRepo>')
-          image.tag("${tag_prefix}:${env.BUILD_NUMBER}")
-          artDocker.push("${tag_prefix}:${env.BUILD_NUMBER}", '<targetRepo>')
+        script {
+          try {
+            // initialize artifactory server object
+            server = Artifactory.server(${param.REGISTRY}-${param.BRANCH})
+            // alternative server inits with creds
+            //server = Artifactory.newServer(url: 'artifactory-url', username: 'username', password: 'password')
+            //server = Artifactory.newServer(url: 'artifactory-url', credentialsId: 'ccrreeddeennttiiaall')
+            // initialize docker registry object
+            artDocker = Artifactory.docker(server: server)
+            // push docker image wtih latest and buildnum
+            artDocker.push("${repo_imagename}:latest", '<targetRepo>')
+            image.tag("${repo_imagename}:${env.BUILD_NUMBER}")
+            buildInfo = artDocker.push("${repo_imagename}:${env.BUILD_NUMBER}", '<targetRepo>')
+            // scan image for vulnerabilities and push build info manifest
+            xrayScanBuild(buildInfo)
+            server.publishBuildInfo(buildInfo)
+          }
+          catch(Exception error) {
+            print "Failure storing Docker Image for ${params.APP} in branch ${params.BRANCH} in ${param.REGISTRY}:"
+            throw error
+          }
         }
-        catch(Exception error) {
-          print "Failure storing Docker Image for ${params.APP} in branch ${params.BRANCH} in ${param.REGISTRY}:"
-          throw error
-        }
-        print "Docker Image with tags ${tag_prefix}:${env.BUILD_NUMBER} and ${tag_prefix}:latest stored successfuly in Artifactory."
+        print "Docker Image with tags ${repo_imagename}:${env.BUILD_NUMBER} and ${repo_imagename}:latest stored successfuly in Artifactory."
       }
     }
     stage('Store Docker Image in Private Registry') {
-      // if prod store, then the version should really be based on git tag
+      // only do this stage if we are using non-artifactory registry
       when { expression { param.REGISTRY !~ /artifactory/ } }
       steps {
-        try {
-          docker.withRegistry(param.REGISTRY, 'registry-credentials') {
-            image.push()
-            image.push("${tag_prefix}:${env.BUILD_NUMBER}")
+        script {
+          try {
+            // push docker image with latest and buildnum
+            docker.withRegistry(${param.REGISTRY}-${param.BRANCH}, 'registry-credentials') {
+              image.push()
+              image.push("${repo_imagename}:${env.BUILD_NUMBER}")
+            }
+          }
+          catch(Exception error) {
+            print "Failure storing Docker Image for ${params.APP} in branch ${params.BRANCH} in ${param.REGISTRY}:"
+            throw error
           }
         }
-        catch(Exception error) {
-          print "Failure storing Docker Image for ${params.APP} in branch ${params.BRANCH} in ${param.REGISTRY}:"
-          throw error
-        }
-        print "Docker Image with tags ${tag_prefix}:${env.BUILD_NUMBER} and ${tag_prefix}:latest stored successfuly in registry."
+        print "Docker Image with tags ${repo_imagename}:${env.BUILD_NUMBER} and ${repo_imagename}:latest stored successfuly in ${param.REGISTRY}."
       }
     }
     stage('Capture Image Digest') {
       steps {
-        // this needs a more stable method of digest gathering, this needs a better method of digest storage
-        repoDigest = sh(returnStdout: true, script: "docker inspect -f \"{{.RepoDigests}}\" image.imageName()").trim()
-        [debian@sha256:4fcd8c0b6f5e3bd44a3e63be259fd0c038476d432953d449ef34aedf16def331]
-        digest = repoDigest =~ /\[[a-z]+@sha256:(.*)\]/
-        writeFile(file: "${params.APP}-digest.txt", text: digest[0])
-        // alternatively, query artifactory with aql
+        script {
+          // TODO: this needs a more stable method of digest gathering, this needs a better method of digest storage
+          // grab the repository digest for the image
+          repoDigest = sh(returnStdout: true, script: "docker inspect -f \"{{.RepoDigests}}\" image.imageName()").trim()
+          digest = repoDigest =~ /\[[a-z]+@sha256:(.*)\]/
+          // store the repository digest
+          writeFile(file: "${params.APP}-digest.txt", text: digest[0])
+          // TODO: alternatively, query artifactory with aql
+        }
+        print "Image Repository Digest is ${digest[0]}"
       }
     }
-    post {
-      success {
-        print 'Job completed successfully.'
-      }
-      failure {
-        print 'Job failed.'
+  }
+  post {
+    success {
+      print 'Job completed successfully.'
+    }
+    failure {
+      print 'Job failed.'
 
-        slackSend(channel: '#channel',
-          color: 'warning',
-          message: "Job failed for ${env.JOB_NAME}/${env.JOB_NAME} at ${env.JOB_URL}.")
+      slackSend(channel: '#channel',
+        color: 'warning',
+        message: "Job failed for ${env.JOB_NAME}/${env.JOB_NAME} at ${env.JOB_URL}.")
 
-        mail(to: 'root@localhost',
-          subject: "Failure: ${env.BUILD_TAG}",
-          body: "Job failed for ${env.JOB_NAME}/${env.JOB_NAME} at ${env.JOB_URL}.")
-      }
+      mail(to: 'root@localhost',
+        subject: "Failure: ${env.BUILD_TAG}",
+        body: "Job failed for ${env.JOB_NAME}/${env.JOB_NAME} at ${env.JOB_URL}.")
     }
   }
 }
