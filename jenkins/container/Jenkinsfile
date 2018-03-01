@@ -7,135 +7,180 @@ pipeline {
   parameters {
     string(name: 'BRANCH', defaultValue: 'master', description: 'GIT SCM branch from repository to clone/pull.')
     string(name: 'APP', description: 'The application for which to build and push an image.')
+    string(name: 'SCM_URL', description: 'The URL to the source repository containing the Dockerfile.')
     string(name: 'REGISTRY', defaultValue: 'https://artifactory.company.com', description: 'The Docker Registry URL.')
     string(name: 'VERSION', defaultValue: "${env.BUILD_NUMBER.toInteger() + 1}", description: 'The version of the application for the Docker Image tag.')
-  }
-  environment {
-    // set vars
-    repo_imagename = "${params.REGISTRY}/${params.APP}"
+    string(name: 'TARGET_REPO', defaultValue: 'docker', description: 'The target repository for the Docker Registry within Artifactory (Artifactory only).')
   }
 
   stages {
-    stage('Clone/Pull Application Code') {
-      steps {
-        // grab code
-        checkout([
-          $class: 'GitSCM',
-          branches: [[name: "*/${params.BRANCH}"]],
-          doGenerateSubmoduleConfigurations: false,
-          extensions: [[$class: 'RelativeTargetDirectory',
-            relativeTargetDir: params.BRANCH]],
-          submoduleCfg: [],
-          userRemoteConfigs: [[url: "https://github.com:org/${params.APP}.git"]]])
+    stage('Initialize') {
+      parallel {
+        stage('Set Vars') {
+          steps {
+            script {
+              // set vars
+              repo = params.SCM_URL =~ /\/[a-z]+[0-9]+\/.*\.git/
+              repo_imagename = "${repo[0][1]}/${params.APP}"
+              repo = null
+            }
+          }
+        }
+        stage('Clone/Pull Application Code') {
+          steps {
+            // grab code
+            checkout([
+              $class: 'GitSCM',
+              branches: [[name: "*/${params.BRANCH}"]],
+              doGenerateSubmoduleConfigurations: false,
+              extensions: [[$class: 'RelativeTargetDirectory',
+                relativeTargetDir: params.BRANCH]],
+              submoduleCfg: [],
+              userRemoteConfigs: [[url: params.SCM_URL]]])
+          }
+        }
+      }
+      post {
+        success {
+          print 'Variables initialized and application code retrieved.'
+        }
       }
     }
     stage('Build Docker Image') {
       steps {
         dir(params.BRANCH) {
           script {
-            try {
-              // build docker image and store result to image object
-              image = docker.build("${repo_imagename}:latest")
-            }
-            catch(Exception error) {
-              print "Failure building Docker Image for ${params.APP} in branch ${params.BRANCH}:"
-              throw error
-            }
+            // build docker image and store result to image object
+            image = docker.build("${repo_imagename}:latest")
           }
         }
-        print "Docker Image for ${params.APP} in branch ${params.BRANCH} created successfully."
+      }
+      post {
+        success {
+          print "Docker Image for ${params.APP} in branch ${params.BRANCH} created successfully."
+        }
+        failure {
+          print "Failure building Docker Image for ${params.APP} in branch ${params.BRANCH}:"
+        }
       }
     }
     stage('Validate Docker Image') {
       steps {
         script {
-          try {
-            // superfluous tests for now
-            image.inside {
-              sh 'echo helloworld'
-            }
-            // robust tests with dgoss later
-            // image.withRun {
-              // goss.validate_docker()
-            // }
+          // superfluous tests for now
+          image.inside {
+            sh 'ls /helloworld'
           }
-          catch(Exception error) {
+          // robust tests with dgoss later
+          // image.withRun {
+            // goss.validate_docker()
+          // }
+        }
+        post {
+          success {
+            print "Docker Image for ${params.APP} in branch ${params.BRANCH} validated successfully."
+          }
+          failure {
             print "Failure validating Docker Image for ${params.APP} in branch ${params.BRANCH}."
-            throw error
           }
-        }
-        print "Docker Image for ${params.APP} in branch ${params.BRANCH} validated successfully."
-      }
-    }
-    stage('Store Docker Image in Artifactory') {
-      // only do this stage if we are using artifactory
-      when { expression { params.REGISTRY =~ /artifactory/ } }
-      steps {
-        script {
-          // push docker image
-          try {
-            // initialize artifactory server object
-            server = Artifactory.server(${params.REGISTRY}-${params.BRANCH})
-            // alternative server inits with creds
-            //server = Artifactory.newServer(url: 'artifactory-url', username: 'username', password: 'password')
-            //server = Artifactory.newServer(url: 'artifactory-url', credentialsId: 'ccrreeddeennttiiaall')
-            // initialize docker registry object
-            artDocker = Artifactory.docker(server: server)
-            // push docker image wtih latest and buildnum
-            artDocker.push("${repo_imagename}:latest", "docker-${params.BRANCH}")
-            image.tag("${repo_imagename}:${params.VERSION}")
-            buildInfo = artDocker.push("${repo_imagename}:${params.VERSION}", "docker-${params.BRANCH}")
-          }
-          catch(Exception error) {
-            print "Failure storing Docker Image for ${params.APP} in branch ${params.BRANCH} in ${params.REGISTRY}:"
-            throw error
-          }
-          print "Docker Image with tags ${repo_imagename}:${params.VERSION} and ${repo_imagename}:latest stored successfully in Artifactory."
-          // push docker repodigest and scan buildinfo for security issues
-          try {
-            // grab the repository digest for the image
-            repoDigest = sh(returnStdout: true, script: "docker inspect -f \"{{.RepoDigests}}\" image.imageName()").trim()
-            digest = repoDigest =~ /\[[a-z]+@sha256:(.*)\]/
-            // add digest property to build info manifest artifact
-            buildInfo.append(['repodigest' : digest[0]])
-            // push build info manifest to artifactory
-            server.publishBuildInfo(buildInfo)
-            // scan image for vulnerabilities
-            scanConfig = [
-              'buildName' : buildInfo.name,
-              'buildNumber' : buildInfo.number
-            ]
-            xrayScanBuild(scanConfig)
-            // for purging older images
-            //buildInfo.retention(maxBuilds: 10, deleteBuildArtifacts: true)
-          }
-          catch(Exception error) {
-            print "Failure pushing RepoDigest for or Scanning Docker Image for ${params.APP} in branch ${params.BRANCH} in ${params.REGISTRY}:"
-            throw error
-          }
-          print "Docker Image digest stored and artifact scanned successfully in Artifactory."
         }
       }
     }
-    stage('Store Docker Image in Private Registry') {
-      // only do this stage if we are using non-artifactory registry
-      when { expression { params.REGISTRY !~ /artifactory/ } }
-      steps {
-        script {
-          try {
-            // push docker image with latest and buildnum
-            // TODO: push digest in custom registry
-            docker.withRegistry(${params.REGISTRY}-${params.BRANCH}, 'registry-credentials') {
-              image.push()
-              image.push("${repo_imagename}:${params.VERSION}")
+    stage('Store Docker Image in Registry') {
+      parallel {
+        stage('Artifactory') {
+          when { expression { params.REGISTRY =~ /[aA]rtifactory/ } }
+          steps {
+            script {
+              // initialize artifactory server object
+              server = Artifactory.server(params.REGISTRY)
+              // alternative server inits with creds
+              //server = Artifactory.newServer(url: 'artifactory-url', username: 'username', password: 'password')
+              //server = Artifactory.newServer(url: 'artifactory-url', credentialsId: 'ccrreeddeennttiiaall')
+              // initialize docker registry object
+              artDocker = Artifactory.docker(server: server)
+              // push docker image wtih latest and buildnum
+              artDocker.push("${repo_imagename}:latest", params.TARGET_REPO)
+              image.tag("${repo_imagename}:${params.VERSION}")
+              buildInfo = artDocker.push("${repo_imagename}:${params.VERSION}", params.TARGET_REPO)
             }
           }
-          catch(Exception error) {
-            print "Failure storing Docker Image for ${params.APP} in branch ${params.BRANCH} in ${params.REGISTRY}:"
-            throw error
+        }
+        stage('Custom Registry') {
+          when { expression { params.REGISTRY !~ /artifactory/ } }
+          steps {
+            script {
+              // push docker image with latest and buildnum
+              docker.withRegistry(${params.REGISTRY}, 'registry-credentials') {
+                image.push()
+                image.push("${repo_imagename}:${params.VERSION}")
+              }
+            }
           }
         }
-        print "Docker Image with tags ${repo_imagename}:${params.VERSION} and ${repo_imagename}:latest stored successfully in ${params.REGISTRY}."
+      }
+      post {
+        success {
+          print "Docker Image with tags ${repo_imagename}:${params.VERSION} and ${repo_imagename}:latest stored successfully in ${params.REGISTRY}."
+        }
+        failure {
+          print "Failure storing Docker Image for ${params.APP} in branch ${params.BRANCH} in ${params.REGISTRY}:"
+        }
+      }
+    }
+    stage('Store Metadata in Registry') {
+      parallel {
+        stage('Artifactory') {
+          when { expression { params.REGISTRY =~ /[aA]rtifactory/ } }
+          steps {
+            // push docker repodigest and scan buildinfo for security issues
+            script {
+              // grab the repository digest for the image
+              repoDigest = sh(returnStdout: true, script: "docker inspect -f \"{{.RepoDigests}}\" image.imageName()").trim()
+              digest = repoDigest =~ /\[[a-z]+@sha256:(.*)\]/
+              // add digest property to build info manifest artifact
+              buildInfo.append(['repodigest' : digest[0][1]])
+              digest = null
+              // push build info manifest to artifactory
+              server.publishBuildInfo(buildInfo)
+              // scan image for vulnerabilities
+              scanConfig = [
+                'buildName' : buildInfo.name,
+                'buildNumber' : buildInfo.number
+              ]
+              xrayScanBuild(scanConfig)
+              // for purging older images
+              //buildInfo.retention(maxBuilds: 10, deleteBuildArtifacts: true)
+              if (params.BRANCH == 'master') {
+                // create interactive promotion request
+                promotionConfig = [
+                  'buildName' : buildInfo.name,
+                  'buildNumber' : buildInfo.number,
+                  'targetRepo' : 'docker-preprod',
+                  'sourceRepo' : params.TARGET_REPO,
+                  'comment' : 'Promote image upward when application finishes testing.'
+                ]
+                Artifactory.addInteractivePromotion(server: server, promotionConfig: promotionConfig, displayName: "${params.APP} version ${params.VERSION} image promotion to higher lifecycle registry.")
+              }
+            }
+          }
+        }
+        stage('Custom Registry') {
+          when { expression { params.REGISTRY !~ /artifactory/ } }
+          steps {
+            script {
+              // TODO: push digest in custom registry
+            }
+          }
+        }
+      }
+      post {
+        success {
+          print "Docker Image digest stored and artifact scanned successfully in ${params.REGISTRY}."
+        }
+        failure {
+          print "Failure pushing RepoDigest for or Scanning Docker Image for ${params.APP} in branch ${params.BRANCH} in ${params.REGISTRY}:"
+        }
       }
     }
   }
