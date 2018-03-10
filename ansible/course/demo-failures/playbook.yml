@@ -23,7 +23,7 @@
       with_items:
       - "{{mail_package}}"
       - dovecot
-      changed_when: "'not find' in command_out.msg"
+      changed_when: "'not find' in command_output.msg"
       notify: restart_dovecot
 
     always:

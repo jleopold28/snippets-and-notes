@@ -3,7 +3,7 @@
   yum:
     name: "{{package}}"
     state: latest
-- name: Start the {[service}} service
+- name: Start the {{service}} service
   service:
     name: "{{service}}"
     state: "{{svc_state}}"

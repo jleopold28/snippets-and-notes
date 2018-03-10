@@ -1,6 +1,9 @@
 // jenkins.io/doc/pipeline/steps
 // <server_url>/job/<jobname>/pipeline-syntax/globals
 // <server_url>/job/<jobname>/pipeline-syntax/html
+//TODO: purposeful xrayscan failure
+//TODO: properties file
+//TODO: build image using artifactory to pull base
 pipeline {
   agent any
 
@@ -8,27 +11,30 @@ pipeline {
     string(name: 'BRANCH', defaultValue: 'master', description: 'GIT SCM branch from repository to clone/pull.')
     string(name: 'APP', description: 'The application for which to build and push an image.')
     string(name: 'SCM_URL', description: 'The URL to the source repository containing the Dockerfile.')
-    string(name: 'REGISTRY', defaultValue: 'https://artifactory.company.com', description: 'The Docker Registry URL.')
+    string(name: 'REGISTRY', defaultValue: 'OurArtifactoryServer', description: 'The Docker Registry server ID (as defined within Jenkins) or URL (if not defined in Jenkins).')
     string(name: 'VERSION', defaultValue: "${env.BUILD_NUMBER.toInteger() + 1}", description: 'The version of the application for the Docker Image tag.')
     string(name: 'TARGET_REPO', defaultValue: 'docker', description: 'The target repository for the Docker Registry within Artifactory (Artifactory only).')
+    string(name: 'REG_CREDS', description: 'The credentials for the Docker registry (if targeting registry by URL).')
   }
 
   stages {
     stage('Initialize') {
       parallel {
-        stage('Set Vars') {
+        stage('Initialize Reusable Vars') {
           steps {
             script {
-              // set vars
-              repo = params.SCM_URL =~ /\/[a-z]+[0-9]+\/.*\.git/
+              // determine git org for image repo name
+              repo = params.SCM_URL =~ /[a-z]+[0-9]+\/.*\.git/
+              // establish the <repo>/<imagename> for the docker image
               repo_imagename = "${repo[0][1]}/${params.APP}"
+              // null var for serialization
               repo = null
             }
           }
         }
         stage('Clone/Pull Application Code') {
           steps {
-            // grab code
+            // grab app code
             checkout([
               $class: 'GitSCM',
               branches: [[name: "*/${params.BRANCH}"]],
@@ -71,18 +77,18 @@ pipeline {
           image.inside {
             sh 'ls /helloworld'
           }
-          // robust tests with dgoss later
+          // TODO: robust tests with dgoss later
           // image.withRun {
             // goss.validate_docker()
           // }
         }
-        post {
-          success {
-            print "Docker Image for ${params.APP} in branch ${params.BRANCH} validated successfully."
-          }
-          failure {
-            print "Failure validating Docker Image for ${params.APP} in branch ${params.BRANCH}."
-          }
+      }
+      post {
+        success {
+          print "Docker Image for ${params.APP} in branch ${params.BRANCH} validated successfully."
+        }
+        failure {
+          print "Failure validating Docker Image for ${params.APP} in branch ${params.BRANCH}."
         }
       }
     }
@@ -92,14 +98,17 @@ pipeline {
           when { expression { params.REGISTRY =~ /[aA]rtifactory/ } }
           steps {
             script {
-              // initialize artifactory server object
-              server = Artifactory.server(params.REGISTRY)
-              // alternative server inits with creds
-              //server = Artifactory.newServer(url: 'artifactory-url', username: 'username', password: 'password')
-              //server = Artifactory.newServer(url: 'artifactory-url', credentialsId: 'ccrreeddeennttiiaall')
+              if (params.REGISTRY =~ /http/) {
+                // initialize artifactory server object by url
+                artServer = Artifactory.newServer(url: params.REGISTRY, credentialsId: params.REG_CREDS)
+              }
+              else {
+                // initialize artifactory server object by id
+                artServer = Artifactory.server(params.REGISTRY)
+              }
               // initialize docker registry object
-              artDocker = Artifactory.docker(server: server)
-              // push docker image wtih latest and buildnum
+              artDocker = Artifactory.docker(server: artServer)
+              // push docker image wtih latest and version
               artDocker.push("${repo_imagename}:latest", params.TARGET_REPO)
               image.tag("${repo_imagename}:${params.VERSION}")
               buildInfo = artDocker.push("${repo_imagename}:${params.VERSION}", params.TARGET_REPO)
@@ -107,11 +116,11 @@ pipeline {
           }
         }
         stage('Custom Registry') {
-          when { expression { params.REGISTRY !~ /artifactory/ } }
+          when { expression { params.REGISTRY !~ /[aA]rtifactory/ } }
           steps {
             script {
-              // push docker image with latest and buildnum
-              docker.withRegistry(${params.REGISTRY}, 'registry-credentials') {
+              // push docker image with latest and version
+              docker.withRegistry(params.REGISTRY, params.REG_CREDS) {
                 image.push()
                 image.push("${repo_imagename}:${params.VERSION}")
               }
@@ -140,9 +149,10 @@ pipeline {
               digest = repoDigest =~ /\[[a-z]+@sha256:(.*)\]/
               // add digest property to build info manifest artifact
               buildInfo.append(['repodigest' : digest[0][1]])
+              // null var for serialization
               digest = null
               // push build info manifest to artifactory
-              server.publishBuildInfo(buildInfo)
+              artServer.publishBuildInfo(buildInfo)
               // scan image for vulnerabilities
               scanConfig = [
                 'buildName' : buildInfo.name,
@@ -160,15 +170,18 @@ pipeline {
                   'sourceRepo' : params.TARGET_REPO,
                   'comment' : 'Promote image upward when application finishes testing.'
                 ]
-                Artifactory.addInteractivePromotion(server: server, promotionConfig: promotionConfig, displayName: "${params.APP} version ${params.VERSION} image promotion to higher lifecycle registry.")
+                Artifactory.addInteractivePromotion(server: artServer, promotionConfig: promotionConfig, displayName: "${params.APP} version ${params.VERSION} image promotion to higher lifecycle registry.")
               }
             }
           }
         }
         stage('Custom Registry') {
-          when { expression { params.REGISTRY !~ /artifactory/ } }
+          when { expression { params.REGISTRY !~ /[aA]rtifactory/ } }
           steps {
             script {
+              // grab the repository digest for the image
+              repoDigest = sh(returnStdout: true, script: "docker inspect -f \"{{.RepoDigests}}\" image.imageName()").trim()
+              digest = repoDigest =~ /\[[a-z]+@sha256:(.*)\]/
               // TODO: push digest in custom registry
             }
           }
@@ -191,6 +204,7 @@ pipeline {
     failure {
       print 'Job failed.'
 
+      //TODO: notifications
       slackSend(channel: '#channel',
         color: 'warning',
         message: "Job failed for ${env.JOB_NAME}/${env.JOB_NAME} at ${env.JOB_URL}.")
