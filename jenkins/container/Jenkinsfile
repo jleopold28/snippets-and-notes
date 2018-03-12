@@ -2,8 +2,7 @@
 // <server_url>/job/<jobname>/pipeline-syntax/globals
 // <server_url>/job/<jobname>/pipeline-syntax/html
 //TODO: purposeful xrayscan failure
-//TODO: properties file
-//TODO: build image using artifactory to pull base
+//TODO: add wes dockerfile
 pipeline {
   agent any
 
@@ -11,10 +10,11 @@ pipeline {
     string(name: 'BRANCH', defaultValue: 'master', description: 'GIT SCM branch from repository to clone/pull.')
     string(name: 'APP', description: 'The application for which to build and push an image.')
     string(name: 'SCM_URL', description: 'The URL to the source repository containing the Dockerfile.')
-    string(name: 'REGISTRY', defaultValue: 'OurArtifactoryServer', description: 'The Docker Registry server ID (as defined within Jenkins) or URL (if not defined in Jenkins).')
+    string(name: 'REGISTRY_ID', defaultValue: 'OurArtifactoryServer', description: 'The Docker Registry server ID (as defined within Jenkins; otherwise make descriptive/cosmetic input).')
+    string(name: 'REGISTRY_URL', defaultValue: 'https://artifactory.company.com', description: 'The Docker Registry server URL.')
     string(name: 'VERSION', defaultValue: "${env.BUILD_NUMBER.toInteger() + 1}", description: 'The version of the application for the Docker Image tag.')
     string(name: 'TARGET_REPO', defaultValue: 'docker', description: 'The target repository for the Docker Registry within Artifactory (Artifactory only).')
-    string(name: 'REG_CREDS', description: 'The credentials for the Docker registry (if targeting registry by URL).')
+    string(name: 'REG_CREDS', description: 'The credentials for the Docker registry (if targeting Artifactory by URL or non-Artifactory registry).')
   }
 
   stages {
@@ -24,9 +24,9 @@ pipeline {
           steps {
             script {
               // determine git org for image repo name
-              repo = params.SCM_URL =~ /[a-z]+[0-9]+\/.*\.git/
-              // establish the <repo>/<imagename> for the docker image
-              repo_imagename = "${repo[0][1]}/${params.APP}"
+              repo = params.SCM_URL =~ /([a-z]+[0-9]+)\/.*\.git/
+              // establish the <registry>/<repo>/<imagename> for the docker image
+              repo_imagename = "${params.REGISTRY_URL}/${repo[0][1]}/${params.APP}"
               // null var for serialization
               repo = null
             }
@@ -57,7 +57,7 @@ pipeline {
         dir(params.BRANCH) {
           script {
             // build docker image and store result to image object
-            image = docker.build("${repo_imagename}:latest")
+            image = docker.build(repo_imagename)
           }
         }
       }
@@ -95,34 +95,34 @@ pipeline {
     stage('Store Docker Image in Registry') {
       parallel {
         stage('Artifactory') {
-          when { expression { params.REGISTRY =~ /[aA]rtifactory/ } }
+          when { expression { params.REGISTRY_ID =~ /[aA]rtifactory/ } }
           steps {
             script {
-              if (params.REGISTRY =~ /http/) {
+              if (params.REG_CREDS != null) {
                 // initialize artifactory server object by url
-                artServer = Artifactory.newServer(url: params.REGISTRY, credentialsId: params.REG_CREDS)
+                artServer = Artifactory.newServer(url: params.REGISTRY_URL, credentialsId: params.REG_CREDS)
               }
               else {
                 // initialize artifactory server object by id
-                artServer = Artifactory.server(params.REGISTRY)
+                artServer = Artifactory.server(params.REGISTRY_ID)
               }
               // initialize docker registry object
               artDocker = Artifactory.docker(server: artServer)
               // push docker image wtih latest and version
-              artDocker.push("${repo_imagename}:latest", params.TARGET_REPO)
-              image.tag("${repo_imagename}:${params.VERSION}")
-              buildInfo = artDocker.push("${repo_imagename}:${params.VERSION}", params.TARGET_REPO)
+              artDocker.push('latest', params.TARGET_REPO)
+              image.tag(params.VERSION)
+              buildInfo = artDocker.push(params.VERSION, params.TARGET_REPO)
             }
           }
         }
         stage('Custom Registry') {
-          when { expression { params.REGISTRY !~ /[aA]rtifactory/ } }
+          when { expression { params.REGISTRY_ID !~ /[aA]rtifactory/ } }
           steps {
             script {
               // push docker image with latest and version
-              docker.withRegistry(params.REGISTRY, params.REG_CREDS) {
+              docker.withRegistry(params.REGISTRY_URL, params.REG_CREDS) {
                 image.push()
-                image.push("${repo_imagename}:${params.VERSION}")
+                image.push(params.VERSION)
               }
             }
           }
@@ -130,17 +130,17 @@ pipeline {
       }
       post {
         success {
-          print "Docker Image with tags ${repo_imagename}:${params.VERSION} and ${repo_imagename}:latest stored successfully in ${params.REGISTRY}."
+          print "Docker Image with tags ${repo_imagename}:${params.VERSION} and ${repo_imagename}:latest stored successfully in ${params.REGISTRY_ID}."
         }
         failure {
-          print "Failure storing Docker Image for ${params.APP} in branch ${params.BRANCH} in ${params.REGISTRY}:"
+          print "Failure storing Docker Image for ${params.APP} in branch ${params.BRANCH} in ${params.REGISTRY_ID}:"
         }
       }
     }
     stage('Store Metadata in Registry') {
       parallel {
         stage('Artifactory') {
-          when { expression { params.REGISTRY =~ /[aA]rtifactory/ } }
+          when { expression { params.REGISTRY_ID =~ /[aA]rtifactory/ } }
           steps {
             // push docker repodigest and scan buildinfo for security issues
             script {
@@ -176,7 +176,7 @@ pipeline {
           }
         }
         stage('Custom Registry') {
-          when { expression { params.REGISTRY !~ /[aA]rtifactory/ } }
+          when { expression { params.REGISTRY_ID !~ /[aA]rtifactory/ } }
           steps {
             script {
               // grab the repository digest for the image
@@ -189,10 +189,10 @@ pipeline {
       }
       post {
         success {
-          print "Docker Image digest stored and artifact scanned successfully in ${params.REGISTRY}."
+          print "Docker Image digest stored and artifact scanned successfully in ${params.REGISTRY_ID}."
         }
         failure {
-          print "Failure pushing RepoDigest for or Scanning Docker Image for ${params.APP} in branch ${params.BRANCH} in ${params.REGISTRY}:"
+          print "Failure pushing RepoDigest for or Scanning Docker Image for ${params.APP} in branch ${params.BRANCH} in ${params.REGISTRY_ID}:"
         }
       }
     }
