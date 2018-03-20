@@ -1,8 +1,7 @@
 // jenkins.io/doc/pipeline/steps
 // <server_url>/job/<jobname>/pipeline-syntax/globals
 // <server_url>/job/<jobname>/pipeline-syntax/html
-//TODO: purposeful xrayscan failure
-//TODO: add wes dockerfile
+
 pipeline {
   agent any
 
@@ -75,7 +74,7 @@ pipeline {
           print "Docker Image for ${params.APP} in branch ${params.BRANCH} created successfully."
         }
         failure {
-          print "Failure building Docker Image for ${params.APP} in branch ${params.BRANCH}:"
+          print "Failure building Docker Image for ${params.APP} in branch ${params.BRANCH}."
         }
       }
     }
@@ -100,6 +99,22 @@ pipeline {
         }
         failure {
           print "Failure validating Docker Image for ${params.APP} in branch ${params.BRANCH}."
+        }
+      }
+    }
+    stage('Qualys Scan Docker Image') {
+      steps {
+        script {
+          // scan the docker image with qualys for issues
+          print 'Placeholder for Qualys container scan.'
+        }
+      }
+      post {
+        success {
+          print "Docker Image for ${params.APP} in branch ${params.BRANCH} scanned successfully with Qualys."
+        }
+        failure {
+          print "Failure scanning Docker Image for ${params.APP} in branch ${params.BRANCH} with Qualys."
         }
       }
     }
@@ -148,7 +163,7 @@ pipeline {
           print "Docker Image with tags ${image_name}:${params.VERSION} and ${image_name}:latest stored successfully in ${params.REGISTRY_ID}."
         }
         failure {
-          print "Failure storing Docker Image for ${params.APP} in branch ${params.BRANCH} in ${params.REGISTRY_ID}:"
+          print "Failure storing Docker Image for ${params.APP} in branch ${params.BRANCH} in ${params.REGISTRY_ID}."
         }
       }
     }
@@ -162,36 +177,14 @@ pipeline {
               // grab the repository digest for the image
               print 'Gathering repo digest and storing in build info in Artifactory.'
               repoDigest = sh(returnStdout: true, script: "docker inspect -f \"{{.RepoDigests}}\" ${image.imageName()}").trim()
-              digest = repoDigest =~ /\[[a-z]+@sha256:(.*)\]/
+              digest = repoDigest =~ /\[.*@sha256:(.*)\]/
               // add digest property to build info manifest artifact
-              buildInfo.append(['repodigest' : digest[0][1]])
+              buildInfo.repoDigest = digest[0][1]
+              print "Repo Digest is: ${digest[0][1]}"
               // null var for serialization
               digest = null
               // push build info manifest to artifactory
               artServer.publishBuildInfo(buildInfo)
-              // scan image for vulnerabilities
-              print 'Scanning Docker build with XRay. Failure will trigger build failure with displayed errors. Successful results will be displayed as info.'
-              scanConfig = [
-                'buildName' : buildInfo.name,
-                'buildNumber' : buildInfo.number
-              ]
-              xrayResults = xrayScanBuild(scanConfig)
-              print xrayResults as String
-              // for purging older images
-              //buildInfo.retention(maxBuilds: 10, deleteBuildArtifacts: true)
-              if (params.BRANCH == 'master') {
-                print 'Creating interactive promotion request for image to higher lifecycle repository.'
-                // create interactive promotion request
-                promotionConfig = [
-                  'buildName' : buildInfo.name,
-                  'buildNumber' : buildInfo.number,
-                  'targetRepo' : 'docker-preprod',
-                  'sourceRepo' : params.TARGET_REPO,
-                  'comment' : 'Promote image upward when application finishes testing.',
-                  'includeDependencies': false,
-                ]
-                Artifactory.addInteractivePromotion(server: artServer, promotionConfig: promotionConfig, displayName: "${params.APP} version ${params.VERSION} image promotion to higher lifecycle registry.")
-              }
             }
           }
         }
@@ -201,19 +194,73 @@ pipeline {
             script {
               // grab the repository digest for the image
               print 'Gathering repo digest.'
-              repoDigest = sh(returnStdout: true, script: "docker inspect -f \"{{.RepoDigests}}\" image.imageName()").trim()
-              digest = repoDigest =~ /\[[a-z]+@sha256:(.*)\]/
+              repoDigest = sh(returnStdout: true, script: "docker inspect -f \"{{.RepoDigests}}\" ${image.imageName()}").trim()
+              digest = repoDigest =~ /\[.*@sha256:(.*)\]/
               // TODO: push digest in custom registry
+              print "Repo Digest is: ${digest[0][1]}"
+              // null var for serialization
+              digest = null
             }
           }
         }
       }
       post {
         success {
-          print "Docker Image digest stored and artifact scanned successfully in ${params.REGISTRY_ID}."
+          print "Docker Image digest stored successfully in ${params.REGISTRY_ID}."
         }
         failure {
-          print "Failure pushing RepoDigest for or Scanning Docker Image for ${params.APP} in branch ${params.BRANCH} in ${params.REGISTRY_ID}:"
+          print "Failure pushing RepoDigest for Docker Image for ${params.APP} in branch ${params.BRANCH} in ${params.REGISTRY_ID}."
+        }
+      }
+    }
+    stage('JFrog XRay Scan Docker Image') {
+      steps {
+        script {
+          // scan image for vulnerabilities
+          print 'Scanning Docker build with XRay. Failure will trigger build failure with displayed errors. Successful results will be displayed as info.'
+          scanConfig = [
+            'buildName' : buildInfo.name,
+            'buildNumber' : buildInfo.number
+          ]
+          xrayResults = xrayScanBuild(scanConfig)
+          print xrayResults as String
+        }
+      }
+      post {
+        success {
+          print "Docker Image for ${params.APP} in branch ${params.BRANCH} scanned successfully with JFrog XRay."
+        }
+        failure {
+          print "Failure scanning Docker Image for ${params.APP} in branch ${params.BRANCH} with JFrog XRay."
+        }
+      }
+    }
+    stage('Image Retention and Promotion Request') {
+      steps {
+        script {
+          // for purging older images
+          //buildInfo.retention(maxBuilds: 10, deleteBuildArtifacts: true)
+          if (params.BRANCH == 'master') {
+            print 'Creating interactive promotion request for image to higher lifecycle repository.'
+            // create interactive promotion request
+            promotionConfig = [
+              'buildName' : buildInfo.name,
+              'buildNumber' : buildInfo.number,
+              'targetRepo' : 'docker-preprod',
+              'sourceRepo' : params.TARGET_REPO,
+              'comment' : 'Promote image upward when application finishes testing.',
+              'includeDependencies': false,
+            ]
+            Artifactory.addInteractivePromotion(server: artServer, promotionConfig: promotionConfig, displayName: "${params.APP} version ${params.VERSION} image promotion to higher lifecycle registry.")
+          }
+        }
+      }
+      post {
+        success {
+          print 'Image retention established and promotion request created successfully.'
+        }
+        failure {
+          print 'Failure establishing image retention or creating promotion request.'
         }
       }
     }
@@ -233,6 +280,10 @@ pipeline {
       mail(to: 'root@localhost',
         subject: "Failure: ${env.BUILD_TAG}",
         body: "Job failed for ${env.JOB_NAME}/${env.JOB_NAME} at ${env.JOB_URL}.")
+    }
+    always {
+      print 'Removing built Docker image for cleanup.'
+      sh "docker rmi -f ${image.imageName()}"
     }
   }
 }
