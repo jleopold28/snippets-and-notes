@@ -6,14 +6,17 @@ pipeline {
   agent any
 
   parameters {
+    string(name: 'SCM_URL', description: 'The URL to the source repository containing the Dockerfile.')
     string(name: 'BRANCH', defaultValue: 'master', description: 'GIT SCM branch from repository to clone/pull.')
     string(name: 'APP', description: 'The application for which to build and push an image.')
-    string(name: 'SCM_URL', description: 'The URL to the source repository containing the Dockerfile.')
+    string(name: 'ORG', description: 'The organization for the application; used for Docker image repository prefix (if left blank defaults to Github organization).')
+    string(name: 'VERSION', defaultValue: "${env.BUILD_NUMBER.toInteger() + 1}", description: 'The version of the application for the Docker Image tag.')
     string(name: 'REGISTRY_ID', defaultValue: 'OurArtifactoryServer', description: 'The Docker Registry server ID (as defined within Jenkins; otherwise make descriptive/cosmetic input).')
     string(name: 'REGISTRY_URL', defaultValue: 'artifactory.company.com', description: 'The Docker Registry server URL (no URI; https:// is embedded in code and required for registries).')
-    string(name: 'VERSION', defaultValue: "${env.BUILD_NUMBER.toInteger() + 1}", description: 'The version of the application for the Docker Image tag.')
+    string(name: 'REG_CREDS', description: 'The credentials for pushing to the Docker registry.')
     string(name: 'TARGET_REPO', defaultValue: 'docker', description: 'The target repository for the Docker Registry within Artifactory (Artifactory only).')
-    string(name: 'REG_CREDS', description: 'The credentials for the Docker registry (if targeting Artifactory by URL or non-Artifactory registry).')
+    string(name: 'SLACK_CHAN', description: 'Slack channel to notify on failure.')
+    string(name: 'MAIL_ADD', description: 'Email address to notify on failure.')
   }
 
   stages {
@@ -22,12 +25,20 @@ pipeline {
         stage('Initialize Reusable Vars') {
           steps {
             script {
-              // determine git org for image repo name
-              repo = params.SCM_URL =~ /([a-z]+[0-9]+)\/.*\.git/
-              // establish the <registry>/<repo>/<imagename> for the docker image
-              image_name = "${params.REGISTRY_URL}/${repo[0][1]}/${params.APP}"
-              // null var for serialization
-              repo = null
+              // use github org for repo
+              if (params.ORG == '') {
+                // determine git org for image repo name
+                repo = params.SCM_URL =~ /([a-z]+[0-9]+)\/.*\.git/
+                // establish the <registry>/<repo> for the docker image
+                image_name = "${params.REGISTRY_URL}/${repo[0][1]}/${params.APP}"
+                // null var for serialization
+                repo = null
+              }
+              // use input parameter for repo
+              else {
+                // establish the <registry>/<repo> for the docker image
+                image_name = "${params.REGISTRY_URL}/${params.ORG}/${params.APP}"
+              }
               // determine if using artifactory
               if (params.REGISTRY_ID =~ /[aA]rtifactory/) {
                 artifactory = true
@@ -179,10 +190,13 @@ pipeline {
               repoDigest = sh(returnStdout: true, script: "docker inspect -f \"{{.RepoDigests}}\" ${image.imageName()}").trim()
               digest = repoDigest =~ /\[.*@sha256:(.*)\]/
               // add digest property to build info manifest artifact
+              //TODO: this does not modify the object as desired
               buildInfo.repoDigest = digest[0][1]
               print "Repo Digest is: ${digest[0][1]}"
               // null var for serialization
               digest = null
+              // for purging older images
+              buildInfo.retention(maxBuilds: 10, deleteBuildArtifacts: true)
               // push build info manifest to artifactory
               artServer.publishBuildInfo(buildInfo)
             }
@@ -206,15 +220,16 @@ pipeline {
       }
       post {
         success {
-          print "Docker Image digest stored successfully in ${params.REGISTRY_ID}."
+          print "Docker Image RepoDigest and retention stored successfully in ${params.REGISTRY_ID}."
         }
         failure {
-          print "Failure pushing RepoDigest for Docker Image for ${params.APP} in branch ${params.BRANCH} in ${params.REGISTRY_ID}."
+          print "Failure pushing RepoDigest or retention for Docker Image for ${params.APP} in branch ${params.BRANCH} in ${params.REGISTRY_ID}."
         }
       }
     }
     stage('JFrog XRay Scan Docker Image') {
       steps {
+        when { expression { return artifactory } }
         script {
           // scan image for vulnerabilities
           print 'Scanning Docker build with XRay. Failure will trigger build failure with displayed errors. Successful results will be displayed as info.'
@@ -235,11 +250,10 @@ pipeline {
         }
       }
     }
-    stage('Image Retention and Promotion Request') {
+    stage('Promotion Request') {
       steps {
+        when { expression { return artifactory } }
         script {
-          // for purging older images
-          //buildInfo.retention(maxBuilds: 10, deleteBuildArtifacts: true)
           if (params.BRANCH == 'master') {
             print 'Creating interactive promotion request for image to higher lifecycle repository.'
             // create interactive promotion request
@@ -257,10 +271,10 @@ pipeline {
       }
       post {
         success {
-          print 'Image retention established and promotion request created successfully.'
+          print 'Promotion request created successfully.'
         }
         failure {
-          print 'Failure establishing image retention or creating promotion request.'
+          print 'Failure creating promotion request.'
         }
       }
     }
@@ -271,17 +285,16 @@ pipeline {
     }
     failure {
       print 'Job failed.'
-
-      //TODO: notifications
-      slackSend(channel: '#channel',
+      // notify slack and email on failure
+      slackSend(channel: SLACK_CHAN,
         color: 'warning',
         message: "Job failed for ${env.JOB_NAME}/${env.JOB_NAME} at ${env.JOB_URL}.")
-
-      mail(to: 'root@localhost',
+      mail(to: params.MAIL_ADD,
         subject: "Failure: ${env.BUILD_TAG}",
         body: "Job failed for ${env.JOB_NAME}/${env.JOB_NAME} at ${env.JOB_URL}.")
     }
     always {
+      // remove now useless built docker image to cleanup disk
       print 'Removing built Docker image for cleanup.'
       sh "docker rmi -f ${image.imageName()}"
     }
