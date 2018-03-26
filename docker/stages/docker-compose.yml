@@ -1,7 +1,8 @@
 # Utilizes features up to config version 3.1
 # Build images: docker-compose build --pull
 # Run containers: docker-compose up
-#TODO: security options in config; registry url in repo; https://docs.docker.com/compose/startup-order/; entrypoint override; https://docs.docker.com/compose/compose-file/#volumes, https://docs.docker.com/compose/compose-file/#domainname-hostname-ipc-mac_address-privileged-read_only-shm_size-stdin_open-tty-user-working_dir; https://docs.docker.com/compose/compose-file/#volume-configuration-reference; https://docs.docker.com/compose/compose-file/#variable-substitution
+
+#TODO: security options in config; https://docs.docker.com/compose/startup-order/ (but make sequential optional so using one by itself does not start up the others); https://docs.docker.com/compose/compose-file/#volumes, https://docs.docker.com/compose/compose-file/#domainname-hostname-ipc-mac_address-privileged-read_only-shm_size-stdin_open-tty-user-working_dir; https://docs.docker.com/compose/compose-file/#volume-configuration-reference
 version: '3'
 
 services:
@@ -9,44 +10,64 @@ services:
     build:
       context: .
       dockerfile: 'Dockerfile.builder'
-    image: 'image-builder:1.0'
-    container_name: machine-shop-image-builder
+    image: '/image-builder:1.0'
+    container_name: -image-builder
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - .:/home/.
+    command:
+      - "${repo:?err}:${tag:?err}"
+      - .
   validator:
     build:
       context: .
       dockerfile: 'Dockerfile.validator'
-    image: 'image-validator:1.0'
-    container_name: machine-shop-image-validator
+    image: '/image-validator:1.0'
+    container_name: -image-validator
     depends_on:
       - builder
   scanner:
     build:
       context: .
       dockerfile: 'Dockerfile.scanner'
-    image: 'image-scanner:1.0'
-    container_name: machine-shop-image-scanner
+    image: '/image-scanner:1.0'
+    container_name: -image-scanner
     depends_on:
       - validator
+  tagger:
+    build:
+      context: .
+      dockerfile: 'Dockerfile.tagger'
+    image: '/image-tagger:1.0'
+    container_name: -image-tagger
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - "${repo:?err}:${tag:?err}"
+      - "${registry:?err}/${repo:?err}:${tag:?err}"
+    depends_on:
+      - scanner
   publisher:
     build:
       context: .
       dockerfile: 'Dockerfile.publisher'
-    image: 'image-publisher:1.0'
-    container_name: machine-shop-image-publisher
+    image: '/image-publisher:1.0'
+    container_name: -image-publisher
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - "${registry:?err}/${repo:?err}:${tag:?err}"
     depends_on:
-      - scanner
+      - tagger
   metadata:
     build:
       context: .
       dockerfile: 'Dockerfile.metadata'
-    image: 'image-metadata:1.0'
-    container_name: machine-shop-image-metadata
+    image: '/image-metadata:1.0'
+    container_name: -image-metadata
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - "${registry:?err}/${repo:?err}:${tag:?err}"
     depends_on:
       - publisher

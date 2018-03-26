@@ -1,1 +1,6 @@
 FROM docker:stable
+WORKDIR /home
+# probably a sed regexp here to allow for wrappers and interaction
+# should i collect more here?
+ENTRYPOINT ["docker", "inspect", "-f \"{{.RepoDigests}}\""]
+CMD ["registry/repo:tag"]

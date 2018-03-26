@@ -1,0 +1,4 @@
+FROM docker:stable
+WORKDIR /home
+ENTRYPOINT ["docker", "tag"]
+CMD ["repo:tag", "registry/repo:tag"]
