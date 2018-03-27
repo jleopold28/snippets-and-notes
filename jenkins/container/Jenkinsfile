@@ -1,12 +1,15 @@
 // jenkins.io/doc/pipeline/steps
 // <server_url>/job/<jobname>/pipeline-syntax/globals
 // <server_url>/job/<jobname>/pipeline-syntax/html
+//TODO: reg_creds might need to be supplied for embedded object init
+//TODO: buildinfo object modification not syntactically correct
+//TODO: doublecheck that .tag and .push just want the <tag> and not (registry)/<repo>:<tag>
 
 pipeline {
   agent any
 
   parameters {
-    string(name: 'SCM_URL', description: 'The URL to the source repository containing the Dockerfile.')
+    string(name: 'SCM_URL', description: 'The URL (HTTPS or SSH URI) to the source repository containing the Dockerfile.')
     string(name: 'BRANCH', defaultValue: 'master', description: 'GIT SCM branch from repository to clone/pull.')
     string(name: 'APP', description: 'The application for which to build and push an image.')
     string(name: 'ORG', description: 'The organization for the application; used for Docker image repository prefix (if left blank defaults to Github organization).')
@@ -28,7 +31,7 @@ pipeline {
               // use github org for repo
               if (params.ORG == '') {
                 // determine git org for image repo name
-                repo = params.SCM_URL =~ /([a-z]+[0-9]+)\/.*\.git/
+                repo = params.SCM_URL =~ /\/\/.*\/|:(.*)\/.*\.git/
                 // establish the <registry>/<repo> for the docker image
                 image_name = "${params.REGISTRY_URL}/${repo[0][1]}/${params.APP}"
                 // null var for serialization
@@ -135,15 +138,15 @@ pipeline {
           when { expression { return artifactory } }
           steps {
             script {
-              if (params.REG_CREDS != '') {
-                // initialize artifactory server object by url
-                print 'Using Artifactory Server via supplied credentials.'
-                artServer = Artifactory.newServer(url: "https://${params.REGISTRY_URL}", credentialsId: params.REG_CREDS)
-              }
-              else {
+              if (params.REG_CREDS == '') {
                 // initialize artifactory server object by id
                 print 'Using Artifactory Server via embedded Jenkins config.'
                 artServer = Artifactory.server(params.REGISTRY_ID)
+              }
+              else {
+                // initialize artifactory server object by url
+                print 'Using Artifactory Server via supplied credentials.'
+                artServer = Artifactory.newServer(url: "https://${params.REGISTRY_URL}", credentialsId: params.REG_CREDS)
               }
               // initialize docker registry object
               artDocker = Artifactory.docker(server: artServer)
@@ -187,14 +190,11 @@ pipeline {
             script {
               // grab the repository digest for the image
               print 'Gathering repo digest and storing in build info in Artifactory.'
-              repoDigest = sh(returnStdout: true, script: "docker inspect -f \"{{.RepoDigests}}\" ${image.imageName()}").trim()
-              digest = repoDigest =~ /\[.*@sha256:(.*)\]/
+              repoDigest = sh(returnStdout: true, script: "docker inspect -f '{{index .RepoDigests 0}}' ${image.imageName()}").trim()
               // add digest property to build info manifest artifact
               //TODO: this does not modify the object as desired
-              buildInfo.repoDigest = digest[0][1]
-              print "Repo Digest is: ${digest[0][1]}"
-              // null var for serialization
-              digest = null
+              buildInfo.repoDigest = repodigest
+              print "Repo Digest is: ${repodigest}"
               // for purging older images
               buildInfo.retention(maxBuilds: 10, deleteBuildArtifacts: true)
               // push build info manifest to artifactory
@@ -208,12 +208,9 @@ pipeline {
             script {
               // grab the repository digest for the image
               print 'Gathering repo digest.'
-              repoDigest = sh(returnStdout: true, script: "docker inspect -f \"{{.RepoDigests}}\" ${image.imageName()}").trim()
-              digest = repoDigest =~ /\[.*@sha256:(.*)\]/
+              repoDigest = sh(returnStdout: true, script: "docker inspect -f '{{index .RepoDigests 0}}' ${image.imageName()}").trim()
               // TODO: push digest in custom registry
-              print "Repo Digest is: ${digest[0][1]}"
-              // null var for serialization
-              digest = null
+              print "Repo Digest is: ${repodigest}"
             }
           }
         }
