@@ -1,2 +1,4 @@
+#ARG registry
+#FROM ${registry}/alpine
 FROM alpine
 # TODO

@@ -1,3 +1,5 @@
+#ARG registry
+#FROM ${registry}/docker:stable
 FROM docker:stable
 WORKDIR /home
 ENTRYPOINT ["docker", "push"]

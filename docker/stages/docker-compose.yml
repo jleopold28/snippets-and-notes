@@ -1,8 +1,6 @@
 # Utilizes features up to config version 3.1
-# Build images: docker-compose build --pull
-# Run containers: docker-compose up
 
-#TODO: security options in config; https://docs.docker.com/compose/startup-order/ (but make sequential optional so using one by itself does not start up the others); https://docs.docker.com/compose/compose-file/#volumes, https://docs.docker.com/compose/compose-file/#domainname-hostname-ipc-mac_address-privileged-read_only-shm_size-stdin_open-tty-user-working_dir; https://docs.docker.com/compose/compose-file/#volume-configuration-reference
+#TODO: security options in config; https://docs.docker.com/compose/startup-order/ (but make sequential optional so using one by itself does not start up the others); test further weds
 version: '3'
 
 services:
@@ -10,6 +8,8 @@ services:
     build:
       context: .
       dockerfile: 'Dockerfile.builder'
+      args:
+        registry: "${registry:?err}"
     image: '/image-builder:1.0'
     container_name: -image-builder
     volumes:
@@ -17,11 +17,13 @@ services:
       - .:/home/.
     command:
       - "${repo:?err}:${tag:?err}"
-      - .
+      - "${dockerfile}"
   validator:
     build:
       context: .
       dockerfile: 'Dockerfile.validator'
+      args:
+        registry: "${registry:?err}"
     image: '/image-validator:1.0'
     container_name: -image-validator
     depends_on:
@@ -30,6 +32,8 @@ services:
     build:
       context: .
       dockerfile: 'Dockerfile.scanner'
+      args:
+        registry: "${registry:?err}"
     image: '/image-scanner:1.0'
     container_name: -image-scanner
     depends_on:
@@ -38,6 +42,8 @@ services:
     build:
       context: .
       dockerfile: 'Dockerfile.tagger'
+      args:
+        registry: "${registry:?err}"
     image: '/image-tagger:1.0'
     container_name: -image-tagger
     volumes:
@@ -51,6 +57,8 @@ services:
     build:
       context: .
       dockerfile: 'Dockerfile.publisher'
+      args:
+        registry: "${registry:?err}"
     image: '/image-publisher:1.0'
     container_name: -image-publisher
     volumes:
@@ -63,6 +71,8 @@ services:
     build:
       context: .
       dockerfile: 'Dockerfile.metadata'
+      args:
+        registry: "${registry:?err}"
     image: '/image-metadata:1.0'
     container_name: -image-metadata
     volumes:

@@ -1,6 +1,6 @@
+#ARG registry
+#FROM ${registry}/docker:stable
 FROM docker:stable
 WORKDIR /home
-# probably a sed regexp here to allow for wrappers and interaction
-# should i collect more here?
-ENTRYPOINT ["docker", "inspect", "-f \"{{.RepoDigests}}\""]
+ENTRYPOINT ["docker", "inspect", "-f", "'{{index .RepoDigests 0}}'"]
 CMD ["registry/repo:tag"]
