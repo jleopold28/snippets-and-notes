@@ -1,5 +1,17 @@
 #ARG registry
 #FROM ${registry}/docker:stable
 FROM docker:stable
-# FROM alpine ?
-# TODO
+ARG goss_version
+RUN apk add --no-cache --virtual=goss-dependencies curl ca-certificates && \
+    curl -L https://github.com/aelsabbahy/goss/releases/download/v${goss_version}/goss-linux-amd64 -o /goss/goss && \
+    chmod +rx /goss/goss && \
+    curl -L https://raw.githubusercontent.com/aelsabbahy/goss/v${goss_version}/extras/dgoss/dgoss -o /goss/dgoss && \
+    chmod +rx /goss/dgoss && \
+    apk del goss-dependencies
+WORKDIR /goss
+ENTRYPOINT ["dgoss", "run"]
+CMD ["repo:tag"]
+
+
+#FINISH
+# need /goss in running container to pickkup /goss from here somehow

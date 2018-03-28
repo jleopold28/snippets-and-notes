@@ -1,80 +1,106 @@
 # Utilizes features up to config version 3.1
 
-#TODO: security options in config; https://docs.docker.com/compose/startup-order/ (but make sequential optional so using one by itself does not start up the others); test further weds
+#TODO: security options in config; https://docs.docker.com/compose/startup-order/ (but make sequential optional so using one by itself does not start up the others); test further thurs
 version: '3'
 
 services:
+  # build docker images
   builder:
     build:
       context: .
       dockerfile: 'Dockerfile.builder'
       args:
         registry: "${registry:?err}"
-    image: '/image-builder:1.0'
-    container_name: -image-builder
+    image: 'reg/image-builder:1.0'
+    container_name: reg-image-builder
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - .:/home/.
+      - "${app_path:?err}:/home/."
     command:
       - "${repo:?err}:${tag:?err}"
-      - "${dockerfile}"
+      - '-f'
+      - "${dockerfile:?err}"
+      - "${app_path:?err}"
+  # validates docker image
   validator:
     build:
       context: .
       dockerfile: 'Dockerfile.validator'
       args:
         registry: "${registry:?err}"
-    image: '/image-validator:1.0'
-    container_name: -image-validator
+        goss_version: '0.3.5'
+    image: 'reg/image-validator:1.0'
+    container_name: reg-image-validator
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - "${app_path:?err}:/goss/."
+    command:
+      - "${repo:?err}:${tag:?err}"
     depends_on:
       - builder
-  scanner:
+  # jfrog xray scan docker image
+  xray:
     build:
       context: .
-      dockerfile: 'Dockerfile.scanner'
+      dockerfile: 'Dockerfile.xray'
       args:
         registry: "${registry:?err}"
-    image: '/image-scanner:1.0'
-    container_name: -image-scanner
+    image: 'reg/image-xray:1.0'
+    container_name: reg-image-xray
     depends_on:
       - validator
+  # qualys scan docker image
+  qualys:
+    build:
+      context: .
+      dockerfile: 'Dockerfile.qualys'
+      args:
+        registry: "${registry:?err}"
+    image: 'reg/image-qualys:1.0'
+    container_name: reg-image-qualys
+    depends_on:
+      - validator
+  # tags docker image
   tagger:
     build:
       context: .
       dockerfile: 'Dockerfile.tagger'
       args:
         registry: "${registry:?err}"
-    image: '/image-tagger:1.0'
-    container_name: -image-tagger
+    image: 'reg/image-tagger:1.0'
+    container_name: reg-image-tagger
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
       - "${repo:?err}:${tag:?err}"
       - "${registry:?err}/${repo:?err}:${tag:?err}"
     depends_on:
-      - scanner
+      - xray
+      - qualys
+  # publishes docker image in registry
   publisher:
     build:
       context: .
       dockerfile: 'Dockerfile.publisher'
       args:
         registry: "${registry:?err}"
-    image: '/image-publisher:1.0'
-    container_name: -image-publisher
+    image: 'reg/image-publisher:1.0'
+    container_name: reg-image-publisher
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
       - "${registry:?err}/${repo:?err}:${tag:?err}"
     depends_on:
       - tagger
+  # gathers docker image metadata
   metadata:
     build:
       context: .
       dockerfile: 'Dockerfile.metadata'
       args:
         registry: "${registry:?err}"
-    image: '/image-metadata:1.0'
-    container_name: -image-metadata
+    image: 'reg/image-metadata:1.0'
+    container_name: reg-image-metadata
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command:

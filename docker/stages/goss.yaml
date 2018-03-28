@@ -1,0 +1,4 @@
+file:
+  /helloworld:
+    exists: true
+    filetype: file
