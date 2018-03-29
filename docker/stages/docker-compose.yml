@@ -1,6 +1,6 @@
 # Utilizes features up to config version 3.1
 
-#TODO: security options in config; https://docs.docker.com/compose/startup-order/ (but make sequential optional so using one by itself does not start up the others); test further thurs
+#TODO: security options in config; https://docs.docker.com/compose/startup-order/ (but make sequential optional so using one by itself does not start up the others); test further fri morn/code review; change workdir to run args
 version: '3'
 
 services:
@@ -21,6 +21,22 @@ services:
       - '-f'
       - "${dockerfile:?err}"
       - "${app_path:?err}"
+  # run docker container
+  runner:
+    build:
+      context: .
+      dockerfile: 'Dockerfile.runner'
+      args:
+        registry: "${registry:?err}"
+    image: 'reg/image-runner:1.0'
+    container_name: reg-image-runner
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - "${app:?err}"
+      - "${repo:?err}:${tag:?err}"
+    depends_on:
+      - builder
   # validates docker image
   validator:
     build:
@@ -28,16 +44,17 @@ services:
       dockerfile: 'Dockerfile.validator'
       args:
         registry: "${registry:?err}"
-        goss_version: '0.3.5'
     image: 'reg/image-validator:1.0'
     container_name: reg-image-validator
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - "${app_path:?err}:/goss/."
+      - "${app_path:?err}:/home/."
     command:
-      - "${repo:?err}:${tag:?err}"
+      - "${app:?err}"
+      - "${validate_cmd:?err}"
+      - "${validate_arg:?err}"
     depends_on:
-      - builder
+      - runner
   # jfrog xray scan docker image
   xray:
     build:
@@ -60,6 +77,22 @@ services:
     container_name: reg-image-qualys
     depends_on:
       - validator
+  # stop docker container
+  stopper:
+    build:
+      context: .
+      dockerfile: 'Dockerfile.stopper'
+      args:
+        registry: "${registry:?err}"
+    image: 'reg/image-stopper:1.0'
+    container_name: reg-image-stopper
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - "${app:?err}"
+    depends_on:
+      - xray
+      - qualys
   # tags docker image
   tagger:
     build:
@@ -107,3 +140,18 @@ services:
       - "${registry:?err}/${repo:?err}:${tag:?err}"
     depends_on:
       - publisher
+  # prunes docker system (stopped containers, unused networks, and dangling images) and removes image built by builder
+  cleaner:
+    build:
+      context: .
+      dockerfile: 'Dockerfile.cleaner'
+      args:
+        registry: "${registry:?err}"
+    image: 'reg/image-cleaner:1.0'
+    container_name: reg-image-cleaner
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - "${repo:?err}:${tag:?err}"
+    depends_on:
+      - metadata

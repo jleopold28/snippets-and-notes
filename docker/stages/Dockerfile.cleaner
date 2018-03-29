@@ -1,0 +1,9 @@
+#ARG registry
+#FROM ${registry}/docker:stable
+FROM docker:stable
+WORKDIR /home
+ENTRYPOINT ["docker", "system", "prune", "-f", "&&", "docker", "rmi"]
+CMD ["repo:tag"]
+
+#FINISH
+# this still retains the image tagged with the registry
