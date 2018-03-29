@@ -1,10 +1,8 @@
 #ARG registry
 #FROM ${registry}/docker:stable
 FROM docker:stable
-WORKDIR /home
-ENTRYPOINT ["docker", "run", "-dt", "--name"]
+ENTRYPOINT ["docker", "run", "-dt", "--rm", "--name"]
 CMD ["app", "repo:tag"]
 
 #FINISH
-# needs volume mounts?
-# better run flags/args?
+# needs additional args option? how to do?

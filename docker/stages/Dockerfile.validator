@@ -1,10 +1,5 @@
 #ARG registry
 #FROM ${registry}/docker:stable
 FROM docker:stable
-WORKDIR /home
 ENTRYPOINT ["docker", "exec"]
 CMD ["app", "echo", "hello"]
-
-#FINISH
-# ARG goss_version
-# "apk add --no-cache --virtual=goss-dependencies curl ca-certificates && curl -L https://github.com/aelsabbahy/goss/releases/download/v${goss_version}/goss-linux-amd64 -o /usr/bin/goss && chmod +rx /usr/bin/goss && apk del goss-dependencies && goss validate"

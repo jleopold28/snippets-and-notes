@@ -1,0 +1,13 @@
+ARG registry
+FROM ${registry}/docker:stable
+ARG goss_version
+RUN apk add --no-cache --virtual=goss-dependencies curl ca-certificates && \
+    curl -L https://github.com/aelsabbahy/goss/releases/download/v${goss_version}/goss-linux-amd64 -o /usr/bin/goss && \
+    chmod +rx /usr/bin/goss && \
+    #curl -L https://raw.githubusercontent.com/aelsabbahy/goss/v${goss_version}/extras/dgoss/dgoss -o /goss/dgoss && \
+    #chmod +rx /goss/dgoss && \
+    apk del goss-dependencies && goss validate
+ENTRYPOINT ["goss", "validate"]
+
+# dgoss is hardcoded in pathing and has issues so cannot be used here
+# in general goss needs to be installed and the gossfile present in the container which does not lend itself to a peer-container solution at runtime (build time maybe) so this is left as an unfinished proof of concept

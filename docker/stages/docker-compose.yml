@@ -1,6 +1,6 @@
 # Utilizes features up to config version 3.1
 
-#TODO: security options in config; https://docs.docker.com/compose/startup-order/ (but make sequential optional so using one by itself does not start up the others); test further fri morn/code review; change workdir to run args
+#TODO: security options in config; wait condition for sequential usage/make sequential optional so using one by itself does not start up the others?; test further fri morn/code review
 version: '3'
 
 services:
@@ -13,6 +13,7 @@ services:
         registry: "${registry:?err}"
     image: 'reg/image-builder:1.0'
     container_name: reg-image-builder
+    working_dir: /home
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - "${app_path:?err}:/home/."
@@ -21,6 +22,16 @@ services:
       - '-f'
       - "${dockerfile:?err}"
       - "${app_path:?err}"
+    healthcheck:
+      test:
+        - CMD
+        - docker
+        - image
+        - history
+        - "${repo:?err}:${tag:?err}"
+      interval: 10s
+      timeout: 2s
+      retries: 10
   # run docker container
   runner:
     build:
@@ -30,13 +41,24 @@ services:
         registry: "${registry:?err}"
     image: 'reg/image-runner:1.0'
     container_name: reg-image-runner
+    working_dir: /home
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
-      - "${app:?err}"
+      - "${app_container:?err}"
       - "${repo:?err}:${tag:?err}"
     depends_on:
       - builder
+    healthcheck:
+      test:
+        - CMD
+        - docker
+        - container
+        - inspect
+        - "${app_container:?err}"
+      interval: 10s
+      timeout: 2s
+      retries: 10
   # validates docker image
   validator:
     build:
@@ -46,11 +68,12 @@ services:
         registry: "${registry:?err}"
     image: 'reg/image-validator:1.0'
     container_name: reg-image-validator
+    working_dir: /home
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - "${app_path:?err}:/home/."
     command:
-      - "${app:?err}"
+      - "${app_container:?err}"
       - "${validate_cmd:?err}"
       - "${validate_arg:?err}"
     depends_on:
@@ -86,10 +109,11 @@ services:
         registry: "${registry:?err}"
     image: 'reg/image-stopper:1.0'
     container_name: reg-image-stopper
+    working_dir: /home
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
-      - "${app:?err}"
+      - "${app_container:?err}"
     depends_on:
       - xray
       - qualys
@@ -102,6 +126,7 @@ services:
         registry: "${registry:?err}"
     image: 'reg/image-tagger:1.0'
     container_name: reg-image-tagger
+    working_dir: /home
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
@@ -119,6 +144,7 @@ services:
         registry: "${registry:?err}"
     image: 'reg/image-publisher:1.0'
     container_name: reg-image-publisher
+    working_dir: /home
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
@@ -134,13 +160,14 @@ services:
         registry: "${registry:?err}"
     image: 'reg/image-metadata:1.0'
     container_name: reg-image-metadata
+    working_dir: /home
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
       - "${registry:?err}/${repo:?err}:${tag:?err}"
     depends_on:
       - publisher
-  # prunes docker system (stopped containers, unused networks, and dangling images) and removes image built by builder
+  # prunes docker system (stopped containers and unused networks/images); this is dangerous on a dev workstation but very helpful for a CI server
   cleaner:
     build:
       context: .
@@ -149,9 +176,8 @@ services:
         registry: "${registry:?err}"
     image: 'reg/image-cleaner:1.0'
     container_name: reg-image-cleaner
+    working_dir: /home
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command:
-      - "${repo:?err}:${tag:?err}"
     depends_on:
       - metadata
