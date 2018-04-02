@@ -2,8 +2,8 @@
 #FROM ${registry}/alpine:3.7
 FROM alpine:3.7
 RUN apk add --no-cache curl ca-certificates
-ENTRYPOINT ["curl", ""]
-CMD []
+ENTRYPOINT ["curl", "-X", "POST", "-H", "Content-type: application/json", "--data-binary", "@xray.json", "http://xray.company.com:8000/api/v1/scan/scanArtifact?token=12345"]
 
 
 #FINISH
+# url, port, token, componenent identifier usage

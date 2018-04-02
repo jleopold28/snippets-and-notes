@@ -1,4 +1,5 @@
 # Utilizes features up to config version 3.1
+# This is an alternative fully automated/orchestrated version of the docker-compose which attempts to sequence/parallelize every container's actions in a default structure. This is left unfinished, but can be completed using tools that wait for a container to finish executing.
 
 #TODO: security options in config
 version: '3'
@@ -32,7 +33,7 @@ services:
       interval: 10s
       timeout: 2s
       retries: 10
-  # run docker container (normally requires builder)
+  # run docker container
   runner:
     build:
       context: .
@@ -46,7 +47,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
       - "${app_container:?err}"
-      - "${repo:?err}:${tag:?err}"er
+      - "${repo:?err}:${tag:?err}"
+    depends_on:
+      - builder
     healthcheck:
       test:
         - CMD
@@ -57,7 +60,7 @@ services:
       interval: 10s
       timeout: 2s
       retries: 10
-  # validates docker image (normally requires runner)
+  # validates docker image
   validator:
     build:
       context: .
@@ -74,7 +77,9 @@ services:
       - "${app_container:?err}"
       - "${validate_cmd:?err}"
       - "${validate_arg:?err}"
-  # qualys scan docker image (customarily after validator)
+    depends_on:
+      - runner
+  # qualys scan docker image
   qualys:
     build:
       context: .
@@ -83,7 +88,9 @@ services:
         registry: "${registry:?err}"
     image: 'reg/image-qualys:1.0'
     container_name: reg-image-qualys
-  # stop docker container (customarily after xray and qualys)
+    depends_on:
+      - validator
+  # stop docker container
   stopper:
     build:
       context: .
@@ -97,7 +104,10 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
       - "${app_container:?err}"
-  # tags docker image (normally requires xray and qualys)
+    depends_on:
+      - xray
+      - qualys
+  # tags docker image
   tagger:
     build:
       context: .
@@ -112,7 +122,10 @@ services:
     command:
       - "${repo:?err}:${tag:?err}"
       - "${registry:?err}/${repo:?err}:${tag:?err}"
-  # publishes docker image in registry (normally requires tagger)
+    depends_on:
+      - xray
+      - qualys
+  # publishes docker image in registry
   publisher:
     build:
       context: .
@@ -126,7 +139,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
       - "${registry:?err}/${repo:?err}:${tag:?err}"
-  # gathers docker image metadata (normally requires publisher)
+    depends_on:
+      - tagger
+  # gathers docker image metadata
   metadata:
     build:
       context: .
@@ -140,7 +155,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
       - "${registry:?err}/${repo:?err}:${tag:?err}"
-  # jfrog xray scan docker image (normally requires metdata)
+    depends_on:
+      - publisher
+  # jfrog xray scan docker image
   xray:
     build:
       context: .
@@ -151,7 +168,9 @@ services:
     container_name: reg-image-xray
     volumes:
       - "${app_path:?err}:/home/."
-  # prunes docker system (stopped containers and unused networks/images); this is dangerous on a dev workstation but very helpful for a CI server (normally requires stopper and customarily after metadata)
+    depends_on:
+      - metadata
+  # prunes docker system (stopped containers and unused networks/images); this is dangerous on a dev workstation but very helpful for a CI server
   cleaner:
     build:
       context: .
@@ -163,3 +182,6 @@ services:
     working_dir: /home
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - stopper
+      - metadata
