@@ -47,6 +47,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
       - "${app_container:?err}"
+      # - additional flags and arguments as elements here
       - "${repo:?err}:${tag:?err}"
     depends_on:
       - builder
@@ -141,6 +142,22 @@ services:
       - "${registry:?err}/${repo:?err}:${tag:?err}"
     depends_on:
       - tagger
+  # jfrog xray scan docker image
+  xray:
+    build:
+      context: .
+      dockerfile: 'Dockerfile.xray'
+      args:
+        registry: "${registry:?err}"
+    image: 'reg/image-xray:1.0'
+    container_name: reg-image-xray
+    volumes:
+      - "${app_path:?err}:/home/."
+    command:
+      - "{ \"componentID\": \"docker://${repo:?err}:${tag:?err}\" }"
+      - "https://xray.company.com/api/v1/scanArtifact?token=${xray_token:?err}"
+    depends_on:
+      - publisher
   # gathers docker image metadata
   metadata:
     build:
@@ -157,19 +174,6 @@ services:
       - "${registry:?err}/${repo:?err}:${tag:?err}"
     depends_on:
       - publisher
-  # jfrog xray scan docker image
-  xray:
-    build:
-      context: .
-      dockerfile: 'Dockerfile.xray'
-      args:
-        registry: "${registry:?err}"
-    image: 'reg/image-xray:1.0'
-    container_name: reg-image-xray
-    volumes:
-      - "${app_path:?err}:/home/."
-    depends_on:
-      - metadata
   # prunes docker system (stopped containers and unused networks/images); this is dangerous on a dev workstation but very helpful for a CI server
   cleaner:
     build:

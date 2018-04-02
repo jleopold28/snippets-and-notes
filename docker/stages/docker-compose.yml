@@ -46,7 +46,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
       - "${app_container:?err}"
-      - "${repo:?err}:${tag:?err}"er
+      # - additional flags and arguments as elements here
+      - "${repo:?err}:${tag:?err}"
     healthcheck:
       test:
         - CMD
@@ -126,6 +127,20 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
       - "${registry:?err}/${repo:?err}:${tag:?err}"
+  # jfrog xray scan docker image (normally requires publisher)
+  xray:
+    build:
+      context: .
+      dockerfile: 'Dockerfile.xray'
+      args:
+        registry: "${registry:?err}"
+    image: 'reg/image-xray:1.0'
+    container_name: reg-image-xray
+    volumes:
+      - "${app_path:?err}:/home/."
+    command:
+      - "{ \"componentID\": \"docker://${repo:?err}:${tag:?err}\" }"
+      - "https://xray.company.com/api/v1/scanArtifact?token=${xray_token:?err}"
   # gathers docker image metadata (normally requires publisher)
   metadata:
     build:
@@ -140,17 +155,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
       - "${registry:?err}/${repo:?err}:${tag:?err}"
-  # jfrog xray scan docker image (normally requires metdata)
-  xray:
-    build:
-      context: .
-      dockerfile: 'Dockerfile.xray'
-      args:
-        registry: "${registry:?err}"
-    image: 'reg/image-xray:1.0'
-    container_name: reg-image-xray
-    volumes:
-      - "${app_path:?err}:/home/."
   # prunes docker system (stopped containers and unused networks/images); this is dangerous on a dev workstation but very helpful for a CI server (normally requires stopper and customarily after metadata)
   cleaner:
     build:

@@ -3,6 +3,3 @@
 FROM docker:stable
 ENTRYPOINT ["docker", "run", "-dt", "--rm", "--name"]
 CMD ["app", "repo:tag"]
-
-#FINISH
-# needs additional args option? how to do?
