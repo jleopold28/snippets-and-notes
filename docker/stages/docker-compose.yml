@@ -1,6 +1,6 @@
 # Utilizes features up to config version 3.1
 
-#TODO: security options in config
+#TODO: security options in config; xray results parse; qualys results get
 version: '3'
 
 services:
@@ -136,11 +136,31 @@ services:
         registry: "${registry:?err}"
     image: 'reg/image-xray:1.0'
     container_name: reg-image-xray
-    volumes:
-      - "${app_path:?err}:/home/."
     command:
       - "{ \"componentID\": \"docker://${repo:?err}:${tag:?err}\" }"
       - "https://xray.company.com/api/v1/scanArtifact?token=${xray_token:?err}"
+  # jfrog xray scan security report generate (normally requires xray)
+  xray_gen:
+    build:
+      context: .
+      dockerfile: 'Dockerfile.xray_gen'
+      args:
+        registry: "${registry:?err}"
+    image: 'reg/image-xray-gen:1.0'
+    container_name: reg-image-xray-gen
+    command:
+      - "https://xray.company.com/api/v1/securityReport/generate?token=${xray_token:?err}"
+  # jfrog xray scan security report retrieve (normally requires xray_gen)
+  xray_ret:
+    build:
+      context: .
+      dockerfile: 'Dockerfile.xray_ret'
+      args:
+        registry: "${registry:?err}"
+    image: 'reg/image-xray-ret:1.0'
+    container_name: reg-image-xray-ret
+    command:
+      - "https://xray.company.com/api/v1/securityReport?token=${xray_token:?err}"
   # gathers docker image metadata (normally requires publisher)
   metadata:
     build:
@@ -167,3 +187,5 @@ services:
     working_dir: /home
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - "-${clean?err}f"

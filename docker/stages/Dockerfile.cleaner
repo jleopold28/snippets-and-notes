@@ -1,4 +1,5 @@
 #ARG registry
 #FROM ${registry}/docker:stable
 FROM docker:stable
-ENTRYPOINT ["docker", "system", "prune", "-af"]
+ENTRYPOINT ["docker", "system", "prune"]
+CMD ["-f"]

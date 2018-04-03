@@ -1,7 +1,5 @@
 # Utilizes features up to config version 3.1
 # This is an alternative fully automated/orchestrated version of the docker-compose which attempts to sequence/parallelize every container's actions in a default structure. This is left unfinished, but can be completed using tools that wait for a container to finish executing.
-
-#TODO: security options in config
 version: '3'
 
 services:
@@ -151,13 +149,35 @@ services:
         registry: "${registry:?err}"
     image: 'reg/image-xray:1.0'
     container_name: reg-image-xray
-    volumes:
-      - "${app_path:?err}:/home/."
     command:
       - "{ \"componentID\": \"docker://${repo:?err}:${tag:?err}\" }"
       - "https://xray.company.com/api/v1/scanArtifact?token=${xray_token:?err}"
     depends_on:
       - publisher
+  # jfrog xray scan security report generate
+  xray_gen:
+    build:
+      context: .
+      dockerfile: 'Dockerfile.xray_gen'
+      args:
+        registry: "${registry:?err}"
+    image: 'reg/image-xray-gen:1.0'
+    container_name: reg-image-xray-gen
+    command:
+      - "https://xray.company.com/api/v1/securityReport/generate?token=${xray_token:?err}"
+    depends_on:
+      - xray
+  # jfrog xray scan security report retrieve (normally requires xray_gen)
+  xray_ret:
+    build:
+      context: .
+      dockerfile: 'Dockerfile.xray_ret'
+      args:
+        registry: "${registry:?err}"
+    image: 'reg/image-xray-ret:1.0'
+    container_name: reg-image-xray-ret
+    command:
+      - "https://xray.company.com/api/v1/securityReport?token=${xray_token:?err}"
   # gathers docker image metadata
   metadata:
     build:
@@ -186,6 +206,8 @@ services:
     working_dir: /home
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - "-${clean?err}f"
     depends_on:
       - stopper
       - metadata

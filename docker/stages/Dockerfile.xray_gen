@@ -1,0 +1,6 @@
+#ARG registry
+#FROM ${registry}/alpine:3.7
+FROM alpine:3.7
+RUN apk add --no-cache curl ca-certificates
+ENTRYPOINT ["curl", "-X", "GET"]
+CMD ["https://xray.company.com/api/v1/securityReport/generate?token=12345"]
