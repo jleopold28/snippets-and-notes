@@ -1,9 +1,5 @@
-#ARG registry
-#FROM ${registry}/alpine:3.7
-FROM alpine:3.7
+ARG registry
+FROM ${registry}/alpine:3.7
 RUN apk add --no-cache curl ca-certificates
-ENTRYPOINT ["curl", "-X", "POST", "-H", "X-Requested-With: Curl Sample", "-H", "Cache-Control: no-cache", "https://qualysapi.domain/api/2.0/fo/scan/?action=launch"]
-CMD []
-
-
-#FINISH
+ENTRYPOINT ["curl", "-X", "POST", "-H", "X-Requested-With: Curl Sample", "-H", "Cache-Control: no-cache", "-H", "Content-Type: multipart/form-data", "-H"]
+CMD ["Authorization: Basic hash", "https://qualysapi.domain/api/2.0/fo/scan/?action=launch"]

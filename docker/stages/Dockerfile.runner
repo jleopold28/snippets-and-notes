@@ -1,5 +1,4 @@
-#ARG registry
-#FROM ${registry}/docker:stable
-FROM docker:stable
+ARG registry
+FROM ${registry}/docker:stable
 ENTRYPOINT ["docker", "run", "-dt", "--rm", "--name"]
 CMD ["app", "repo:tag"]

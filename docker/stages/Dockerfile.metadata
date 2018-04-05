@@ -1,5 +1,4 @@
-#ARG registry
-#FROM ${registry}/docker:stable
-FROM docker:stable
+ARG registry
+FROM ${registry}/docker:stable
 ENTRYPOINT ["docker", "inspect", "-f", "'{{index .RepoDigests 0}}'"]
 CMD ["registry/repo:tag"]

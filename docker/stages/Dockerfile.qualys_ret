@@ -1,0 +1,5 @@
+ARG registry
+FROM ${registry}/alpine:3.7
+RUN apk add --no-cache curl ca-certificates
+ENTRYPOINT ["curl", "-X", "GET", "-H", "X-Requested-With: Curl", "-H"]
+CMD ["Authorization: Basic hash", "https://qualysapi.domain/api/2.0/fo/scan/?action=list&scan_ref=scanid"]

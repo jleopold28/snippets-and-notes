@@ -1,6 +1,4 @@
 # Utilizes features up to config version 3.1
-
-#TODO: security options in config; xray results parse; qualys results get
 version: '3'
 
 services:
@@ -74,8 +72,8 @@ services:
     command:
       - "${app_container:?err}"
       - "${validate_cmd:?err}"
-      - "${validate_arg:?err}"
-  # qualys scan docker image (customarily after validator)
+      - "${validate_arg?err}"
+  # qualys scan docker image/container (customarily after validator)
   qualys:
     build:
       context: .
@@ -84,7 +82,22 @@ services:
         registry: "${registry:?err}"
     image: 'reg/image-qualys:1.0'
     container_name: reg-image-qualys
-  # stop docker container (customarily after xray and qualys)
+    command:
+      - "Authorization: Basic ${qualys_token:?err}"
+      - "https://qualysapi.domain/api/2.0/fo/scan/?action=launch"
+  # qualys scan results retrieval (normally requires qualys)
+  qualys_ret:
+    build:
+      context: .
+      dockerfile: 'Dockerfile.qualys_ret'
+      args:
+        registry: "${registry:?err}"
+    image: 'reg/image-qualys-ret:1.0'
+    container_name: reg-image-qualys-ret
+    command:
+      - "Authorization: Basic ${qualys_token:?err}"
+      - "https://qualysapi.domain/api/2.0/fo/scan/?action=list&scan_ref=scanid"
+  # stop docker container (customarily after qualys)
   stopper:
     build:
       context: .
@@ -98,7 +111,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
       - "${app_container:?err}"
-  # tags docker image (normally requires xray and qualys)
+  # tags docker image (customarily after qualys)
   tagger:
     build:
       context: .
@@ -175,7 +188,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
       - "${registry:?err}/${repo:?err}:${tag:?err}"
-  # prunes docker system (stopped containers and unused networks/images); this is dangerous on a dev workstation but very helpful for a CI server (normally requires stopper and customarily after metadata)
+  # prunes docker system (stopped containers and unused networks/images); this is dangerous on a dev workstation but very helpful for a CI server (customarily after metadata and xray_ret)
   cleaner:
     build:
       context: .

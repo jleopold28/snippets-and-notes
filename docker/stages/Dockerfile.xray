@@ -1,6 +1,5 @@
-#ARG registry
-#FROM ${registry}/alpine:3.7
-FROM alpine:3.7
+ARG registry
+FROM ${registry}/alpine:3.7
 RUN apk add --no-cache curl ca-certificates
 ENTRYPOINT ["curl", "-X", "POST", "-H", "Content-type: application/json", "--data-binary"]
 CMD ["{ \"componentID\": \"docker://repo:tag\" }", "https://xray.company.com/api/v1/scanArtifact?token=12345"]

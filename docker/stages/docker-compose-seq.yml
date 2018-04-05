@@ -75,10 +75,10 @@ services:
     command:
       - "${app_container:?err}"
       - "${validate_cmd:?err}"
-      - "${validate_arg:?err}"
+      - "${validate_arg?err}"
     depends_on:
       - runner
-  # qualys scan docker image
+  # qualys scan docker image/container
   qualys:
     build:
       context: .
@@ -87,8 +87,25 @@ services:
         registry: "${registry:?err}"
     image: 'reg/image-qualys:1.0'
     container_name: reg-image-qualys
+    command:
+      - "Authorization: Basic ${qualys_token:?err}"
+      - "https://qualysapi.domain/api/2.0/fo/scan/?action=launch"
     depends_on:
       - validator
+  # qualys scan results retrieval
+  qualys_ret:
+    build:
+      context: .
+      dockerfile: 'Dockerfile.qualys_ret'
+      args:
+        registry: "${registry:?err}"
+    image: 'reg/image-qualys-ret:1.0'
+    container_name: reg-image-qualys-ret
+    command:
+      - "Authorization: Basic ${qualys_token:?err}"
+      - "https://qualysapi.domain/api/2.0/fo/scan/?action=list&scan_ref=scanid"
+    depends_on:
+      - qualys
   # stop docker container
   stopper:
     build:
@@ -104,7 +121,6 @@ services:
     command:
       - "${app_container:?err}"
     depends_on:
-      - xray
       - qualys
   # tags docker image
   tagger:
@@ -122,8 +138,7 @@ services:
       - "${repo:?err}:${tag:?err}"
       - "${registry:?err}/${repo:?err}:${tag:?err}"
     depends_on:
-      - xray
-      - qualys
+      - qualys_ret
   # publishes docker image in registry
   publisher:
     build:
@@ -178,6 +193,8 @@ services:
     container_name: reg-image-xray-ret
     command:
       - "https://xray.company.com/api/v1/securityReport?token=${xray_token:?err}"
+    depends_on:
+      - xray_gen
   # gathers docker image metadata
   metadata:
     build:
@@ -209,5 +226,5 @@ services:
     command:
       - "-${clean?err}f"
     depends_on:
-      - stopper
+      - xray_ret
       - metadata
