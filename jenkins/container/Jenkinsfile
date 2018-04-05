@@ -3,7 +3,7 @@
 // <server_url>/job/<jobname>/pipeline-syntax/html
 //TODO: reg_creds might need to be supplied for embedded object init
 //TODO: buildinfo object modification not syntactically correct
-//TODO: doublecheck that .tag and .push just want the <tag> and not (registry)/<repo>:<tag>
+//TODO: input params for build/run args?
 
 pipeline {
   agent any
@@ -100,10 +100,8 @@ pipeline {
             sh 'ls /helloworld'
           }
           // low-level testing
-          //image.withRun {
-            //goss.validate_docker {
-              //image = image.imageName()
-            //}
+          //goss.validate_docker {
+            //image = image.imageName()
           //}
         }
       }
@@ -113,22 +111,6 @@ pipeline {
         }
         failure {
           print "Failure validating Docker Image for ${params.APP} in branch ${params.BRANCH}."
-        }
-      }
-    }
-    stage('Qualys Scan Docker Image') {
-      steps {
-        script {
-          // scan the docker image with qualys for issues
-          print 'Placeholder for Qualys container scan.'
-        }
-      }
-      post {
-        success {
-          print "Docker Image for ${params.APP} in branch ${params.BRANCH} scanned successfully with Qualys."
-        }
-        failure {
-          print "Failure scanning Docker Image for ${params.APP} in branch ${params.BRANCH} with Qualys."
         }
       }
     }
@@ -224,26 +206,46 @@ pipeline {
         }
       }
     }
-    stage('JFrog XRay Scan Docker Image') {
-      steps {
-        when { expression { return artifactory } }
-        script {
-          // scan image for vulnerabilities
-          print 'Scanning Docker build with XRay. Failure will trigger build failure with displayed errors. Successful results will be displayed as info.'
-          scanConfig = [
-            'buildName' : buildInfo.name,
-            'buildNumber' : buildInfo.number
-          ]
-          xrayResults = xrayScanBuild(scanConfig)
-          print xrayResults as String
+    stage('Scan Docker Image') {
+      parallel {
+        stage('JFrog Xray') {
+          steps {
+            when { expression { return artifactory } }
+            script {
+              // scan image for vulnerabilities
+              print 'Scanning Docker build with XRay. Failure will trigger build failure with displayed errors. Successful results will be displayed as info.'
+              scanConfig = [
+                'buildName' : buildInfo.name,
+                'buildNumber' : buildInfo.number
+              ]
+              xrayResults = xrayScanBuild(scanConfig)
+              print xrayResults as String
+            }
+          }
+          post {
+            success {
+              print "Docker Image for ${params.APP} in branch ${params.BRANCH} scanned successfully with JFrog XRay."
+            }
+            failure {
+              print "Failure scanning Docker Image for ${params.APP} in branch ${params.BRANCH} with JFrog XRay."
+            }
+          }
         }
-      }
-      post {
-        success {
-          print "Docker Image for ${params.APP} in branch ${params.BRANCH} scanned successfully with JFrog XRay."
-        }
-        failure {
-          print "Failure scanning Docker Image for ${params.APP} in branch ${params.BRANCH} with JFrog XRay."
+        stage('Qualys') {
+          steps {
+            script {
+              // scan the docker image with qualys for issues
+              print 'Placeholder for Qualys container scan.'
+            }
+          }
+          post {
+            success {
+              print "Docker Image for ${params.APP} in branch ${params.BRANCH} scanned successfully with Qualys."
+            }
+            failure {
+              print "Failure scanning Docker Image for ${params.APP} in branch ${params.BRANCH} with Qualys."
+            }
+          }
         }
       }
     }
@@ -291,9 +293,10 @@ pipeline {
         body: "Job failed for ${env.JOB_NAME}/${env.JOB_NAME} at ${env.JOB_URL}.")
     }
     always {
-      // remove now useless built docker image to cleanup disk
-      print 'Removing built Docker image for cleanup.'
-      sh "docker rmi -f ${image.imageName()}"
+      // remove built docker image and prune system
+      print 'Cleaning up the Docker system.'
+      sh "docker rmi -f ${image.id}"
+      sh 'docker system prune -f'
     }
   }
 }
