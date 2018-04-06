@@ -1,0 +1,46 @@
+---
+- name: manage a web server
+  hosts: localhost
+  connection: local
+  vars:
+    services:
+      - httpd
+      - firewalld
+
+  tasks:
+    - name: install apache and firewalld
+      package:
+        name: "{{item}}"
+        state: installed
+      with_items: "{{services}}"
+
+    - name: start and enable apache and firewalld
+      service:
+        name: "{{item}}"
+        state: started
+        enabled: true
+      with_items: "{{services}}"
+
+    - name: enable firewalld
+      firewalld:
+        zone: public
+        service: http
+        permanent: true
+        state: enabled
+        immediate: true
+
+    - name: web page text
+      copy:
+        content: 'Your Apache web server is ready'
+        dest: /var/www/html/index.html
+        owner: apache
+        group: apache
+        mode: 0644
+      notify:
+        - restart apache
+
+  handlers:
+    - name: restart apache
+      service:
+        name: httpd
+        state: restarted

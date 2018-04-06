@@ -4,7 +4,7 @@
   remote_user: devops
   become: true
   tasks:
-  - name: Start and enable httpd
+  - name: install httpd
     yum:
       name: httpd
       state: installed
@@ -29,7 +29,7 @@
   - name: Enable firewalld
     firewalld:
       zone: public
-      service: http
+      service: httpd
       permanent: true
       state: enabled
       immediate: true

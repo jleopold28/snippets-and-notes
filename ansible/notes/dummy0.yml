@@ -1,0 +1,14 @@
+---
+- name: configure dummy0 network interface file
+  hosts: localhost
+  connection: local
+
+  tasks:
+    - name: configure dummy0 network interface file
+      interfaces_file:
+        dest: /etc/sysconfig/network-scripts/ifcfg-dummy0
+        iface: eth1
+        option: mtu
+        value: 8000
+        backup: yes
+        state: present

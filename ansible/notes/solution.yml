@@ -1,0 +1,34 @@
+---
+- name:
+  hosts: localhost
+  connection: local
+
+  tasks:
+    - name: create food group
+      group:
+        name: food
+        state: present
+
+    - name: create enchilada user
+      user:
+        name: enchilada
+        state: present
+        group: food
+
+    - name: create redhat group
+      group:
+        name: redhat
+        state: present
+
+    - name: create redhat user
+      user:
+        name: redhat
+        group: redhat
+        uid: 1500
+
+    - name: create rht directory
+      file:
+        state: directory
+        path: /data/project/RHT
+        owner: redhat
+        group: redhat

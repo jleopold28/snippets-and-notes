@@ -1,0 +1,10 @@
+{% if (ansible_date_time.hour | int) < 12 %}
+Good Morning,
+{% elif (ansible_date_time.hour | int) < 17 %}
+Good Afternoon,
+{% else %}
+Good Evening,
+{% endif %}
+
+Operating System = {{ansible_distribution}}
+Private IP = {{ansible_default_ipv4.address}}

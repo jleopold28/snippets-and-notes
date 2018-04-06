@@ -1,0 +1,10 @@
+---
+- name: create email
+  hosts: localhost
+  connection: local
+
+  tasks:
+    - name: generate email from jinja2 template
+      template:
+        dest: /home/tasker/basic_stats.txt
+        src: /home/tasker/monitor.j2
