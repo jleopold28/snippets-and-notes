@@ -103,7 +103,7 @@ for label, mean_vec in zip(range(1, 4), MEAN_VECS):
 print("Scaled within-class scatter matrix: %sx%s" % (SCATTER_W.shape[0],
                                                      SCATTER_W.shape[1]))
 # construct between-class scatter matrix
-SCATTER_B = np.zeros(13, 13)
+SCATTER_B = np.zeros((13, 13))
 MEAN_OVERALL = np.mean(DATA_TRAIN_STD, axis=0).reshape(13, 1)
 for index, mean_vec in enumerate(MEAN_VECS):
     n = DATA_TRAIN[TARG_TRAIN == index + 1, :].shape[0]
@@ -111,7 +111,7 @@ for index, mean_vec in enumerate(MEAN_VECS):
     SCATTER_B += n * (mean_vec - MEAN_OVERALL).dot((mean_vec - MEAN_OVERALL).T)
 print("Between-class scatter matrix: %sx%s" % (SCATTER_B.shape[0],
                                                SCATTER_B.shape[1]))
-# computer eigenvalues and eigenvectors of combined matrices
+# compute eigenvalues and eigenvectors of combined matrices
 EIG_VALS, EIG_VECS = np.linalg.eig(np.linalg.inv(SCATTER_W).dot(SCATTER_B))
 # choose eigenvectors corresponding to largest eigenvalues
 EIG_PAIRS = [(np.abs(EIG_VALS[index]), EIG_VECS[:, index])
