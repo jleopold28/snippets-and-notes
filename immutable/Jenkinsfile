@@ -1,10 +1,17 @@
-// try/catch; post steps
+// post steps; add testinfra; terraform vars for platform; comments
+@Library('jenkins-devops-libs')
+
 pipeline {
   agent any
+
+  parameters {
+    choice(name: 'PLATFORM', choices: 'All\nAWS\nAzure\nDO\nDocker\nVirtualbox', description: 'The platform to build for and deploy on.')
+  }
+
   stages {
-    // Packer plugin too outdated to support Pipeline
     parallel {
       stage('Construct Amazon Linux AMI with Packer/Puppet') {
+        when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'AWS' } }
         stage('Checkout Code') {
           steps {
             print 'git clone'
@@ -12,17 +19,28 @@ pipeline {
         }
         stage('Validate Code') {
           steps {
-            dir('packer') { sh "packer validate aws.json" }
+            script {
+              packer.validate {
+                template = 'packer/packer.json'
+                only = 'amazon-ebs'
+              }
+            }
             sh "puppet-check -s puppet/manifest.pp"
           }
         }
         stage('Build AMI') {
           steps {
-            dir('packer') { sh "packer build packer/aws.json" }
+            script {
+              packer.build {
+                template = 'packer/packer.json'
+                only = 'amazon-ebs'
+              }
+            }
           }
         }
       }
       stage('Construct CentOS Azure VHD with Packer/Ansible') {
+        when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'Azure' } }
         stage('Checkout Code') {
           steps {
             print 'git clone'
@@ -30,18 +48,29 @@ pipeline {
         }
         stage('Validate Code') {
           steps {
-            dir('packer') { sh "packer validate azure.json" }
+            script {
+              packer.validate {
+                template = 'packer/packer.json'
+                only = 'azure-arm'
+              }
+            }
             sh "ansible-playbook --syntax ansible/vhd.yml"
           }
         }
         stage('Build VHD') {
           steps {
             // need to figure this out; azure is not great at this
-            dir('packer') { sh "packer build packer/azure.json" }
+            script {
+              packer.build {
+                template = 'packer/packer.json'
+                only = 'azure-arm'
+              }
+            }
           }
         }
       }
       stage('Construct Ubuntu Droplet Image with Packer/Chef') {
+        when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'DO' } }
         stage('Checkout Code') {
           steps {
             print 'git clone'
@@ -49,83 +78,28 @@ pipeline {
         }
         stage('Validate Code') {
           steps {
-            dir('packer') { sh "packer validate do.json" }
+            script {
+              packer.validate {
+                template = 'packer/packer.json'
+                only = 'digitalocean'
+              }
+            }
             sh "puppet-check -s chef/di.rb"
           }
         }
         stage('Build DI') {
           steps {
             // need to figure this out; chef is not great at local provisioning
-            dir('packer') { sh "packer build packer/do.json" }
+            script {
+              packer.build {
+                template = 'packer/packer.json'
+                only = 'digitalocean'
+              }
+            }
           }
         }
       }
-    }
-    // Terraform plugin does not support Pipeline super well
-    parallel {
-      stage('Deploy EC2 with AMI') {
-        stage('Checkout Code') {
-          steps {
-            print 'git clone'
-          }
-        }
-        stage('Validate Code') {
-          steps {
-            sh "terraform plan terraform/aws/main.tf"
-          }
-        }
-        stage('Create EC2 with AMI') {
-          steps {
-            sh "terraform apply terraform/aws/main.tf" }
-          }
-        }
-      }
-      stage('Deploy VM with Azure VHD') {
-        stage('Checkout Code') {
-          steps {
-            print 'git clone'
-          }
-        }
-        stage('Validate Code') {
-          steps {
-            sh "terraform plan terraform/azure/main.tf"
-          }
-        }
-        // unsure what the minimum required resources are here
-        stage('Create VM with VHD') {
-          steps {
-            sh "terraform apply terraform/azure/main.tf" }
-          }
-        }
-      }
-      stage('Deploy Droplet with Image') {
-        stage('Checkout Code') {
-          steps {
-            print 'git clone'
-          }
-        }
-        stage('Validate Code') {
-          steps {
-            sh "terraform plan terraform/do/main.tf"
-          }
-        }
-        stage('Create Droplet with DI') {
-          steps {
-            sh "terraform apply terraform/do/main.tf" }
-          }
-        }
-      }
-    }
-    parallel {
-      stage('Deploy Application to AWS') {
-        //
-      }
-      stage('Deploy Application to Azure') {
-        //
-      }
-      stage('Deploy Application to Digital Ocean') {
-        //
-      }
+      // docker and vbox
     }
     parallel {
       stage('Serverspec Validate') {
@@ -153,11 +127,91 @@ pipeline {
         }
         stage('Validate') {
           steps {
-            sh "goss -g goss/goss.yaml serve &"
+            script {
+              goss.server {
+                gossfile = 'goss/goss.yaml'
+                port = '9001'
+              }
+            }
             // needs to pull from endpoint now
           }
         }
       }
+      // testinfra
+    }
+    // Terraform plugin does not support Pipeline super well
+    parallel {
+      stage('Deploy EC2 with AMI') {
+        when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'AWS' } }
+        stage('Checkout Code') {
+          steps {
+            print 'git clone'
+          }
+        }
+        stage('Validate Code') {
+          steps {
+            script {
+              terraform.init('terraform/aws')
+              terraform.plan('terraform/aws')
+            }
+          }
+        }
+        stage('Create EC2 with AMI') {
+          steps {
+            script {
+              terraform.apply('terraform/aws/plan.tfplan')
+            }
+          }
+        }
+      }
+      stage('Deploy VM with Azure VHD') {
+        when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'Azure' } }
+        stage('Checkout Code') {
+          steps {
+            print 'git clone'
+          }
+        }
+        stage('Validate Code') {
+          steps {
+            script {
+              terraform.init('terraform/azure')
+              terraform.plan('terraform/azure')
+            }
+          }
+        }
+        // unsure what the minimum required resources are here
+        stage('Create VM with VHD') {
+          steps {
+            script {
+              terraform.apply('terraform/azure/plan.tfplan')
+            }
+          }
+        }
+      }
+      stage('Deploy Droplet with Image') {
+        when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'DO' } }
+        stage('Checkout Code') {
+          steps {
+            print 'git clone'
+          }
+        }
+        stage('Validate Code') {
+          steps {
+            script {
+              terraform.init('terraform/do')
+              terraform.plan('terraform/do')
+            }
+          }
+        }
+        stage('Create Droplet with DI') {
+          steps {
+            script {
+              terraform.apply('terraform/do/plan.tfplan')
+            }
+          }
+        }
+      }
+      // docker and virtualbox
     }
   }
 }
