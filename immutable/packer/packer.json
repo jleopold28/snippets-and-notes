@@ -1,5 +1,20 @@
 {
+  "variables": {
+    "aws_access_key": "",
+    "aws_secret_key": "",
+    "do_api_token": ""
+  },
   "builders": [{
+    "type": "amazon-ebs",
+    "access_key": "{{user `aws_access_key`}}",
+    "secret_key": "{{user `aws_secret_key`}}",
+    "region": "us-east-1",
+    "source_ami": "ami-8c1be5f6",
+    "instance_type": "t2.micro",
+    "ssh_username": "mschuchard",
+    "ami_name": "amazon-lamp"
+  },
+  {
     "type": "azure-arm",
 
     "client_id": "fe354398-d7sf-4dc9-87fd-c432cd8a7e09",
@@ -23,9 +38,26 @@
 
     "location": "West US",
     "vm_size": "Standard_A2"
+  },
+  {
+    "type": "digitalocean",
+    "api_token": "{{user `do_api_token`}}",
+    "image": "ubuntu-16-04-x64",
+    "region": "nyc1",
+    "size": "512mb",
+    "ssh_username": "mschuchard",
+    "snapshot_name": "ubuntu-lamp"
   }],
   "provisioners": [{
+    "type": "puppet-masterless",
+    "manifest_file": "../puppet/ami.pp"
+  },
+  {
     "type": "ansible-local",
     "playbook_file": "../ansible/vhd.yml"
+  },
+  {
+    "type": "chef-solo",
+    "cookbook_paths": ["chef"]
   }]
 }
