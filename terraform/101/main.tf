@@ -1,32 +1,13 @@
-provider "aws" {
-  version = "~> 1.5"
+module "my-module" {
+  source = "./my-module"
 
-  access_key = "${var.access_key}"
-  secret_key = "${var.secret_key}"
-  region     = "${var.region}"
+  ami                = "${var.ami}"
+  subnet_id          = "${var.subnet_id}"
+  vpc_security_group = "${var.vpc_security_group}"
+  identity           = "${var.identity}"
+  instance_type      = "${var.instance_type}"
 }
 
-provider "dnsimple" {
-  version = "~> 0.1"
-}
-
-resource "aws_instance" "web" {
-  ami                    = "ami-db24d8b6"
-  instance_type          = "t2.micro"
-  subnet_id              = "subnet-c02e6198"
-  vpc_security_group_ids = ["sg-b1fe76ca"]
-
-  tags {
-    Identity = "..."
-    Name     = "${var.label}"
-    Zip      = "zap"
-  }
-}
-
-resource "dnsimple_record" "web" {
-  domain = "hashicorp.com"
-  name   = "web"
-  ttl    = "3600"
-  type   = "A"
-  value  = "${aws_instance.web.public_ip}"
+output "public_ip" {
+  value = "${module.my-module.public_ip}"
 }

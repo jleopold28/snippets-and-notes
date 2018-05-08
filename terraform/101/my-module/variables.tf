@@ -10,6 +10,12 @@ variable "secret_key" {
   description = "AWS secret key"
 }
 
+variable "identity" {
+  type = "string"
+
+  description = "User identity"
+}
+
 variable "region" {
   type = "string"
 
@@ -43,4 +49,12 @@ variable "label" {
   description = "resource label"
 
   default = "training"
+}
+
+variable "num_webs" {
+  type = "string"
+
+  description = "Number of web instances"
+
+  default = "2"
 }
