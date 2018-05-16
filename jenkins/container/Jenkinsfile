@@ -4,6 +4,9 @@
 //TODO: reg_creds might need to be supplied for embedded object init
 //TODO: buildinfo object modification not syntactically correct
 //TODO: input params for build/run args?
+//TODO: pull stuff out of script blocks if unnecessary
+
+library('jenkins-devops-libs')
 
 pipeline {
   agent any
@@ -15,12 +18,14 @@ pipeline {
     string(name: 'ORG', description: 'The organization for the application; used for Docker image repository prefix (if left blank defaults to Github organization).')
     string(name: 'VERSION', defaultValue: "${env.BUILD_NUMBER.toInteger() + 1}", description: 'The version of the application for the Docker Image tag.')
     string(name: 'REGISTRY_ID', defaultValue: 'OurArtifactoryServer', description: 'The Docker Registry server ID (as defined within Jenkins; otherwise make descriptive/cosmetic input).')
-    string(name: 'REGISTRY_URL', defaultValue: 'artifactory.company.com', description: 'The Docker Registry server URL (no URI; https:// is embedded in code and required for registries).')
-    string(name: 'REG_CREDS', description: 'The credentials for pushing to the Docker registry.')
+    string(name: 'REGISTRY_URL', defaultValue: 'registry.hub.docker.com', description: 'The Docker Registry server URL (no URI; https:// is embedded in code and required for registries).')
+    string(name: 'REG_CREDS', defaultValue: 'docker-registry', description: 'The credentials ID for pushing to the Docker registry.')
     string(name: 'TARGET_REPO', defaultValue: 'docker', description: 'The target repository for the Docker Registry within Artifactory (Artifactory only).')
     string(name: 'SLACK_CHAN', description: 'Slack channel to notify on failure.')
     string(name: 'MAIL_ADD', description: 'Email address to notify on failure.')
   }
+
+  environment { KUBECONFIG = '/home/vagrant/.kube/config' }
 
   stages {
     stage('Initialize') {
@@ -33,18 +38,20 @@ pipeline {
                 // determine git org for image repo name
                 repo = params.SCM_URL =~ /\/\/.*\/|:(.*)\/.*\.git/
                 // establish the <registry>/<repo> for the docker image
-                image_name = "${params.REGISTRY_URL}/${repo[0][1]}/${params.APP}"
+                image_name = "${repo[0][1]}/${params.APP}"
                 // null var for serialization
                 repo = null
               }
               // use input parameter for repo
               else {
                 // establish the <registry>/<repo> for the docker image
-                image_name = "${params.REGISTRY_URL}/${params.ORG}/${params.APP}"
+                image_name = "${params.ORG}/${params.APP}"
               }
               // determine if using artifactory
               if (params.REGISTRY_ID =~ /[aA]rtifactory/) {
                 artifactory = true
+                // need to prefix registry url for artifactory
+                image_name = "${params.REGISTRY_URL}/${image_name}"
                 print 'Using Artifactory as Docker Registry.'
               }
               else {
@@ -176,7 +183,7 @@ pipeline {
               // add digest property to build info manifest artifact
               //TODO: this does not modify the object as desired
               buildInfo.repoDigest = repodigest
-              print "Repo Digest is: ${repodigest}"
+              print "Repo Digest is: ${repoDigest}"
               // for purging older images
               buildInfo.retention(maxBuilds: 10, deleteBuildArtifacts: true)
               // push build info manifest to artifactory
@@ -192,7 +199,8 @@ pipeline {
               print 'Gathering repo digest.'
               repoDigest = sh(returnStdout: true, script: "docker inspect -f '{{index .RepoDigests 0}}' ${image.imageName()}").trim()
               // TODO: push digest in custom registry
-              print "Repo Digest is: ${repodigest}"
+              print "Repo Digest is: ${repoDigest}"
+              repoDigest = null
             }
           }
         }
@@ -202,15 +210,15 @@ pipeline {
           print "Docker Image RepoDigest and retention stored successfully in ${params.REGISTRY_ID}."
         }
         failure {
-          print "Failure pushing RepoDigest or retention for Docker Image for ${params.APP} in branch ${params.BRANCH} in ${params.REGISTRY_ID}."
+          print "Failure pushing RepoDigest or retention for Docker Image for ${params.APP} in branch ${params.BRANCH} from ${params.REGISTRY_ID}."
         }
       }
     }
     stage('Scan Docker Image') {
       parallel {
         stage('JFrog Xray') {
+          when { expression { return artifactory } }
           steps {
-            when { expression { return artifactory } }
             script {
               // scan image for vulnerabilities
               print 'Scanning Docker build with XRay. Failure will trigger build failure with displayed errors. Successful results will be displayed as info.'
@@ -250,8 +258,8 @@ pipeline {
       }
     }
     stage('Promotion Request') {
+      when { expression { return artifactory } }
       steps {
-        when { expression { return artifactory } }
         script {
           if (params.BRANCH == 'master') {
             print 'Creating interactive promotion request for image to higher lifecycle repository.'
@@ -277,10 +285,36 @@ pipeline {
         }
       }
     }
+    stage('Deploy to Kubernetes') {
+      steps {
+        dir(params.BRANCH) {
+          script {
+            // ensure helm and tiller are setup
+            helm.setup('2.8.2', '/usr/bin')
+            // circumventing closure scope issue
+            def localParams = params
+            // deploy application to kubernetes cluster
+            helm.install {
+              chart = "${localParams.APP}-chart"
+              name = "version-${localParams.VERSION}"
+            }
+          }
+        }
+      }
+      post {
+        success {
+          print 'Successfully deployed to Kubernetes.'
+        }
+        failure {
+          print 'Failure deploying to Kubernetes.'
+        }
+      }
+    }
   }
   post {
     success {
       print 'Job completed successfully.'
+      sh "docker rmi -f ${image.id}"
     }
     failure {
       print 'Job failed.'
@@ -295,7 +329,6 @@ pipeline {
     always {
       // remove built docker image and prune system
       print 'Cleaning up the Docker system.'
-      sh "docker rmi -f ${image.id}"
       sh 'docker system prune -f'
     }
   }
