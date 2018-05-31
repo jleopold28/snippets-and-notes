@@ -1,3 +1,4 @@
+import re
 import tweepy
 import ruamel.yaml as yaml
 
@@ -17,6 +18,13 @@ user_timeline = api.user_timeline(id='crazykaz88', count=20)
 print([tweet.text for tweet in user_timeline])
 
 # grab subject timeline info
-subject_timeline = api.search(q='Shadow-Soft', lang='en')
+subject_timeline = api.search(q='AJC', lang='en')
 # iterate results
 print([(tweet.user.screen_name, 'Tweeted: ', tweet.text) for tweet in subject_timeline])
+# dump to csv in analysis format
+csv = "id,tweet\n"
+for tweet in subject_timeline:
+    # id and then tweet content with link replaced by newline
+    csv += tweet.id_str + ',"' + re.sub(r'\shttps.*', "\"\n", tweet.text)
+print(csv)
+# TODO: grab more info

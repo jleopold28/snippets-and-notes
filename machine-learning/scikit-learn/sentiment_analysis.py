@@ -142,3 +142,9 @@ data_test = vect.transform(data_test)
 print('Accuracy: %.3f' % clf.score(data_test, target_test))
 # use last 5000 documents to update model
 clf = clf.partial_fit(data_test, target_test)
+
+# begin analysis on tweets
+# init
+df = pd.read_csv('')
+df['tweet'] = df['tweet'].apply(preprocessor)
+print(clf.predict(df.loc[:, 'tweet'].values))
