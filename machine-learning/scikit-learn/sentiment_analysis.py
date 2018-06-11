@@ -49,7 +49,6 @@ def tokenizer_porter(text):
 
 
 # init stopwords to ignore (is, and, etc.)
-nltk.download('stopwords')
 STOP = nltk.corpus.stopwords.words('english')
 # store data in dataframe
 data_train = df.loc[:25000, 'review'].values
@@ -145,6 +144,7 @@ clf = clf.partial_fit(data_test, target_test)
 
 # begin analysis on tweets
 # init
-df = pd.read_csv('')
+df = pd.read_csv('ajc.csv')
+df = df.assign(label=None)
 df['tweet'] = df['tweet'].apply(preprocessor)
 print(clf.predict(df.loc[:, 'tweet'].values))

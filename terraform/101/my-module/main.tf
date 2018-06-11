@@ -18,6 +18,10 @@ resource "aws_instance" "web" {
   key_name               = "${aws_key_pair.key.id}"
   count                  = "${var.num_webs}"
 
+  lifecycle {
+    create_before_destroy = true
+  }
+
   tags {
     Identity = "..."
     Name     = "${var.label} ${count.index + 1}/${var.num_webs}"
