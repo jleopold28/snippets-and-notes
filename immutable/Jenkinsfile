@@ -1,217 +1,201 @@
-// post steps; add testinfra; terraform vars for platform; comments
-@Library('jenkins-devops-libs')
+// post steps; terraform vars for platform; comments; puppet and chef; azure and do
+//@Library('jenkins-devops-libs')_
+library identifier: 'jenkins-devops-libs@master', retriever: modernSCM(
+  [$class: 'GitSCMSource',
+   remote: 'https://github.com/mschuchard/jenkins-devops-libs.git'])
 
 pipeline {
   agent any
 
   parameters {
     choice(name: 'PLATFORM', choices: 'All\nAWS\nAzure\nDO\nDocker\nVirtualbox', description: 'The platform to build for and deploy on.')
+    string(name: 'SCM_URL', description: 'The URL (HTTPS or SSH URI) to the source repository containing the packer template (should also contain provisioning and validation support code for the artifact).')
   }
 
   stages {
-    parallel {
-      stage('Construct Amazon Linux AMI with Packer/Puppet') {
-        when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'AWS' } }
-        stage('Checkout Code') {
+    stage('Build Artifact') {
+      parallel {
+        stage('Construct Amazon Linux AMI') {
+          when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'AWS' } }
           steps {
-            print 'git clone'
-          }
-        }
-        stage('Validate Code') {
-          steps {
+            print 'Checkout Code'
+            checkout([
+              $class: 'GitSCM',
+              doGenerateSubmoduleConfigurations: false,
+              submoduleCfg: [],
+              userRemoteConfigs: [[url: params.SCM_URL]]])
+            print 'Validate Template and Provision Code'
             script {
               packer.validate {
-                template = 'packer/packer.json'
+                template = 'lamp-cloud/packer.json'
                 only = 'amazon-ebs'
               }
             }
-            sh "puppet-check -s puppet/manifest.pp"
-          }
-        }
-        stage('Build AMI') {
-          steps {
+            ansiblePlaybook(disableHostKeyChecking: true, extras: '--syntax-check', playbook: 'lamp-cloud/ansible/lamp.yml')
+            print 'Build AMI'
             script {
               packer.build {
-                template = 'packer/packer.json'
+                template = 'lamp-cloud/packer.json'
                 only = 'amazon-ebs'
               }
             }
           }
         }
-      }
-      stage('Construct CentOS Azure VHD with Packer/Ansible') {
-        when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'Azure' } }
-        stage('Checkout Code') {
+        stage('Construct CentOS Azure VHD') {
+          when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'Azure' } }
           steps {
-            print 'git clone'
-          }
-        }
-        stage('Validate Code') {
-          steps {
+            print 'Checkout Code'
+            checkout([
+              $class: 'GitSCM',
+              doGenerateSubmoduleConfigurations: false,
+              submoduleCfg: [],
+              userRemoteConfigs: [[url: params.SCM_URL]]])
+            print 'Validate Template and Provision Code'
             script {
               packer.validate {
-                template = 'packer/packer.json'
+                template = 'lamp-cloud/packer.json'
                 only = 'azure-arm'
               }
             }
-            sh "ansible-playbook --syntax ansible/vhd.yml"
-          }
-        }
-        stage('Build VHD') {
-          steps {
+            ansiblePlaybook(disableHostKeyChecking: true, extras: '--syntax-check', playbook: 'lamp-cloud/ansible/lamp.yml')
+            print 'Build Azure VHD'
             // need to figure this out; azure is not great at this
             script {
               packer.build {
-                template = 'packer/packer.json'
+                template = 'lamp-cloud/packer.json'
                 only = 'azure-arm'
               }
             }
           }
         }
-      }
-      stage('Construct Ubuntu Droplet Image with Packer/Chef') {
-        when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'DO' } }
-        stage('Checkout Code') {
+        stage('Construct Ubuntu Droplet Image') {
+          when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'DO' } }
           steps {
-            print 'git clone'
-          }
-        }
-        stage('Validate Code') {
-          steps {
+            print 'Checkout Code'
+            checkout([
+              $class: 'GitSCM',
+              doGenerateSubmoduleConfigurations: false,
+              submoduleCfg: [],
+              userRemoteConfigs: [[url: params.SCM_URL]]])
+            print 'Validate Template and Provision Code'
             script {
               packer.validate {
-                template = 'packer/packer.json'
+                template = 'lamp-cloud/packer.json'
                 only = 'digitalocean'
               }
             }
-            sh "puppet-check -s chef/di.rb"
-          }
-        }
-        stage('Build DI') {
-          steps {
-            // need to figure this out; chef is not great at local provisioning
+            ansiblePlaybook(disableHostKeyChecking: true, extras: '--syntax-check', playbook: 'lamp-cloud/ansible/lamp.yml')
+            print 'Build DI'
             script {
               packer.build {
-                template = 'packer/packer.json'
+                template = 'lamp-cloud/packer.json'
                 only = 'digitalocean'
               }
             }
           }
         }
+        // docker and vbox
       }
-      // docker and vbox
     }
-    parallel {
-      stage('Serverspec Validate') {
-        stage('Checkout Code') {
+    stage('Validate Artifact') {
+      parallel {
+        stage('Serverspec Validate') {
           steps {
-            print 'git clone'
-          }
-        }
-        stage('Validate') {
-          steps {
+            print 'Checkout Code'
+            checkout([
+              $class: 'GitSCM',
+              doGenerateSubmoduleConfigurations: false,
+              submoduleCfg: [],
+              userRemoteConfigs: [[url: params.SCM_URL]]])
+            print 'Validate Artifact'
             // how to feed it the servers
-            dir('serverspec') {
+            dir('lamp-cloud/serverspec') {
               sh "rake check[aws]"
               sh "rake check[azure]"
               sh "rake check[do]"
             }
           }
         }
-      }
-      stage('GOSS Validate') {
-        stage('Checkout Code') {
+        stage('GOSS Validate') {
           steps {
-            print 'git clone'
-          }
-        }
-        stage('Validate') {
-          steps {
+            print 'Checkout Code'
+            checkout([
+              $class: 'GitSCM',
+              doGenerateSubmoduleConfigurations: false,
+              submoduleCfg: [],
+              userRemoteConfigs: [[url: params.SCM_URL]]])
+            print 'Validate Artifact'
             script {
               goss.server {
-                gossfile = 'goss/goss.yaml'
+                gossfile = 'lamp-cloud/goss/goss.yaml'
                 port = '9001'
               }
             }
             // needs to pull from endpoint now
           }
         }
-      }
-      // testinfra
-    }
-    // Terraform plugin does not support Pipeline super well
-    parallel {
-      stage('Deploy EC2 with AMI') {
-        when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'AWS' } }
-        stage('Checkout Code') {
+        // do this
+        stage('Testinfra Validate') {
           steps {
-            print 'git clone'
+            print 'Placeholder'
           }
         }
-        stage('Validate Code') {
+      }
+    }
+    stage('Deploy Artifact') {
+      // Terraform should leverage vault for creds
+      parallel {
+        stage('Deploy EC2 with AMI') {
+          when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'AWS' } }
           steps {
+            print 'Checkout Code'
+            print 'git clone'
+            print 'Validate Config'
             script {
               terraform.init('terraform/aws')
               terraform.plan('terraform/aws')
             }
-          }
-        }
-        stage('Create EC2 with AMI') {
-          steps {
+            print 'Create EC2 with AMI'
             script {
               terraform.apply('terraform/aws/plan.tfplan')
             }
           }
         }
-      }
-      stage('Deploy VM with Azure VHD') {
-        when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'Azure' } }
-        stage('Checkout Code') {
+        stage('Deploy VM with Azure VHD') {
+          when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'Azure' } }
           steps {
+            print 'Checkout Code'
             print 'git clone'
-          }
-        }
-        stage('Validate Code') {
-          steps {
+            print 'Validate Config'
             script {
               terraform.init('terraform/azure')
               terraform.plan('terraform/azure')
             }
-          }
-        }
-        // unsure what the minimum required resources are here
-        stage('Create VM with VHD') {
-          steps {
+            // unsure what the minimum required resources are here
+            print 'Create VM with VHD'
             script {
               terraform.apply('terraform/azure/plan.tfplan')
             }
           }
         }
-      }
-      stage('Deploy Droplet with Image') {
-        when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'DO' } }
-        stage('Checkout Code') {
+        stage('Deploy Droplet with Image') {
+          when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'DO' } }
           steps {
+            print 'Checkout Code'
             print 'git clone'
-          }
-        }
-        stage('Validate Code') {
-          steps {
+            print 'Validate Config'
             script {
               terraform.init('terraform/do')
               terraform.plan('terraform/do')
             }
-          }
-        }
-        stage('Create Droplet with DI') {
-          steps {
+            print 'Create Droplet with DI'
             script {
               terraform.apply('terraform/do/plan.tfplan')
             }
           }
         }
+        // docker and virtualbox
       }
-      // docker and virtualbox
     }
   }
 }
