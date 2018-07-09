@@ -24,7 +24,9 @@ print([(tweet.user.screen_name, 'Tweeted: ', tweet.text) for tweet in subject_ti
 # dump to csv in analysis format
 csv = "id,tweet\n"
 for tweet in subject_timeline:
+    preproc = re.sub(r'RT ', '', tweet.text)
+    preproc = re.sub(r'@[A-Za-z0-9_]+', '', preproc)
     # id and then tweet content with link replaced by newline
-    csv += tweet.id_str + ',"' + re.sub(r'\shttps.*', "\"\n", tweet.text)
+    csv += tweet.id_str + ',"' + re.sub(r'\shttps.*', "\"\n", preproc)
 print(csv)
-# TODO: grab more info
+# TODO: grab more info; problem with ellipses and runons (probably because of when link missing at end)
