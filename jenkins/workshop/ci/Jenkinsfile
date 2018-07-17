@@ -1,0 +1,49 @@
+pipeline {
+  agent any
+
+  parameters {
+    string(name: 'SCM_URL', description: 'The URL (HTTPS or SSH URI) to the source repository containing the Role.')
+    //TODO
+    string(name: 'CREDS', description: 'The Jenkins credentials id for the Ansible Playbook SSH.')
+    string(name: 'NAME', description: 'Unique descriptive name for the role deployment.')
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        print "Updating Role code for ${params.NAME}."
+        checkout([
+          $class: 'GitSCM',
+          doGenerateSubmoduleConfigurations: false,
+          extensions: [[$class: 'RelativeTargetDirectory',
+            relativeTargetDir: params.NAME]],
+          submoduleCfg: [],
+          userRemoteConfigs: [[url: params.SCM_URL]]])
+      }
+    }
+    stage('Test Role') {
+      steps {
+        print "Testing Role for ${params.NAME}."
+        dir(params.NAME) {
+          sh "molecule test"
+        }
+      }
+    }
+    stage('Deploy Role') {
+      steps {
+        print "Deploying ${params.NAME} role."
+        dir(params.NAME) {
+          ansiblePlaybook(credentialsId: params.CREDS, inventory: 'hosts', playbook: 'playbook.yml')
+        }
+      }
+    }
+  }
+  post {
+    success {
+      print "${params.NAME} role successfully deployed."
+    }
+    failure {
+      print "Failure deploying ${params.NAME} role."
+    }
+  }
+}

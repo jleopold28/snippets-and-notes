@@ -1,0 +1,40 @@
+pipeline {
+  agent any
+
+  parameters {
+    string(name: 'SCM_URL', description: 'The URL (HTTPS or SSH URI) to the source repository containing the Playbook.')
+    string(name: 'CREDS', description: 'The Jenkins credentials id for the Ansible Playbook SSH.')
+    string(name: 'NAME', description: 'Unique descriptive name for the playbook deployment.')
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        print "Updating playbook code for ${params.NAME}"
+        checkout([
+          $class: 'GitSCM',
+          doGenerateSubmoduleConfigurations: false,
+          extensions: [[$class: 'RelativeTargetDirectory',
+            relativeTargetDir: params.NAME]],
+          submoduleCfg: [],
+          userRemoteConfigs: [[url: params.SCM_URL]]])
+      }
+    }
+    stage('Deploy Playbook') {
+      steps {
+        print "Deploying ${params.NAME} playbook."
+        dir(params.NAME) {
+          ansiblePlaybook(credentialsId: params.CREDS, inventory: 'hosts', playbook: 'playbook.yml')
+        }
+      }
+    }
+  }
+  post {
+    success {
+      print "${params.NAME} playbook successfully deployed."
+    }
+    failure {
+      print "Failure deploying ${params.NAME} playbook."
+    }
+  }
+}

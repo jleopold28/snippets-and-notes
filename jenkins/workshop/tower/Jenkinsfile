@@ -1,0 +1,25 @@
+pipeline {
+  agent any
+
+  parameters {
+    string(name: 'HOST_CONFIG_KEY', defaultValue: '', description: 'The Ansible Tower Host Config Key (required for authentication).')
+    string(name: 'JOB_TEMPLATE_ID', description: 'The Job Template ID for Ansible Tower to execute.')
+  }
+
+  stages {
+    stage('Ansible Tower Job') {
+      steps {
+        print "Executing Ansible Tower Job Template ID ${params.JOB_TEMPLATE_ID}."
+        sh "python3 callback.py ${params.HOST_CONFIG_KEY} ${params.JOB_TEMPLATE_ID}"
+      }
+    }
+  }
+  post {
+    success {
+      print "Ansible Tower Job Template ID ${params.JOB_TEMPLATE_ID} successfully requested."
+    }
+    failure {
+      print "Failure requesting Ansible Tower Job Template ID ${params.JOB_TEMPLATE_ID}."
+    }
+  }
+}

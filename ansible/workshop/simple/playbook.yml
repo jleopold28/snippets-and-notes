@@ -1,0 +1,16 @@
+# hosts?
+---
+- name: update the motd
+  hosts: all
+
+  tasks:
+  - name: install cowsay
+    package:
+      name: cowsay
+      state: installed
+
+  - name: configure the motd
+    copy:
+      dest: /etc/profile.d/motd.sh
+      content: '/usr/bin/cowsay "Hello Workshop attendees!"'
+      mode: 0755
