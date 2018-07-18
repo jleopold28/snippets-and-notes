@@ -1,0 +1,29 @@
+---
+# tasks file for tomcat_hello
+- name: Deploy Tomcat Hello App
+  hosts: all
+  vars:
+    tomcat_instances:
+    - name: nodefaults
+      service_name: tomcat_hello
+  roles:
+  #- { role: ansible-tomcat }
+
+  tasks:
+  - name: deploy tomcat war
+    copy:
+      dest: /srv/tomcat/catalina/tomcat_hello/app.war
+      src:
+      owner: tomcat
+      group: tomcat
+    notify:
+      - restart tomcat_hello
+
+  - name: deploy tomcat config
+    copy:
+      dest: /src/tomcat/catalina/tomcat_hello/hello.config
+      content: "{{msg}}"
+      owner: tomcat
+      group: tomcat
+    notify:
+     - restart tomcat_hello

@@ -1,0 +1,5 @@
+---
+- name: Tomcat Hello App
+  hosts: all
+  roles:
+    - role: tomcat_hello

@@ -4,10 +4,12 @@ pipeline {
   parameters {
     string(name: 'SCM_URL', description: 'The URL (HTTPS or SSH URI) to the source repository containing the Role.')
     string(name: 'CREDS', description: 'The Jenkins credentials id for the Ansible Playbook SSH.')
-    string(name: 'NAME', description: 'Unique descriptive name for the role deployment.')
+    string(name: 'NAME', defaultValue: 'Tomcat Hello', description: 'Unique descriptive name for the role deployment.')
+    string(name: 'MSG', defaultValue: 'Hello World', description: 'Message for the Tomcat Application to display.')
   }
 
   stages {
+    // checkout and build war file if desired
     stage('Checkout') {
       steps {
         print "Updating Role code for ${params.NAME}."
@@ -24,6 +26,7 @@ pipeline {
       steps {
         print "Testing Role for ${params.NAME}."
         dir(params.NAME) {
+          sh "ansible-galaxy -r requirements.yml --roles-path ."
           sh "molecule test"
         }
       }
@@ -32,7 +35,7 @@ pipeline {
       steps {
         print "Deploying ${params.NAME} role."
         dir(params.NAME) {
-          ansiblePlaybook(credentialsId: params.CREDS, inventory: 'hosts', playbook: 'playbook.yml')
+          ansiblePlaybook(credentialsId: params.CREDS, inventory: 'hosts', extraVars: "msg=${params.MSG}", playbook: 'playbook.yml')
         }
       }
     }
