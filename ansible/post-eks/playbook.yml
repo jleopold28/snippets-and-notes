@@ -1,0 +1,50 @@
+- name: setup post eks provision
+  hosts: all, localhost
+  connection: local
+  vars_files:
+  - vars.yml
+
+  # ansible 2.6 switch to kubernetes module
+  tasks:
+  - name: check for storage class
+    command: kubectl --context {{kube_context}} get sc --selector=.metadata.name=default
+    ignore_errors: true
+    register: default_storage
+
+  - name: create gp2 storage class
+    command: kubectl --context {{kube_context}} create -f storage-class.yaml
+    when: default_storage.stdout !~ default
+
+  - name: download helm tarball and unpack helm
+    unarchive:
+      src: https://storage.googleapis.com/kubernetes-helm/helm-v{{helm_version}}-{{ansible_system | lower}}-amd64.tar.gz
+      dest: /usr/bin/
+      remote_src: yes
+      extra_opts:
+      - '--strip-components'
+      - '1'
+      - "{{ansible_system | lower}}-amd64/helm"
+    become: true
+
+  - name: initialize helm and install and configure tiller
+    block:
+    - name: check for tiller service account
+      command: kubectl --context {{kube_context}} get sa --selector=.metadata.name=tiller
+      ignore_errors: true
+      register: tiller_account
+
+    - name: create tiller service account and cluster bindings
+      command: kubectl --context {{kube_context}} create -f rbac-config.yaml
+      when: tiller_account !~ tiller
+
+    - name: initialize helm and install/configure tiller
+      command: helm init --wait --kube-context {{kube_context}} --service-account tiller
+    when: tiller == "install"
+
+  - name: initialize helm and upgrade tiller
+    command: helm init --wait --kube-context {{kube_context}} --upgrade
+    when: tiller == "upgrade"
+
+  - name: initialize helm client
+    command: helm init --kube-context {{kube_context}} --client-only
+    when: tiller == "none"

@@ -1,0 +1,73 @@
+---
+- name: setup prior to eks provision
+  hosts: all, localhost
+  connection: local
+  vars_files:
+  - vars.yml
+
+  tasks:
+  - name: install kubectl with package management
+    block:
+    - name: subscribe to kubernetes yum repository
+      yum_repository:
+        name: kubernetes
+        gpgcheck: true
+        repo_gpgcheck: true
+        gpgkey:
+        - https://packages.cloud.google.com/yum/doc/yum-key.gpg
+        - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+        # el7 is only viable release for kubernetes on redhat family
+        baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+      when: ansible_os_family == RedHat
+
+    - name: import kubernetes apt key
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+      when: ansible_os_family == Debian
+
+    - name: subscribe to kubernetes apt repository
+      apt_repository:
+        repo: deb http://apt.kubernetes.io/ kubernetes-{{ansible_distribution_release}} main
+        state: present
+      when: ansible_os_family == Debian
+
+    - name: install kubectl package
+      package:
+        name: kubectl-{{kubectl_version}}
+        state: installed
+    when: kubectl_pkg == true
+    become: true
+
+  - name: install from a static binary
+    block:
+    - name: download kubectl binary
+      get_url:
+        url: https://storage.googleapis.com/kubernetes-release/release/v{{kubectl_version}}/bin/{{ansible_system | lower}}/amd64/kubectl
+        dest: /usr/bin/kubectl
+
+    - name: make kubectl executable
+      file:
+        state: file
+        path: /usr/bin/kubectl
+        mode: 0755
+    when: kubectl_pkg == false
+    become: true
+
+  - name: create .kube dir
+    file:
+      state: directory
+      path: "{{ansible_env.HOME}}/.kube"
+
+  - name: download heptio authenticator aws binary
+    get_url:
+      url: https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v{{heptio_auth_version}}/heptio-authenticator-aws_{{heptio_auth_version}}_{{ansible_system | lower}}_amd64
+      dest: /usr/bin/heptio-authenticator-aws
+    become: true
+
+  - name: make heptio authenticator aws executable
+    file:
+      state: file
+      path: /usr/bin/heptio-authenticator-aws
+      mode: 0755
+    become: true

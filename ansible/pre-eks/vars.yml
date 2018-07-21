@@ -1,0 +1,4 @@
+---
+kubectl_pkg: false
+kubectl_version: 1.10.4
+heptio_auth_version: 0.3.0
