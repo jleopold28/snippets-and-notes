@@ -1,0 +1,73 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "analytics.fullname" . }}
+  labels:
+    app: {{ template "analytics.name" . }}
+    chart: {{ template "analytics.chart" . }}
+    release: {{ .Release.Name }}
+spec:
+  #completions: {{ .Values.replicaCount }} # set equal to num_containers
+  #parallelism: 1
+  selector:
+    matchLabels:
+      app: {{ template "analytics.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "analytics.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: "{{ .Chart.Name }}-{{ .Values.job.script }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - python
+            - {{ .Values.job.script }}
+          env:
+            - name: CONFIGURATION
+              value: {{ .Values.job.config }}
+          #args:
+          #  - {{ .Values.customer.config }}
+          #volumeMounts:
+          #  - mountPath: /data
+          #    name: loader
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- with .Values.nodeSelector }}
+      #volumes:
+      #  - name: loader
+      #    hostPath:
+            # directory location on host
+      #      path: /data
+            # this field is optional
+      #      type: Directory
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      {{- if eq .Values.antiAffinity "hard" }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: "kubernetes.io/hostname"
+              labelSelector:
+                matchLabels:
+                  app: "{{ template "analytics.name" . }}"
+                  release: "{{ .Release.Name }}"
+      {{- else if eq .Values.antiAffinity "soft" }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: "{{ template "analytics.name" . }}"
+                  release: "{{ .Release.Name }}"
+      {{- end }}
+      restartPolicy: OnFailure
+  backoffLimit: {{ .Values.maxRestartsOnFailure }}

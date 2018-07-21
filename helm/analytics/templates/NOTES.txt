@@ -1,0 +1,7 @@
+You have deployed {{ template "analytics.fullname" . }} to the Kubernetes cluster.
+
+To view job completion in real time for {{ template "analytics.fullname" . }}, run:
+
+  kubectl --namespace={{ .Release.Namespace }} get pods -l "app={{ template "analytics.name" . }},release={{ template .Release.Name . }}"
+
+Pods will persist after job completion for log viewing. Remove them with helm delete {{ template .Release.Name . }} or kubectl delete jobs/{{ template "analytics.fullname" . }}.

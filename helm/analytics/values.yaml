@@ -1,0 +1,24 @@
+# Default values for analytics.
+image:
+  repository: base-sdk
+  tag: stable
+  pullPolicy: IfNotPresent
+
+job:
+  # can I array here and then iterate through containers in spec?
+  script: script.py
+  config: configuration.json
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 64Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+nodeSelector: {}
+
+antiAffinity: soft
+
+maxRestartsOnFailure: 6
