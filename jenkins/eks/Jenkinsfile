@@ -1,0 +1,132 @@
+@Library('jenkins-devops-libs')_
+//library identifier: 'jenkins-devops-libs@master', retriever: modernSCM(
+  //[$class: 'GitSCMSource',
+   //remote: 'https://github.com/mschuchard/jenkins-devops-libs.git'])
+
+//need to store kubeconfig afterward
+pipeline {
+  agent any
+
+  parameters {
+    string(name: 'SCM_URL', description: 'The URL (HTTPS or SSH URI) to the source repository containing the Terraform config and Ansible playbooks for EKS.')
+    string(name: 'AWS_CREDS', description: 'The Jenkins credentials for AWS.')
+  }
+
+  stages {
+    stage('Prepare Local System for EKS Creation') {
+      steps {
+        //needs git credentials
+        print 'Checkout Code'
+        checkout([
+          $class: 'GitSCM',
+          doGenerateSubmoduleConfigurations: false,
+          submoduleCfg: [],
+          userRemoteConfigs: [[url: params.SCM_URL]]])
+        print 'Validate Ansible Playbook'
+        ansiblePlaybook(disableHostKeyChecking: true, extras: '--syntax-check', playbook: 'pre-eks/playbook.yml')
+        print 'Provision Local System'
+        ansiblePlaybook(disableHostKeyChecking: true, extras: '-i localhost', playbook: 'pre-eks/playbook.yml')
+      }
+      post {
+        success {
+          print 'Local System provisioned with kubectl and heptio-aws-authenticator and ready for EKS creation.'
+        }
+        failure {
+          print 'Failure provisioning local system for EKS creation.'
+        }
+      }
+    }
+    stage('Construct EKS') {
+      steps {
+        withCredentials([[
+          $class: 'AmazonWebServicesCredentialsBinding',
+          credentialsId: params.AWS_CREDS,
+          accessKeyVariable: 'ACCESS_KEY',
+          secretKeyVariable: 'SECRET_KEY'
+        ]]) {
+          // needs aws creds passed in
+          print 'Initialize Workspace'
+          script {
+            terraform.init('eks')
+          }
+          print 'Create Plan'
+          script {
+            terraform.plan('eks')
+          }
+          print 'Create EKS'
+          script {
+            terraform.apply('eks/plan.tfplan')
+          }
+        }
+      }
+      post {
+        success {
+          print 'EKS constructed successfully.'
+        }
+        failure {
+          print 'Failure creating EKS.'
+        }
+      }
+    }
+    // needs credentials passed in
+    //withCredentials([[
+    //  $class: 'AmazonWebServicesCredentialsBinding',
+    //  credentialsId: params.AWS_CREDS,
+    //  accessKeyVariable: 'ACCESS_KEY',
+    //  secretKeyVariable: 'SECRET_KEY'
+    //]]) {
+    stage('Prepare Local System for EKS Usage') {
+      environment { KUBECONFIG = "${env.WORKSPACE}/kubeconfig" }
+      steps {
+        print 'Validate Ansible Playbook'
+        ansiblePlaybook(disableHostKeyChecking: true, extras: '--syntax-check', playbook: 'post-eks/playbook.yml')
+        print 'Provision Local System'
+        ansiblePlaybook(disableHostKeyChecking: true, extras: '-i localhost', playbook: 'post-eks/playbook.yml')
+      }
+      post {
+        success {
+          print 'Local system prepared for using new EKS.'
+        }
+        failure {
+          print 'Failure preparing local system for using new EKS.'
+        }
+      }
+    }
+    stage('Deploy Kubernetes Dashboard') {
+      environment { KUBECONFIG = "${env.WORKSPACE}/kubeconfig" }
+      steps {
+        print 'Install Dashboard with Helm Chart'
+        script {
+          helm.install {
+            chart = 'stable/kubernetes-dashboard'
+            name = 'kube-dash'
+            namespace = 'kube-system'
+            //set = 'rbac.create=false'
+            set = 'rbac.clusterAdminRole=true'
+          }
+        }
+      }
+      post {
+        success {
+          print 'Kubernetes Dashboard deployed successfully.'
+        }
+        failure {
+          print 'Failure deploying kubernetes Dashboard.'
+        }
+      }
+    }
+  }
+  post {
+    success {
+      print 'EKS and local system ready for general usage.'
+    }
+    failure {
+      slackSend(channel: 'slack channel',
+        color: 'warning',
+        message: "Job failed for ${env.JOB_NAME}/${env.JOB_NAME} at ${env.JOB_URL}.")
+      mail(to: 'maintainer',
+        subject: "Failure: ${env.BUILD_TAG}",
+        body: "Job failed for ${env.JOB_NAME}/${env.JOB_NAME} at ${env.JOB_URL}.")
+    }
+  }
+}

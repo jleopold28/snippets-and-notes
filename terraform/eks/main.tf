@@ -42,7 +42,7 @@ module "vpc" {
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "~> 1.2"
+  version = "1.2.0"
 
   #config_output_path          = "~/.kube"
   cluster_name    = "${var.cluster_name}"
