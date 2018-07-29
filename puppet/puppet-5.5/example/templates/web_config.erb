@@ -1,0 +1,19 @@
+<configuration>
+	<appSettings>
+		<add key="AutoSave" value="1" />
+		<%- if @facts['environment'] == 'uat' || @facts['environment'] == 'prod' -%>
+		<add key="UploadDir" value="\\fp1\\<%= @facts['environment'].upcase -%>\<%= @instance.capitalize %>\Example\Upload" />
+		<add key="FormsTempPath" value="\\fp1\\<%= @facts['environment'].upcase -%>\<%= @instance.capitalize %>\Example\Temp" />
+		<%- else -%>
+		<add key="UploadDir" value="C:\abc\<%= @instance.capitalize %>\Example\Upload" />
+		<add key="FormsTempPath" value="C:\abc\<%= @instance.capitalize %>\Example\Temp" />
+		<%- end -%>
+		<%- if @instance == 'pos' -%>
+		<add key="MaxItemLimit" value="1000" />
+		<%- end -%>
+	</appSettings>
+	<system.web>
+		<sessionState timeout="720"  cookieName="ASP.NET_SessionId_<%= @instance.capitalize %>" />
+		<identity impersonate="false" userName="XYZ\AppUser<%= @instance[0].upcase %>_<%= @facts['hostname'].gsub('-', '').gsub('app', '').upcase %>" password="password" />
+	</system.web>
+</configuration>
