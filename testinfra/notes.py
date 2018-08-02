@@ -9,13 +9,13 @@ def test_passwd_file(host):
     assert passwd.mode == 0o644
 
 
-def test_nginx_is_installed(host):
+def test_python_is_installed(host):
     python3 = host.package('python3')
     assert python3.is_installed
     assert python3.version.startswith('3.6')
 
 
-def test_nginx_running_and_enabled(host):
+def test_cron_running_and_enabled(host):
     cron = host.service('cron')
     assert cron.is_running
     assert cron.is_enabled
