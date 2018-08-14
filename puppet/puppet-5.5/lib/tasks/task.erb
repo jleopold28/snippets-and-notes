@@ -1,0 +1,17 @@
+require 'json'
+require 'open3'
+require 'tempfile'
+
+content = <<-HEREDOC
+<%= @script %>
+HEREDOC
+
+file = Tempfile.new(['vbscript', '.vbs'])
+begin
+    file.write(content)
+    file.close
+    stdout, stderr, status = Open3.capture3('C:\Windows\system32\cscript.exe', '//Nologo', file.path)
+    puts({stdout: stdout, stderr: stderr, status: status.exitstatus, pid: status.pid}.to_json)
+ensure
+    file.unlink
+end

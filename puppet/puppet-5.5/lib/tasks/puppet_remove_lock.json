@@ -1,0 +1,5 @@
+
+{
+  "description": "Remove Puppet agent lockfiles.",
+  "supports_noop": false
+}

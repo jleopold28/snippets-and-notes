@@ -1,0 +1,35 @@
+{
+  "description": "Run Puppet agent on a node",
+  "supports_noop": false,
+  "input_method": "stdin", 
+  "parameters": {
+    "puppet_master": {
+     "description": "Specify the Puppet master to use.",
+     "type": "Optional[String[1]]"
+    },
+    "environment": {
+     "description": "Specify the Puppet environment to use.",
+     "type": "Optional[String[1]]"
+    },
+    "tags": {
+     "description": "Specify a list of tags to apply.",
+     "type": "Optional[Array[String[1]]]"
+    },
+    "verbose": {
+     "description": "Enable verbose mode in Puppet agent run.",
+     "type": "Optional[Boolean]"
+    },
+    "debug": {
+     "description": "Enable debug mode in Puppet agent run.",
+     "type": "Optional[Boolean]"
+    },
+    "noop": {
+     "description": "Run puppet agent in noop mode.",
+     "type": "Optional[Boolean]"
+    },
+    "no_noop": {
+     "description": "Run puppet agent in no-noop mode.",
+     "type": "Optional[Boolean]"
+    }
+  }
+}
