@@ -1,0 +1,2 @@
+relay: 'relayhost = [mailrelay.comp.com]'
+hlookup: 'smtp_host_lookup = native, dns'

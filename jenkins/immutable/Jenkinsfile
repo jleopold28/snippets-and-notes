@@ -1,5 +1,6 @@
-// post steps; terraform vars for platform; comments; puppet and chef; azure and do
-//@Library('jenkins-devops-libs')_
+// post steps; terraform vars for platform; comments; puppet and chef; azure and do; serverspec and testinfra; packer and terraform should probably be cloned into branch dir
+// utilize new sequential stages within parallel: https://jenkins.io/blog/2018/07/02/whats-new-declarative-piepline-13x-sequential-stages/
+//@Library('jenkins-devops-libs@v1.0.0')_
 library identifier: 'jenkins-devops-libs@master', retriever: modernSCM(
   [$class: 'GitSCMSource',
    remote: 'https://github.com/mschuchard/jenkins-devops-libs.git'])
@@ -9,10 +10,12 @@ pipeline {
 
   parameters {
     choice(name: 'PLATFORM', choices: 'All\nAWS\nAzure\nDO\nDocker\nVirtualbox', description: 'The platform to build for and deploy on.')
-    string(name: 'SCM_URL', description: 'The URL (HTTPS or SSH URI) to the source repository containing the packer template (should also contain provisioning and validation support code for the artifact).')
+    string(name: 'SCM_URL', description: 'The URL (HTTPS or SSH URI) to the source repository containing the Packer template (should also contain provisioning and validation support code for the artifact).')
+    string(name: 'TF_MOD_SCM_URL', description: 'The URL (HTTPS or SSH URI) to the source repository containing the Terraform module.')
   }
 
   stages {
+    // passing creds to packer template from jenkins needs to be better so... vault time here too?; expand ansible to make it into webpage viewable demo and then expand goss
     stage('Build Artifact') {
       parallel {
         stage('Construct Amazon Linux AMI') {
@@ -32,7 +35,7 @@ pipeline {
               }
             }
             ansiblePlaybook(disableHostKeyChecking: true, extras: '--syntax-check', playbook: 'lamp-cloud/ansible/lamp.yml')
-            print 'Build AMI'
+            print 'Build and Validate AMI'
             script {
               packer.build {
                 template = 'lamp-cloud/packer.json'
@@ -58,7 +61,7 @@ pipeline {
               }
             }
             ansiblePlaybook(disableHostKeyChecking: true, extras: '--syntax-check', playbook: 'lamp-cloud/ansible/lamp.yml')
-            print 'Build Azure VHD'
+            print 'Build and Validate Azure VHD'
             // need to figure this out; azure is not great at this
             script {
               packer.build {
@@ -85,7 +88,7 @@ pipeline {
               }
             }
             ansiblePlaybook(disableHostKeyChecking: true, extras: '--syntax-check', playbook: 'lamp-cloud/ansible/lamp.yml')
-            print 'Build DI'
+            print 'Build and Validate DI'
             script {
               packer.build {
                 template = 'lamp-cloud/packer.json'
@@ -97,51 +100,6 @@ pipeline {
         // docker and vbox
       }
     }
-    stage('Validate Artifact') {
-      parallel {
-        stage('Serverspec Validate') {
-          steps {
-            print 'Checkout Code'
-            checkout([
-              $class: 'GitSCM',
-              doGenerateSubmoduleConfigurations: false,
-              submoduleCfg: [],
-              userRemoteConfigs: [[url: params.SCM_URL]]])
-            print 'Validate Artifact'
-            // how to feed it the servers
-            dir('lamp-cloud/serverspec') {
-              sh "rake check[aws]"
-              sh "rake check[azure]"
-              sh "rake check[do]"
-            }
-          }
-        }
-        stage('GOSS Validate') {
-          steps {
-            print 'Checkout Code'
-            checkout([
-              $class: 'GitSCM',
-              doGenerateSubmoduleConfigurations: false,
-              submoduleCfg: [],
-              userRemoteConfigs: [[url: params.SCM_URL]]])
-            print 'Validate Artifact'
-            script {
-              goss.server {
-                gossfile = 'lamp-cloud/goss/goss.yaml'
-                port = '9001'
-              }
-            }
-            // needs to pull from endpoint now
-          }
-        }
-        // do this
-        stage('Testinfra Validate') {
-          steps {
-            print 'Placeholder'
-          }
-        }
-      }
-    }
     stage('Deploy Artifact') {
       // Terraform should leverage vault for creds
       parallel {
@@ -149,15 +107,20 @@ pipeline {
           when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'AWS' } }
           steps {
             print 'Checkout Code'
-            print 'git clone'
+            checkout([
+              $class: 'GitSCM',
+              doGenerateSubmoduleConfigurations: false,
+              submoduleCfg: [],
+              userRemoteConfigs: [[url: params.TF_MOD_SCM_URL]]])
             print 'Validate Config'
             script {
-              terraform.init('terraform/aws')
-              terraform.plan('terraform/aws')
+              terraform.init('terraform')
+              terraform.plan('terraform')
             }
+            // destroy first
             print 'Create EC2 with AMI'
             script {
-              terraform.apply('terraform/aws/plan.tfplan')
+              terraform.apply('terraform/plan.tfplan')
             }
           }
         }
@@ -165,7 +128,11 @@ pipeline {
           when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'Azure' } }
           steps {
             print 'Checkout Code'
-            print 'git clone'
+            checkout([
+              $class: 'GitSCM',
+              doGenerateSubmoduleConfigurations: false,
+              submoduleCfg: [],
+              userRemoteConfigs: [[url: params.TF_MOD_SCM_URL]]])
             print 'Validate Config'
             script {
               terraform.init('terraform/azure')
@@ -182,7 +149,11 @@ pipeline {
           when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'DO' } }
           steps {
             print 'Checkout Code'
-            print 'git clone'
+            checkout([
+              $class: 'GitSCM',
+              doGenerateSubmoduleConfigurations: false,
+              submoduleCfg: [],
+              userRemoteConfigs: [[url: params.TF_MOD_SCM_URL]]])
             print 'Validate Config'
             script {
               terraform.init('terraform/do')

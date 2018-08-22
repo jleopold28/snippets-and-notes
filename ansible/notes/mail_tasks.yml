@@ -1,0 +1,44 @@
+---
+# tasks file for mail
+- name: exit if not rhel6 or 7
+  fail:
+    msg: 'Only RHEL6 or 7 is supported with this role!'
+  when: ansible_distribution_major_version == '6' or
+        ansible_distribution_major_version == '7'
+
+- name: include vars for dmz if this is in the dmz
+  include_vars: dmz.yml
+  when: ansible_env.DMZ == 'Y'
+
+- name: includes vars for non-dmz if this is not in the dmz
+  include_vars: non-dmz.yml
+  when: ansible_env.DMZ != 'Y'
+
+- name: add lines to postfix config
+  lineinfile:
+    path: /etc/postfix/main.cf
+    line: "{{item}}"
+  notify:
+    - restart postfix
+  with_items:
+    - "{{relay}}"
+    - 'mydomain = atldc.comp.com'
+    - "{{hlookup}}"
+
+- name: modify line in postfix config
+  lineinfile:
+    path: /etc/postfix/main.cf
+    regexp: 'inet_protocols ='
+    line: 'inet_protocols = ipv4'
+  notify:
+    - restart postfix
+
+- name: add webservices to aliases
+  lineinfile:
+    path: /etc/aliases
+    line: 'root:\troot,itdistsys-webservices@comp.com'
+
+- name: enable postfix
+  service:
+    name: postfix
+    enabled: true

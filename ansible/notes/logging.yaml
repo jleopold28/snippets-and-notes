@@ -1,0 +1,20 @@
+---
+# tasks file for logging
+- name: enable forwarding to syslog for journald
+  lineinfile:
+    path: /etc/systemd/journald.conf
+    insertafter: '#ForwardToSyslog=no'
+    line: 'ForwardToSyslog=yes'
+    owner: root
+    group: root
+  when: ansible_distribution_major_version == '7'
+
+- name: fetch rsyslog.conf file
+  get_url:
+    url: http://10.0.0.0/pub/config/rsyslog.conf
+    dest: /etc/rsyslog.conf
+    owner: root
+    group: root
+    backup: true
+  when: ansible_distribution_major_version == '6' or
+        ansible_distribution_major_version == '7'
