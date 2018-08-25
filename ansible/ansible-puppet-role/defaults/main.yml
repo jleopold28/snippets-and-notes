@@ -1,0 +1,16 @@
+---
+# overall logic
+task: ''
+
+# agent
+
+# apply
+manifest: init.pp
+
+# deploy
+enterprise: false
+version: 4.9.3
+
+# r10k
+directory_environment:
+module:

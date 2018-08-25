@@ -1,0 +1,14 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+docker:
+  containers:
+    - name: ansible-puppet
+      image: ubuntu
+      image_version: 16.04
+      ansible_groups:
+        - group1
+verifier:
+  name: testinfra

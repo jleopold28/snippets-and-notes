@@ -1,0 +1,10 @@
+---
+# add in more options, like recursive env updates
+
+- name: update directory environment with r10k
+  command: r10k -v debug deploy environment {{dir_env}}
+  when: directory_environment is defined
+
+- name: update module in directory environment
+  command: r10k -v debug deploy module {{module}}
+  when: module is defined

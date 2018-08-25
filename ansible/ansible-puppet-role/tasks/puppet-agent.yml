@@ -1,0 +1,5 @@
+---
+- name: execute puppet agent
+  puppet:
+# check on if need to allow exit code 2
+# add in options

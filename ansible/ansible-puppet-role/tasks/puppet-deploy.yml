@@ -1,0 +1,15 @@
+---
+# enterprise option
+
+- name: install puppet agent
+  gem:
+    name: puppet
+    state: installed
+    version: "{{version}}"
+
+# pkg option
+
+# puppet.conf template
+
+- name: subscribe puppet agent to master
+  puppet:

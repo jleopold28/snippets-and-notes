@@ -1,0 +1,32 @@
+---
+- name: agent task
+  hosts: localhost
+  remote_user: root
+  vars:
+    task: agent
+  roles:
+    - ansible-puppet
+
+- name: apply task
+  hosts: localhost
+  remote_user: root
+  vars:
+    task: apply
+  roles:
+    - ansible-puppet
+
+- name: deploy task
+  hosts: localhost
+  remote_user: root
+  vars:
+    task: deploy
+  roles:
+    - ansible-puppet
+
+- name: r10k task
+  hosts: localhost
+  remote_user: root
+  vars:
+    task: r10k
+  roles:
+    - ansible-puppet

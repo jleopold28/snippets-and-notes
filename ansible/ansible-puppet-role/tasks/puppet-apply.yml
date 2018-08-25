@@ -1,0 +1,5 @@
+---
+# add in other stuff you might need before actually doing a puppet apply
+- name: execute puppet apply
+  puppet:
+    manifest: "{{manifest}}"
