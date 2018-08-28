@@ -1,9 +1,18 @@
-# TODO: puppet::warn for stuff; doublecheck default arg value; cache vault connection
-Puppet::Functions.create_function(:'vault::read') do
+# TODO: puppet::warn for stuff; doublecheck default arg value; cache vault connection; convert keys to syms?; return type
+# Writes a secret to Vault.
+Puppet::Functions.create_function(:'vault::write') do
+  # Writes a secret to Vault.
+  # @param [String] secret The secret to write.
+  # @optional_param [Hash] values The values to write in the secret.
+  # @optional_param [String] yaml_config Optional yaml config file for Vault connection.
+  # @return [Undef] unknown.
+  # @example Write a secret.
+  #   vault::write('secret/bacon', { 'cooktime' => '11', 'delicious' => true }) => #<Vault::Secret lease_id="">
   dispatch :read do
     param 'String', :secret
     param 'Hash', :values
     param 'String', :yaml_config
+    return_type 'Undef' #?
   end
 
   def read(secret, values = {}, yaml_config = '/etc/puppetlabs/puppet/vault.yaml')
@@ -58,7 +67,6 @@ Puppet::Functions.create_function(:'vault::read') do
     Vault.with_retries(Vault::HTTPConnectionError, Vault::HTTPError, Vault::HTTPClientError, Vault::HTTPServerError, attempts: 2, base: 0.05, max_wait: 2.0) do |attempt, except|
       warn "Received exception #{except} from Vault on attempt number #{attempt}."
       Vault.logical.write(secret, values)
-      #=> #<Vault::Secret lease_id="">
     end
   end
 end

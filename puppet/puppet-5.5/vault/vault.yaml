@@ -1,0 +1,5 @@
+:address:
+:token:
+:ssl_pem_contents:
+:ssl_verify: true
+:timeout: 30

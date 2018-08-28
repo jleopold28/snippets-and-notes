@@ -1,8 +1,16 @@
 # TODO: puppet::warn for stuff; doublecheck default arg value; cache vault connection
+# Reads a secret from Vault.
 Puppet::Functions.create_function(:'vault::read') do
+  # Reads a secret from Vault.
+  # @param [String] secret The secret to retrieve and read.
+  # @optional_param [String] yaml_config Optional yaml config file for Vault connection.
+  # @return [Hash] Returns secret values.
+  # @example Retrieve a secret.
+  #   vault::read('secret/bacon') => { cooktime: '11', delicious: true }
   dispatch :read do
     param 'String', :secret
     param 'String', :yaml_config
+    return_type 'Hash'
   end
 
   def read(secret, yaml_config = '/etc/puppetlabs/puppet/vault.yaml')
@@ -56,7 +64,7 @@ Puppet::Functions.create_function(:'vault::read') do
 
     Vault.with_retries(Vault::HTTPConnectionError, Vault::HTTPError, Vault::HTTPClientError, Vault::HTTPServerError, attempts: 2, base: 0.05, max_wait: 2.0) do |attempt, except|
       warn "Received exception #{except} from Vault on attempt number #{attempt}."
-      Vault.logical.read(secret).data #=> { :cooktime => "11", :delicious => true }
+      Vault.logical.read(secret).data
     end
   end
 end
