@@ -1,0 +1,35 @@
+{
+  "description": "Upgrade Puppet agent on a node",
+  "supports_noop": false,
+  "input_method": "stdin",
+  "parameters": {
+    "puppet_master": {
+     "description": "Specify the Puppet master to use.",
+     "type": "String[1]"
+    },
+    "challenge_password": {
+     "description": "Challenge password for CSR.",
+     "type": "Optional[String[1]]"
+    },
+    "extension_requests": {
+     "description": "Extension requests for CSR.",
+     "type": "Optional[String[1]]"
+    },
+    "certname": {
+     "description": "Agent certname (other than FQDN).",
+     "type": "Optional[String[1]]"
+    },
+    "server": {
+     "description": "Specify the Puppet master to connect to (other than default).",
+     "type": "Optional[String[1]]"
+    },
+    "environment": {
+     "description": "Specify a non-default directory environment for the node.",
+     "type": "Optional[String[1]]"
+    },
+    "noop": {
+     "description": "Specify the Puppet agent to run in noop.",
+     "type": "Optional[Boolean]"
+    }
+  }
+}

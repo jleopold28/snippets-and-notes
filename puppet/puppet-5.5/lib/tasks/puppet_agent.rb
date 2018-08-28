@@ -2,6 +2,7 @@
 require 'open3'
 require 'json'
 require 'puppet'
+require 'facter'
 
 # initialize params
 params = JSON.parse(STDIN.read)
@@ -25,8 +26,8 @@ puppet_cmd << ["--environment #{params['environment']}"] unless params['environm
 puppet_cmd << ["--tags #{params['tags'].join(',')}"] unless params['tags'].nil?
 puppet_cmd << ['--verbose'] unless params['verbose'].nil? || !params['verbose']
 puppet_cmd << ['--debug'] unless params['debug'].nil? || !params['debug']
-puppet_cmd << ['--noop'] unless params['noop'].nil? || !params['noop']
-puppet_cmd << ['--no-noop'] unless params['no_noop'].nil? || !params['no_noop']
+puppet_cmd << ['--noop'] if !params['noop'].nil? && params['noop']
+puppet_cmd << ['--no-noop'] if !params['no_noop'].nil? && params['no_noop']
 
 # process puppet cmd for usage
 cmd = puppet_cmd.flatten.join(' ')
