@@ -1,21 +1,19 @@
-# TODO: puppet::warn for stuff; doublecheck default arg value; cache vault connection; convert keys to syms?; return type
-# Writes a secret to Vault.
-Puppet::Functions.create_function(:'vault::write') do
-  # Writes a secret to Vault.
-  # @param [String] secret The secret to write.
-  # @optional_param [Hash] values The values to write in the secret.
+# TODO: puppet::warn for stuff; doublecheck default arg value; cache vault connection
+# Reads a secret from Vault.
+Puppet::Functions.create_function(:vault_read) do
+  # Reads a secret from Vault.
+  # @param [String] secret The secret to retrieve and read.
   # @optional_param [String] yaml_config Optional yaml config file for Vault connection.
-  # @return [Undef] unknown.
-  # @example Write a secret.
-  #   vault::write('secret/bacon', { 'cooktime' => '11', 'delicious' => true }) => #<Vault::Secret lease_id="">
+  # @return [Hash] Returns secret values.
+  # @example Retrieve a secret.
+  #   vault::read('secret/bacon') => { cooktime: '11', delicious: true }
   dispatch :read do
     param 'String', :secret
-    param 'Hash', :values
     param 'String', :yaml_config
-    return_type 'Undef' #?
+    return_type 'Hash'
   end
 
-  def read(secret, values = {}, yaml_config = '/etc/puppetlabs/puppet/vault.yaml')
+  def read(secret, yaml_config = '/etc/puppetlabs/puppet/vault.yaml')
     require 'vault'
     require 'yaml'
 
@@ -66,7 +64,7 @@ Puppet::Functions.create_function(:'vault::write') do
 
     Vault.with_retries(Vault::HTTPConnectionError, Vault::HTTPError, Vault::HTTPClientError, Vault::HTTPServerError, attempts: 2, base: 0.05, max_wait: 2.0) do |attempt, except|
       warn "Received exception #{except} from Vault on attempt number #{attempt}."
-      Vault.logical.write(secret, values)
+      Vault.logical.read(secret).data
     end
   end
 end
