@@ -1,4 +1,4 @@
-# TODO: puppet::warn/error/log for stuff; cache vault connection; support for arrays and hashes in vault values?; error checking; https://www.rubydoc.info/gems/vault/0.12.0/Vault/Defaults
+# TODO: puppet::warn/error/log for stuff; cache vault connection; support for arrays and hashes in vault values?; error checking; docs/tests/enhance https://www.rubydoc.info/gems/vault/0.12.0/Vault/Defaults; input checking
 # Reads a secret from Vault.
 Puppet::Functions.create_function(:vault_read) do
   # Reads a secret from Vault.
@@ -10,8 +10,8 @@ Puppet::Functions.create_function(:vault_read) do
   #   vault_read('secret/bacon', delicious) => true
   dispatch :read do
     param 'String', :secret
-    param 'Field', :field
-    param 'String', :yaml_config
+    param 'String', :field
+    optional_param 'String', :yaml_config
     return_type 'Variant[String, Numeric, Boolean]'
   end
 
@@ -19,10 +19,10 @@ Puppet::Functions.create_function(:vault_read) do
     require 'vault'
     require 'yaml'
 
-    Vault.configure do |config|
-      # read in yaml config
-      config_hash = YAML.safe_load(File.read(yaml_config))
+    # read in yaml config
+    config_hash = YAML.safe_load(File.read(yaml_config), [Symbol])
 
+    Vault.configure do |config|
       # The address of the Vault server, also read as ENV["VAULT_ADDR"]
       config.address = config_hash[:address] unless config_hash[:address].nil?
       # The token to authenticate with Vault, also read as ENV["VAULT_TOKEN"]

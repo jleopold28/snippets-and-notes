@@ -2,13 +2,19 @@
 class vault_binding {
   # restrict to master
   if $servername == $facts['networking']['fqdn'] {
-    # vault ruby bindings
+    # vault ruby puppetserver bindings
+    exec { '/opt/puppetlabs/bin/puppetserver gem install --no-document vault':
+      unless => '/opt/puppetlabs/bin/puppetserver gem list | /bin/grep vault',
+    }
+
+    # vault ruby puppet bindings
     package { 'vault':
       ensure          => latest,
       install_options => ['--no-document'],
       provider        => puppet_gem,
     }
 
+    #TODO: env dependent
     # vault config file for ruby bindings
     file { '/etc/puppetlabs/puppet/vault.yaml':
       ensure => file,

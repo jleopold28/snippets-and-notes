@@ -1,32 +1,46 @@
 ### Vault Bindings
 
-Provides Vault bindings to Puppet via Hiera 5, `vault_read`, and `vault_write`.
+Provides Vault bindings to Puppet via `vault_read`, and `vault_write`.
 
-```
+#### vault_read
+
+The `vault_read` function has two mandatory arguments and one optional argument.
+
+#### vault_write
+
+The `vault_write` function has one mandatory argument and two optional arguments.
+
+#### Vault Config
+
+```yaml
 ---
-version: 5
+# vault server address
+:address: https://vault.example.com:8200
 
-hierarchy:
-  - name: 'Hiera-Vault Lookup'
-    lookup_key: hiera_vault
-    options:
-      confine_to_keys:
-        - '^puppet_.*' #TODO
-      ssl_verify: true
-      address: https://vault.foobar.com:8200
-      token: <insert-your-vault-token-here>
-      default_field: value
-      mounts:
-        generic:
-          - secret/%{::environment}/puppet/ #TODO
+# token and generate_token are mutually exclusive
+:token:
+:generate_token:
+# generates a temporary token based on token and approle
+:approle: puppet
+
+# utilize proxy
+:proxy_address:
+:proxy_port:
+:proxy_username:
+:proxy_password:
+
+# ssl verification enabled/disabled
+:ssl_verify: true
+# ssl verify methods; all are mutually exclusive
+:ssl_pem_file:
+:ssl_pem_contents:
+:ssl_ca_cert:
+
+# overall timeout and fine-grained timeouts
+:timeout: 30
+:ssl_timeout:
+:open_timeout:
+:read_timeout:
 ```
 
-```
-vault write <mount['generic']><value of name key in lookup function (affected by confine_to_keys)> <default_field>=<puppet lookup and vault read return>
-vault write puppet/common/vault_notify value=hello_123
-```
-
-```puppet
-lookup({'name' => 'vault_notify', 'value_type' => String, 'default_value' => 'No Vault Secret Found', 'merge' => 'first'}) #=> 'hello_123'
-Sensitive(...) #=> redacted
-```
+#### vault_bindings Class

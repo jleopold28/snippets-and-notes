@@ -1,20 +1,27 @@
 ---
-:address:
+# vault server address
+:address: https://vault.example.com:8200
 
+# token and generate_token are mutually exclusive
 :token:
 :generate_token:
+# generates a temporary token based on token and approle
 :approle: puppet
 
+# utilize proxy
 :proxy_address:
 :proxy_port:
 :proxy_username:
 :proxy_password:
 
+# ssl verification enabled/disabled
+:ssl_verify: true
+# ssl verify methods; all are mutually exclusive
 :ssl_pem_file:
 :ssl_pem_contents:
 :ssl_ca_cert:
-:ssl_verify: true
 
+# overall timeout and fine-grained timeouts
 :timeout: 30
 :ssl_timeout:
 :open_timeout:

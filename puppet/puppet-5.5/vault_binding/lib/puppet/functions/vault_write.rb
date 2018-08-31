@@ -1,28 +1,28 @@
-# TODO: puppet::warn/error/log for stuff; doublecheck default arg value; cache vault connection; convert keys to syms?; return type; also enable write single value (not hash); values should have sym keys
+# TODO: puppet::warn/error/log for stuff; doublecheck default arg value; cache vault connection; convert keys to syms?; return type; also enable write single value (not hash); values should have sym keys; input checking
 # Writes a secret to Vault.
 Puppet::Functions.create_function(:vault_write) do
   # Writes a secret to Vault.
   # @param [String] secret The secret to write.
   # @optional_param [Hash] values The values to write in the secret.
   # @optional_param [String] yaml_config Optional yaml config file for Vault connection.
-  # @return [Undef] unknown.
+  # @return [Undef] Returns Undef.
   # @example Write a secret.
   #   vault::write('secret/bacon', { 'cooktime' => '11', 'delicious' => true }) => #<Vault::Secret lease_id="">
   dispatch :read do
     param 'String', :secret
-    param 'Hash', :values
-    param 'String', :yaml_config
-    return_type 'Undef' #?
+    optional_param 'Hash', :values
+    optional_param 'String', :yaml_config
+    return_type 'Undef'
   end
 
   def read(secret, values = {}, yaml_config = '/etc/puppetlabs/puppet/vault.yaml')
     require 'vault'
     require 'yaml'
 
-    Vault.configure do |config|
-      # read in yaml config
-      config_hash = YAML.safe_load(File.read(yaml_config))
+    # read in yaml config
+    config_hash = YAML.safe_load(File.read(yaml_config), [Symbol])
 
+    Vault.configure do |config|
       # The address of the Vault server, also read as ENV["VAULT_ADDR"]
       config.address = config_hash[:address] unless config_hash[:address].nil?
       # The token to authenticate with Vault, also read as ENV["VAULT_TOKEN"]
@@ -80,5 +80,7 @@ Puppet::Functions.create_function(:vault_write) do
       # return secret value
       Vault.logical.write(secret, values)
     end
+    
+    nil
   end
 end
