@@ -4,12 +4,8 @@ require 'json'
 require 'puppet'
 require 'facter'
 
-# DEBUG: initialize params
+# initialize params
 params = JSON.parse(STDIN.read)
-#params = {}
-#params['puppet_master'] = 'localhost'
-#params['challenge_password'] = 'password'
-#params['noop'] = true
 
 # check for connection to master
 begin
@@ -39,6 +35,7 @@ upgrade_cmd << " agent:certname=#{params['certname']} " unless params['certname'
 upgrade_cmd << " agent:server=#{params['server']}" unless params['server'].nil?
 upgrade_cmd << " agent:environment=#{params['environment']}" unless params['environment'].nil?
 upgrade_cmd << ' agent:noop=true' if !params['noop'].nil? && params['noop']
+upgrade_cmd << " agent:runinterval=#{params['runinterval']}" unless params['runinterval'].nil?
 
 # run upgrade command
 stdout, stderr, status = Open3.capture3(upgrade_cmd)

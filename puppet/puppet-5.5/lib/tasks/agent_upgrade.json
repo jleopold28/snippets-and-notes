@@ -27,6 +27,10 @@
      "description": "Specify a non-default directory environment for the node.",
      "type": "Optional[String[1]]"
     },
+    "runinterval": {
+     "description": "Specify a Puppet agent run interval for the node.",
+     "type": "Optional[String[1]]"
+    },
     "noop": {
      "description": "Specify the Puppet agent to run in noop.",
      "type": "Optional[Boolean]"
