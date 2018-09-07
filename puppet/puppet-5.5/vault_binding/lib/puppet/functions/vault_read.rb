@@ -1,4 +1,4 @@
-# TODO: puppet::warn/error/log for stuff; cache vault connection; support for arrays and hashes in vault values?; error checking; docs/tests/enhance https://www.rubydoc.info/gems/vault/0.12.0/Vault/Defaults; input checking
+# TODO: puppet::warn/error/log for stuff; cache vault connection; support for arrays and hashes in vault values?; error checking; docs/tests/enhance https://www.rubydoc.info/gems/vault/0.12.0/Vault/Defaults; input checking; check for jruby and then https://github.com/hashicorp/vault-ruby/issues/179 and https://www.rubydoc.info/gems/vault/0.12.0/Vault/Defaults#ssl_ciphers-class_method (tlsv1.2 cipher list kind of works); Vault.logical.read(secret) changes (.data[:data][:field])? if KV v2 https://www.vaultproject.io/api/secret/kv/kv-v2.html
 # Reads a secret from Vault.
 Puppet::Functions.create_function(:vault_read) do
   # Reads a secret from Vault.
@@ -29,6 +29,12 @@ Puppet::Functions.create_function(:vault_read) do
       # user provided token
       if !config_hash[:token].nil?
         config.token = config_hash[:token]
+
+        # request new token with approle identities
+        unless config_hash[:approle].nil?
+          secret = Vault.auth.approle(Vault.approle.role_id(config_hash[:approle]), Vault.approle.create_secret_id(config_hash[:approle]).data[:secret_id])
+          config.token = secret.auth.client_token
+        end
       # user requests to generate a token specifically for this request
       elsif !config_hash[:generate_token].nil? && config_hash[:generate_token]
         # Request new access token as wrapped response where the TTL of the temporary token is 120s
@@ -63,12 +69,6 @@ Puppet::Functions.create_function(:vault_read) do
       config.ssl_timeout = config_hash[:ssl_timeout] unless config_hash[:ssl_timeout].nil?
       config.open_timeout = config_hash[:open_timeout] unless config_hash[:open_timeout].nil?
       config.read_timeout = config_hash[:read_timeout] unless config_hash[:read_timeout].nil?
-    end
-
-    # TODO cleanup: request new token with approle identities
-    unless config_hash[:approle].nil?
-      token = Vault.auth.approle(Vault.approle.role_id(config_hash[:approle]), Vault.approle.create_secret_id(config_hash[:approle]).data[:secret_id])
-      Vault.token = token.auth.client_token
     end
 
     # check if Vault is sealed
