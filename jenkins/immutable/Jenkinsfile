@@ -1,5 +1,4 @@
-// post steps; terraform vars for platform; comments; puppet and chef; azure and do; serverspec and testinfra; packer and terraform should probably be cloned into branch dir
-// utilize new sequential stages within parallel: https://jenkins.io/blog/2018/07/02/whats-new-declarative-piepline-13x-sequential-stages/
+// post steps; terraform vars for platform; comments; puppet and chef; azure and do; serverspec and testinfra; packer and terraform should probably be cloned into branch dir; update terraform usage; terraform plan outputs need to be unique so config dirs need to be unique (or workspaces/branches/modules whatever) also terraform modifying same tfstate and hidden dirs not good
 //@Library('jenkins-devops-libs@v1.0.0')_
 library identifier: 'jenkins-devops-libs@master', retriever: modernSCM(
   [$class: 'GitSCMSource',
@@ -20,79 +19,99 @@ pipeline {
       parallel {
         stage('Construct Amazon Linux AMI') {
           when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'AWS' } }
-          steps {
-            print 'Checkout Code'
-            checkout([
-              $class: 'GitSCM',
-              doGenerateSubmoduleConfigurations: false,
-              submoduleCfg: [],
-              userRemoteConfigs: [[url: params.SCM_URL]]])
-            print 'Validate Template and Provision Code'
-            script {
-              packer.validate {
-                template = 'lamp-cloud/packer.json'
-                only = 'amazon-ebs'
+          stages {
+            stage('Checkout Code') {
+              steps {
+                checkout([
+                  $class: 'GitSCM',
+                  doGenerateSubmoduleConfigurations: false,
+                  submoduleCfg: [],
+                  userRemoteConfigs: [[url: params.SCM_URL]]])
               }
             }
-            ansiblePlaybook(disableHostKeyChecking: true, extras: '--syntax-check', playbook: 'lamp-cloud/ansible/lamp.yml')
-            print 'Build and Validate AMI'
-            script {
-              packer.build {
-                template = 'lamp-cloud/packer.json'
-                only = 'amazon-ebs'
+            stage('Validate Template and Provision Code') {
+              steps {
+                script {
+                  packer.validate {
+                    template = 'lamp-cloud/packer.json'
+                    only = 'amazon-ebs'
+                  }
+                }
+                ansiblePlaybook(disableHostKeyChecking: true, extras: '--syntax-check', playbook: 'lamp-cloud/ansible/lamp.yml')
+              }
+            }
+            stage('Build and Validate AMI') {
+              script {
+                packer.build {
+                  template = 'lamp-cloud/packer.json'
+                  only = 'amazon-ebs'
+                }
               }
             }
           }
         }
         stage('Construct CentOS Azure VHD') {
           when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'Azure' } }
-          steps {
-            print 'Checkout Code'
-            checkout([
-              $class: 'GitSCM',
-              doGenerateSubmoduleConfigurations: false,
-              submoduleCfg: [],
-              userRemoteConfigs: [[url: params.SCM_URL]]])
-            print 'Validate Template and Provision Code'
-            script {
-              packer.validate {
-                template = 'lamp-cloud/packer.json'
-                only = 'azure-arm'
+          stages {
+            stage('Checkout Code') {
+              steps {
+                checkout([
+                  $class: 'GitSCM',
+                  doGenerateSubmoduleConfigurations: false,
+                  submoduleCfg: [],
+                  userRemoteConfigs: [[url: params.SCM_URL]]])
               }
             }
-            ansiblePlaybook(disableHostKeyChecking: true, extras: '--syntax-check', playbook: 'lamp-cloud/ansible/lamp.yml')
-            print 'Build and Validate Azure VHD'
-            // need to figure this out; azure is not great at this
-            script {
-              packer.build {
-                template = 'lamp-cloud/packer.json'
-                only = 'azure-arm'
+            stage('Validate Template and Provision Code') {
+              steps {
+                script {
+                  packer.validate {
+                    template = 'lamp-cloud/packer.json'
+                    only = 'azure-arm'
+                  }
+                }
+                ansiblePlaybook(disableHostKeyChecking: true, extras: '--syntax-check', playbook: 'lamp-cloud/ansible/lamp.yml')
+              }
+            }
+            stage('Build and Validate VHD') {
+              script {
+                packer.build {
+                  template = 'lamp-cloud/packer.json'
+                  only = 'azure-arm'
+                }
               }
             }
           }
         }
         stage('Construct Ubuntu Droplet Image') {
           when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'DO' } }
-          steps {
-            print 'Checkout Code'
-            checkout([
-              $class: 'GitSCM',
-              doGenerateSubmoduleConfigurations: false,
-              submoduleCfg: [],
-              userRemoteConfigs: [[url: params.SCM_URL]]])
-            print 'Validate Template and Provision Code'
-            script {
-              packer.validate {
-                template = 'lamp-cloud/packer.json'
-                only = 'digitalocean'
+          stages {
+            stage('Checkout Code') {
+              steps {
+                checkout([
+                  $class: 'GitSCM',
+                  doGenerateSubmoduleConfigurations: false,
+                  submoduleCfg: [],
+                  userRemoteConfigs: [[url: params.SCM_URL]]])
               }
             }
-            ansiblePlaybook(disableHostKeyChecking: true, extras: '--syntax-check', playbook: 'lamp-cloud/ansible/lamp.yml')
-            print 'Build and Validate DI'
-            script {
-              packer.build {
-                template = 'lamp-cloud/packer.json'
-                only = 'digitalocean'
+            stage('Validate Template and Provision Code') {
+              steps {
+                script {
+                  packer.validate {
+                    template = 'lamp-cloud/packer.json'
+                    only = 'digitalocean'
+                  }
+                }
+                ansiblePlaybook(disableHostKeyChecking: true, extras: '--syntax-check', playbook: 'lamp-cloud/ansible/lamp.yml')
+              }
+            }
+            stage('Build and Validate Droplet') {
+              script {
+                packer.build {
+                  template = 'lamp-cloud/packer.json'
+                  only = 'digitalocean'
+                }
               }
             }
           }
@@ -105,63 +124,85 @@ pipeline {
       parallel {
         stage('Deploy EC2 with AMI') {
           when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'AWS' } }
-          steps {
-            print 'Checkout Code'
-            checkout([
-              $class: 'GitSCM',
-              doGenerateSubmoduleConfigurations: false,
-              submoduleCfg: [],
-              userRemoteConfigs: [[url: params.TF_MOD_SCM_URL]]])
-            print 'Validate Config'
-            script {
-              terraform.init('terraform')
-              terraform.plan('terraform')
+          stages {
+            stage('Checkout Code') {
+              steps {
+                checkout([
+                  $class: 'GitSCM',
+                  doGenerateSubmoduleConfigurations: false,
+                  submoduleCfg: [],
+                  userRemoteConfigs: [[url: params.TF_MOD_SCM_URL]]])
+              }
+            }
+            stage('Validate Config') {
+              steps {
+                script {
+                  terraform.init('terraform')
+                  terraform.plan('terraform')
+                }
+              }
             }
             // destroy first
-            print 'Create EC2 with AMI'
-            script {
-              terraform.apply('terraform/plan.tfplan')
+            stage('Create EC2 with AMI') {
+              script {
+                terraform.apply('terraform/plan.tfplan')
+              }
             }
           }
         }
         stage('Deploy VM with Azure VHD') {
           when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'Azure' } }
-          steps {
-            print 'Checkout Code'
-            checkout([
-              $class: 'GitSCM',
-              doGenerateSubmoduleConfigurations: false,
-              submoduleCfg: [],
-              userRemoteConfigs: [[url: params.TF_MOD_SCM_URL]]])
-            print 'Validate Config'
-            script {
-              terraform.init('terraform/azure')
-              terraform.plan('terraform/azure')
+          stages {
+            stage('Checkout Code') {
+              steps {
+                checkout([
+                  $class: 'GitSCM',
+                  doGenerateSubmoduleConfigurations: false,
+                  submoduleCfg: [],
+                  userRemoteConfigs: [[url: params.TF_MOD_SCM_URL]]])
+              }
             }
-            // unsure what the minimum required resources are here
-            print 'Create VM with VHD'
-            script {
-              terraform.apply('terraform/azure/plan.tfplan')
+            stage('Validate Config') {
+              steps {
+                script {
+                  terraform.init('terraform')
+                  terraform.plan('terraform')
+                }
+              }
+            }
+            // destroy first; unsure what the minimum required resources are here
+            stage('Create VM with VHD') {
+              script {
+                terraform.apply('terraform/plan.tfplan')
+              }
             }
           }
         }
         stage('Deploy Droplet with Image') {
           when { expression { return params.PLATFORM == 'All' || params.PLATFORM == 'DO' } }
-          steps {
-            print 'Checkout Code'
-            checkout([
-              $class: 'GitSCM',
-              doGenerateSubmoduleConfigurations: false,
-              submoduleCfg: [],
-              userRemoteConfigs: [[url: params.TF_MOD_SCM_URL]]])
-            print 'Validate Config'
-            script {
-              terraform.init('terraform/do')
-              terraform.plan('terraform/do')
+          stages {
+            stage('Checkout Code') {
+              steps {
+                checkout([
+                  $class: 'GitSCM',
+                  doGenerateSubmoduleConfigurations: false,
+                  submoduleCfg: [],
+                  userRemoteConfigs: [[url: params.TF_MOD_SCM_URL]]])
+              }
             }
-            print 'Create Droplet with DI'
-            script {
-              terraform.apply('terraform/do/plan.tfplan')
+            stage('Validate Config') {
+              steps {
+                script {
+                  terraform.init('terraform')
+                  terraform.plan('terraform')
+                }
+              }
+            }
+            // destroy first
+            stage('Create Droplet with DI') {
+              script {
+                terraform.apply('terraform/plan.tfplan')
+              }
             }
           }
         }
