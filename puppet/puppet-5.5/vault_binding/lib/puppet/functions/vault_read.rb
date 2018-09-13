@@ -1,11 +1,11 @@
-# TODO: puppet::warn/error/log for stuff; cache vault connection; support for arrays and hashes in vault values?; error checking; docs/tests/enhance https://www.rubydoc.info/gems/vault/0.12.0/Vault/Defaults; input checking; check for jruby and then https://github.com/hashicorp/vault-ruby/issues/179 and https://www.rubydoc.info/gems/vault/0.12.0/Vault/Defaults#ssl_ciphers-class_method (tlsv1.2 cipher list kind of works); Vault.logical.read(secret) changes (.data[:data][:field])? if KV v2 https://www.vaultproject.io/api/secret/kv/kv-v2.html
+# TODO: redirect vault errors to puppet errors; cache vault connection; error checking; docs/tests/enhance https://www.rubydoc.info/gems/vault/0.12.0/Vault/Defaults; input checking; check for jruby and then https://github.com/hashicorp/vault-ruby/issues/179 and https://www.rubydoc.info/gems/vault/0.12.0/Vault/Defaults#ssl_ciphers-class_method (tlsv1.2 cipher list kind of works)
 # Reads a secret from Vault.
 Puppet::Functions.create_function(:vault_read) do
   # Reads a secret from Vault.
   # @param [String] secret The secret key to retrieve and read.
   # @param [String] field The field to read a value from the secret key.
   # @optional_param [String] yaml_config Optional yaml config file for Vault connection.
-  # @return Variant[String, Numeric, Boolean] Returns secret value.
+  # @return Variant[String, Numeric, Boolean, Array, Hash] Returns secret value.
   # @example Retrieve a secret.
   #   vault_read('secret/bacon', delicious) => true
   dispatch :read do
@@ -14,6 +14,8 @@ Puppet::Functions.create_function(:vault_read) do
     optional_param 'String', :yaml_config
     return_type 'Variant[String, Numeric, Boolean]'
   end
+
+  require 'puppet/util'
 
   def read(secret, field, yaml_config = '/etc/puppetlabs/puppet/vault.yaml')
     require 'vault'
@@ -51,7 +53,7 @@ Puppet::Functions.create_function(:vault_read) do
       # Custom SSL PEM, also read as ENV["VAULT_SSL_CERT"]
       if !config_hash[:ssl_pem_file].nil?
         config.ssl_pem_file = config_hash[:ssl_pem_file]
-      # As an alternative to a pem file, you can provide the raw PEM string, also read in the following order of preference:
+      # As an alternative to a pem file, you can provide the raw PE; Vault.logical.read(secret) changes (.data[:data][:field])? if KV v2 https://www.vaultproject.io/api/secret/kv/kv-v2.htmlM string, also read in the following order of preference:
       # ENV["VAULT_SSL_PEM_CONTENTS_BASE64"] then ENV["VAULT_SSL_PEM_CONTENTS"]
       elsif !config_hash[:ssl_pem_contents].nil?
         config.ssl_pem_contents = config_hash[:ssl_pem_contents]
@@ -72,13 +74,20 @@ Puppet::Functions.create_function(:vault_read) do
     end
 
     # check if Vault is sealed
-    raise 'Vault is currently sealed.' if Vault.sys.seal_status.sealed?
+    raise(Puppet::Error, 'Vault is currently sealed.') if Vault.sys.seal_status.sealed?
 
     # connect to Vault
     Vault.with_retries(Vault::HTTPConnectionError, Vault::HTTPError, Vault::HTTPClientError, Vault::HTTPServerError, attempts: 2, base: 0.05, max_wait: 2.0) do |attempt, except|
+      # warn if exception raised and retry
       warn "Received exception #{except} from Vault on attempt number #{attempt}." unless except.nil?
-      # return secret value
-      Vault.logical.read(secret).data[field.to_sym]
+
+      # read secret if successful
+      secret = Vault.logical.read(secret)
+
+      # notify if the secret does not exist
+      raise(Puppet::Error, "No secret found at #{secret}.") if secret.nil?
+      # is this kv v2? parse it appropriately; otherwise parse for kv v1
+      secret.key?(:data) ? secret.data[:data][field.to_sym] : secret.data[field.to_sym]
     end
   end
 end
