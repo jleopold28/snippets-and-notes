@@ -1,7 +1,7 @@
 {
-  "description": "Run Puppet agent on a node",
+  "description": "Run Puppet agent on a node.",
   "supports_noop": false,
-  "input_method": "stdin", 
+  "input_method": "stdin",
   "parameters": {
     "puppet_master": {
      "description": "Specify the Puppet master to use.",

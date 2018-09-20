@@ -1,4 +1,4 @@
-# TODO: redirect vault errors to puppet errors; cache vault connection; error checking; docs/tests/enhance https://www.rubydoc.info/gems/vault/0.12.0/Vault/Defaults; input checking; check for jruby and then https://github.com/hashicorp/vault-ruby/issues/179 and https://www.rubydoc.info/gems/vault/0.12.0/Vault/Defaults#ssl_ciphers-class_method (tlsv1.2 cipher list kind of works)
+# TODO: redirect vault errors to puppet errors; cache vault connection; error checking; docs/tests/enhance; https://www.rubydoc.info/gems/vault/0.12.0/Vault/Defaults; input checking
 # Reads a secret from Vault.
 Puppet::Functions.create_function(:vault_read) do
   # Reads a secret from Vault.
@@ -12,7 +12,7 @@ Puppet::Functions.create_function(:vault_read) do
     param 'String', :secret
     param 'String', :field
     optional_param 'String', :yaml_config
-    return_type 'Variant[String, Numeric, Boolean]'
+    return_type 'Variant[String, Numeric, Boolean, Array, Hash]'
   end
 
   require 'puppet/util'
@@ -53,7 +53,7 @@ Puppet::Functions.create_function(:vault_read) do
       # Custom SSL PEM, also read as ENV["VAULT_SSL_CERT"]
       if !config_hash[:ssl_pem_file].nil?
         config.ssl_pem_file = config_hash[:ssl_pem_file]
-      # As an alternative to a pem file, you can provide the raw PE; Vault.logical.read(secret) changes (.data[:data][:field])? if KV v2 https://www.vaultproject.io/api/secret/kv/kv-v2.htmlM string, also read in the following order of preference:
+      # As an alternative to a pem file, you can provide the raw PEM string, also read in the following order of preference:
       # ENV["VAULT_SSL_PEM_CONTENTS_BASE64"] then ENV["VAULT_SSL_PEM_CONTENTS"]
       elsif !config_hash[:ssl_pem_contents].nil?
         config.ssl_pem_contents = config_hash[:ssl_pem_contents]
