@@ -1,0 +1,22 @@
+---
+# tasks file for ntp-client
+- name: deploy ntp.conf
+  copy:
+    src: files/ntp.conf
+    dest: /etc/ntp.conf
+    owner: root
+    group: root
+    backup: true
+    notify: restart ntpd
+
+- name: enable ntpd
+  service:
+    name: ntpd
+    enabled: true
+    runlevel: 2345
+
+handlers:
+- name: restart ntpd
+  service:
+    name: ntpd
+    state: restarted

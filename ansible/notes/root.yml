@@ -1,0 +1,7 @@
+---
+# tasks file for root-controls
+- name: configure root user
+  user:
+    name: root
+    password: abcdefhijk
+    comment: "root-{{ ansible_hostname }}"
