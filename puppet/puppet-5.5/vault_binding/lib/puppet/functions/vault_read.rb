@@ -27,23 +27,6 @@ Puppet::Functions.create_function(:vault_read) do
     Vault.configure do |config|
       # The address of the Vault server, also read as ENV["VAULT_ADDR"]
       config.address = config_hash[:address] unless config_hash[:address].nil?
-      # The token to authenticate with Vault, also read as ENV["VAULT_TOKEN"]
-      # user provided token
-      if !config_hash[:token].nil?
-        config.token = config_hash[:token]
-
-        # request new token with approle identities
-        unless config_hash[:approle].nil?
-          secret = Vault.auth.approle(Vault.approle.role_id(config_hash[:approle]), Vault.approle.create_secret_id(config_hash[:approle]).data[:secret_id])
-          config.token = secret.auth.client_token
-        end
-      # user requests to generate a token specifically for this request
-      elsif !config_hash[:generate_token].nil? && config_hash[:generate_token]
-        # Request new access token as wrapped response where the TTL of the temporary token is 120s
-        wrapped = Vault.auth_token.create(wrap_ttl: '120s')
-        # Unwrap wrapped response for final token using the initial temporary token.
-        config.token = Vault.logical.unwrap_token(wrapped)
-      end
 
       # Proxy connection information, also read as ENV["VAULT_PROXY_(thing)"]
       config.proxy_address = config_hash[:proxy_address] unless config_hash[:proxy_address].nil?
@@ -71,6 +54,24 @@ Puppet::Functions.create_function(:vault_read) do
       config.ssl_timeout = config_hash[:ssl_timeout] unless config_hash[:ssl_timeout].nil?
       config.open_timeout = config_hash[:open_timeout] unless config_hash[:open_timeout].nil?
       config.read_timeout = config_hash[:read_timeout] unless config_hash[:read_timeout].nil?
+      
+      # The token to authenticate with Vault, also read as ENV["VAULT_TOKEN"]
+      # user provided token
+      if !config_hash[:token].nil?
+        config.token = config_hash[:token]
+
+        # request new token with approle identities
+        unless config_hash[:approle].nil?
+          secret_id = Vault.auth.approle(Vault.approle.role_id(config_hash[:approle]), Vault.approle.create_secret_id(config_hash[:approle]).data[:secret_id])
+          config.token = secret_id.auth.client_token
+        end
+      # user requests to generate a token specifically for this request
+      elsif !config_hash[:generate_token].nil? && config_hash[:generate_token]
+        # Request new access token as wrapped response where the TTL of the temporary token is 120s
+        wrapped = Vault.auth_token.create(wrap_ttl: '120s')
+        # Unwrap wrapped response for final token using the initial temporary token.
+        config.token = Vault.logical.unwrap_token(wrapped)
+      end
     end
 
     # check if Vault is sealed
